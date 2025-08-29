@@ -1,0 +1,46 @@
+[
+  {
+    "_id": "user_1",
+    "name": "Admin User",
+    "email": "admin@internationaltijarat.com",
+    "password": "$2a$10$example.hash.for.admin.password",
+    "role": "admin",
+    "phone": "+1234567890",
+    "address": "123 Admin Street, Admin City",
+    "createdAt": "2025-07-29T15:27:39.185Z",
+    "updatedAt": "2025-07-29T15:27:39.185Z"
+  },
+  {
+    "_id": "user_2",
+    "name": "John Smith",
+    "email": "john.smith@email.com",
+    "password": "$2a$10$example.hash.for.customer.password",
+    "role": "customer",
+    "phone": "+1987654321",
+    "address": "456 Customer Ave, Customer City",
+    "createdAt": "2025-07-29T15:27:39.185Z",
+    "updatedAt": "2025-07-29T15:27:39.185Z"
+  },
+  {
+    "_id": "user_3",
+    "name": "Sarah Johnson",
+    "email": "sarah.johnson@email.com",
+    "password": "$2a$10$example.hash.for.customer.password2",
+    "role": "customer",
+    "phone": "+1555123456",
+    "address": "789 Buyer Lane, Shopping Town",
+    "createdAt": "2025-07-29T15:27:39.185Z",
+    "updatedAt": "2025-07-29T15:27:39.185Z"
+  },
+  {
+    "_id": "user_4",
+    "name": "Mike Wilson",
+    "email": "mike.wilson@email.com",
+    "password": "$2a$10$example.hash.for.customer.password3",
+    "role": "customer",
+    "phone": "+1444789123",
+    "address": "321 Commerce Blvd, Trade City",
+    "createdAt": "2025-07-29T15:27:39.185Z",
+    "updatedAt": "2025-07-29T15:27:39.185Z"
+  }
+]

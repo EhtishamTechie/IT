@@ -1,0 +1,96 @@
+# 🧪 Load Testing Configuration for International Tijarat
+# This file tests the production-ready caching and security features
+
+config:
+  target: 'http://localhost:5000'
+  phases:
+    - duration: 30
+      arrivalRate: 5
+      name: "Warm up phase"
+    - duration: 60
+      arrivalRate: 20
+      name: "Normal load"
+    - duration: 60 
+      arrivalRate: 50
+      name: "Peak load testing"
+    - duration: 30
+      arrivalRate: 100
+      name: "Stress test"
+    - duration: 30
+      arrivalRate: 10
+      name: "Cool down"
+  
+  http:
+    timeout: 10
+    pool: 50
+
+scenarios:
+  # Test cached endpoints (should be fast ~30ms)
+  - name: "Products API (Cached)"
+    weight: 40
+    flow:
+      - get:
+          url: "/api/products"
+          capture:
+            - json: "$.products.length"
+              as: "productCount"
+          expect:
+            - statusCode: 200
+            - hasProperty: "products"
+      - think: 1
+
+  # Test individual product endpoint (cached)
+  - name: "Product Details (Cached)"  
+    weight: 25
+    flow:
+      - get:
+          url: "/api/products/{{ $randomInt(1, 20) }}"
+          expect:
+            - statusCode: [200, 404] # 404 is acceptable for non-existent products
+      - think: 2
+
+  # Test categories endpoint (long cache)
+  - name: "Categories (Long Cache)"
+    weight: 15
+    flow:
+      - get:
+          url: "/api/products/categories"
+          expect:
+            - statusCode: 200
+      - think: 1
+
+  # Test search (not cached, should be slower but functional)
+  - name: "Product Search"
+    weight: 10
+    flow:
+      - get:
+          url: "/api/products/search"
+          qs:
+            q: "{{ $randomString(5) }}"
+          expect:
+            - statusCode: 200
+      - think: 3
+
+  # Test health endpoint (should always be fast)
+  - name: "Health Check"
+    weight: 10  
+    flow:
+      - get:
+          url: "/api/health"
+          expect:
+            - statusCode: 200
+            - hasProperty: "status"
+            - json: "$.status"
+              value: "OK"
+
+# Performance expectations
+expect:
+  thresholds:
+    - http.response_time:
+        p95: 500  # 95% of requests under 500ms
+        p99: 1000 # 99% of requests under 1000ms
+    - http.response_time.cached: 
+        p95: 100  # Cached endpoints should be much faster
+    - http.errors: 
+        rate: 0.01 # Less than 1% error rate
+    - http.request_rate: 50 # Support at least 50 requests/second

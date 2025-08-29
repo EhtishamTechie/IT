@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Production builds
+backend/dist/
+frontend/dist/
+frontend/build/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.prod
+.env.vercel
+backend/.env*
+
+# Database backups (contains sensitive data)
+backend/database-backup/
+
+# Cache and temp files
+.cache/
+.tmp/
+.temp/
+*.log
+*.tmp
+
+# IDE files
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Debug files
+debug*.js
+debug*.html
+*.debug.js
+
+# Test files (if any)
+coverage/
+.nyc_output/
+
+# Uploaded files
+uploads/
+public/uploads/
+
+# Redis dump
+*.rdb
+
+# PM2 files
+ecosystem.config.js

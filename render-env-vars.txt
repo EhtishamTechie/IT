@@ -1,0 +1,31 @@
+# Environment Variables for Render.com
+# Copy these to Render's Environment Variables section
+
+NODE_ENV=production
+PORT=10000
+
+# MongoDB Atlas
+MONGODB_URI=mongodb+srv://mtahalakti:umcqmn70zgZRtVnC@internationaltijarat.ivnevjd.mongodb.net/internationaltijarat?retryWrites=true&w=majority&appName=InternationalTijarat
+
+# Security
+JWT_SECRET=a09230f7c1afe97077d23101b6ac3aca6f6531dbcae3564981313545c79f6cdc
+SESSION_SECRET=f343d4e7c02e3bfddbc92b2e2f2380494acc9cae9397870b
+
+# Cache (Memory fallback for Render)
+REDIS_URL=
+REDIS_PASSWORD=
+
+# Security Settings
+BCRYPT_ROUNDS=12
+MAX_FILE_SIZE=5242880
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# CORS (will update with Render domain)
+CLIENT_URL=http://localhost:3000
+ADMIN_URL=http://localhost:3000
+
+# Email (placeholder)
+EMAIL_USER=noreply@internationaltijarat.com
+EMAIL_PASS=placeholder
+EMAIL_FROM=International Tijarat <noreply@internationaltijarat.com>

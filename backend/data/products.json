@@ -1,0 +1,203 @@
+[
+  {
+    "_id": "507f1f77bcf86cd799439011",
+    "title": "iPhone 15 Pro Max",
+    "keywords": [
+      "iPhone",
+      "Apple",
+      "smartphone",
+      "mobile",
+      "iOS"
+    ],
+    "description": "Latest iPhone with advanced camera system and titanium design",
+    "price": 1199.99,
+    "mainCategory": "Electronics",
+    "subCategory": "Mobile Phones",
+    "image": "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.8,
+    "brand": "Apple",
+    "createdAt": "2025-07-27T21:49:20.603Z"
+  },
+  {
+    "_id": "507f1f77bcf86cd799439012",
+    "title": "Samsung 65\" 4K Smart TV",
+    "keywords": [
+      "Samsung",
+      "TV",
+      "4K",
+      "smart TV",
+      "entertainment"
+    ],
+    "description": "Ultra HD 4K Smart TV with HDR and built-in streaming apps",
+    "price": 899.99,
+    "mainCategory": "Electronics",
+    "subCategory": "TV & Audio",
+    "image": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.6,
+    "brand": "Samsung",
+    "createdAt": "2025-07-27T21:49:20.606Z"
+  },
+  {
+    "_id": "507f1f77bcf86cd799439013",
+    "title": "Sony Alpha A7 IV Camera",
+    "keywords": [
+      "Sony",
+      "camera",
+      "photography",
+      "mirrorless",
+      "professional"
+    ],
+    "description": "Professional mirrorless camera with 33MP full-frame sensor",
+    "price": 2499.99,
+    "mainCategory": "Electronics",
+    "subCategory": "Cameras",
+    "image": "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.9,
+    "brand": "Sony",
+    "createdAt": "2025-07-27T21:49:20.606Z"
+  },
+  {
+    "_id": "507f1f77bcf86cd799439014",
+    "title": "Nike Air Jordan 1 Retro",
+    "keywords": [
+      "Nike",
+      "Jordan",
+      "sneakers",
+      "basketball",
+      "shoes"
+    ],
+    "description": "Classic basketball sneakers with premium leather construction",
+    "price": 179.99,
+    "mainCategory": "Fashion",
+    "subCategory": "Men's Fashion",
+    "image": "https://images.unsplash.com/photo-1551107696-a4b0c5a0d9a2?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.7,
+    "brand": "Nike",
+    "createdAt": "2025-07-27T21:49:20.606Z"
+  },
+  {
+    "_id": "507f1f77bcf86cd799439015",
+    "title": "Zara Floral Summer Dress",
+    "keywords": [
+      "Zara",
+      "dress",
+      "summer",
+      "floral",
+      "women"
+    ],
+    "description": "Elegant floral print dress perfect for summer occasions",
+    "price": 59.99,
+    "mainCategory": "Fashion",
+    "subCategory": "Women's Fashion",
+    "image": "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.4,
+    "brand": "Zara",
+    "createdAt": "2025-07-27T21:49:20.606Z"
+  },
+  {
+    "_id": "507f1f77bcf86cd799439016",
+    "title": "Chanel No. 5 Perfume",
+    "keywords": [
+      "Chanel",
+      "perfume",
+      "fragrance",
+      "luxury",
+      "classic"
+    ],
+    "description": "Iconic luxury fragrance with timeless floral notes",
+    "price": 139.99,
+    "mainCategory": "Beauty & Personal Care",
+    "subCategory": "Fragrances",
+    "image": "https://images.unsplash.com/photo-1588405748880-12d1d2a59d32?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.5,
+    "brand": "Chanel",
+    "createdAt": "2025-07-27T21:49:20.606Z"
+  },
+  {
+    "_id": "507f1f77bcf86cd799439017",
+    "title": "IKEA MALM Bed Frame",
+    "keywords": [
+      "IKEA",
+      "bed",
+      "furniture",
+      "bedroom",
+      "modern"
+    ],
+    "description": "Modern bed frame with clean lines and practical storage",
+    "price": 199.99,
+    "mainCategory": "Home & Furniture",
+    "subCategory": "Bedroom",
+    "image": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.3,
+    "brand": "IKEA",
+    "createdAt": "2025-07-27T21:49:20.606Z"
+  },
+  {
+    "_id": "507f1f77bcf86cd799439018",
+    "title": "Peloton Exercise Bike",
+    "keywords": [
+      "Peloton",
+      "exercise bike",
+      "fitness",
+      "cardio",
+      "home gym"
+    ],
+    "description": "Interactive exercise bike with live and on-demand classes",
+    "price": 1499.99,
+    "mainCategory": "Sports & Outdoors",
+    "subCategory": "Fitness Equipment",
+    "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop",
+    "inStock": true,
+    "rating": 4.7,
+    "brand": "Peloton",
+    "createdAt": "2025-07-27T21:49:20.606Z"
+  },
+  {
+    "_id": "product_1753813131312",
+    "title": "1st tested product",
+    "keywords": [
+      "1",
+      "",
+      "3",
+      "5"
+    ],
+    "description": "testing the addition of product throught admin panel",
+    "price": 23,
+    "mainCategory": "[\"Beauty & Cosmetic\"]",
+    "subCategory": "[\"Makeup\"]",
+    "image": "uploads\\1753813131304.jpg",
+    "inStock": true,
+    "rating": 4.5,
+    "brand": "Mock Brand",
+    "createdAt": "2025-07-29T18:18:51.312Z",
+    "updatedAt": "2025-07-29T18:18:51.312Z"
+  },
+  {
+    "_id": "product_1753814051102",
+    "title": "testing product 2",
+    "keywords": [
+      "5",
+      "6",
+      "7",
+      "8",
+      ""
+    ],
+    "description": "testing the 2 nd product after having some updates in add new product display",
+    "price": 78.65,
+    "mainCategory": "[\"Fashion & Style\"]",
+    "subCategory": "[\"Women\"]",
+    "image": "uploads\\1753814050748.jpg",
+    "inStock": true,
+    "rating": 4.5,
+    "brand": "Mock Brand",
+    "createdAt": "2025-07-29T18:34:11.102Z",
+    "updatedAt": "2025-07-29T18:34:11.102Z"
+  }
+]

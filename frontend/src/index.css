@@ -1,0 +1,133 @@
+@import "tailwindcss";
+
+/* Custom animations for notifications */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out;
+}
+
+.animate-slide-out-right {
+  animation: slide-out-right 0.3s ease-in;
+}
+
+/* Line clamp utilities for text truncation */
+.line-clamp-1 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+}
+
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* Enhanced Scrollbar Styles for Professional UI */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+  transition: background-color 0.2s ease;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* Dark theme scrollbar */
+.scrollbar-thumb-gray-700 {
+  scrollbar-color: #374151 #1f2937;
+}
+
+.scrollbar-thumb-gray-700::-webkit-scrollbar-thumb {
+  background: #374151;
+}
+
+.scrollbar-thumb-gray-700::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+.scrollbar-track-gray-900::-webkit-scrollbar-track {
+  background: #1f2937;
+}
+
+/* Professional scrollbar for light themes */
+.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+.scrollbar-thumb-gray-300::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.scrollbar-track-gray-100::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+/* Smooth scrolling behavior */
+html {
+  scroll-behavior: smooth;
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+/* Enhanced focus styles for accessibility */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2;
+}
+
+/* Custom gradient backgrounds */
+.gradient-orange {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+.gradient-black-orange {
+  background: linear-gradient(135deg, #000000 0%, #1f2937 50%, #f97316 100%);
+}

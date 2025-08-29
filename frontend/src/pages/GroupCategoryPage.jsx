@@ -1,0 +1,577 @@
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useCart } from "../contexts/CartContext";
+import { useAuth } from "../contexts/AuthContext";
+import ProductService from "../services/productService";
+import { getUploadUrl, getImageUrl } from "../config";
+
+// Category mapping for navigation - UPDATED to handle both admin and vendor categories
+const categoryMap = {
+  "beauty-personal-care": "Beauty & Personal Care",
+  "electronics": "Electronics", 
+  "home-furniture": "Home & Furniture",
+  "fashion": "Fashion",
+  "groceries-essentials": "Groceries & Essentials",
+  "sports-outdoors": "Sports & Outdoors",
+  "salt-products": "Salt Products"
+};
+
+// Helper function to get category name from URL parameter
+const getCategoryNameFromUrl = (groupName) => {
+  // First try the predefined mapping
+  if (categoryMap[groupName]) {
+    return categoryMap[groupName];
+  }
+  
+  // If not found, convert URL slug to readable name
+  // This handles vendor categories that might not be in our mapping
+  return groupName
+    .split('-')
+    .map(word => {
+      // Handle special cases
+      if (word.toLowerCase() === 'and') return '&';
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(' ');
+};
+
+const GroupCategoryPage = () => {
+  // Get the actual groupName from URL parameters
+  const { groupName } = useParams();
+  
+  // State for products with pagination
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [error, setError] = useState(null);
+  const [hasNextPage, setHasNextPage] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  
+  // UI state
+  const [quantities, setQuantities] = useState({});
+  const [sortBy, setSortBy] = useState("newest");
+  const [viewMode, setViewMode] = useState("grid");
+  const [addingToCart, setAddingToCart] = useState({});
+  const [errorMessages, setErrorMessages] = useState({});
+  
+  // Infinite scroll refs
+  const observer = useRef();
+  const lastProductElementRef = useCallback(node => {
+    if (loadingMore) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage && !loading) {
+        loadMoreProducts();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loadingMore, hasNextPage, loading]);
+  
+  // Use cart and auth contexts - UPDATED TO MATCH AllProductsPage
+  const { addToCart: addToCartContext, cartItems, loading: cartLoading, error: cartError } = useCart();
+  const { isAuthenticated } = useAuth();
+
+  // Convert group name to display format
+  const displayGroup = useMemo(() => 
+    getCategoryNameFromUrl(groupName), [groupName]
+  );
+
+  // Load products with server-side category filtering and pagination
+  const loadProducts = useCallback(async (page = 1, resetProducts = true) => {
+    try {
+      if (page === 1) {
+        setLoading(true);
+      } else {
+        setLoadingMore(true);
+      }
+      setError(null);
+      
+      // Get the mapped category name for server-side filtering
+      const categoryName = getCategoryNameFromUrl(groupName);
+      if (!categoryName) {
+        throw new Error(`No category mapping found for groupName: ${groupName}`);
+      }
+      
+      console.log(`🔍 Loading products - Page: ${page}, Category: ${categoryName}, Sort: ${sortBy}`);
+      
+      // Build filters for API call with server-side filtering
+      const apiFilters = {
+        page,
+        limit: 20,
+        category: categoryName, // Server-side category filtering
+        ...(sortBy && sortBy !== 'relevance' && { sort: sortBy })
+      };
+      
+      console.log('📋 API Filters:', apiFilters);
+      
+      const result = await ProductService.getAllProducts(apiFilters);
+      console.log('📦 API Response:', result);
+      
+      if (result.success) {
+        const newProducts = result.data || [];
+        console.log(`📊 Received ${newProducts.length} products for page ${page}`);
+        
+        if (resetProducts || page === 1) {
+          setProducts(newProducts);
+        } else {
+          setProducts(prev => [...prev, ...newProducts]);
+        }
+        
+        // Handle pagination metadata from API response
+        setTotalProducts(result.totalProducts || 0);
+        setHasNextPage(result.hasNextPage || false);
+        setCurrentPage(page);
+        
+        // Initialize quantities for new products
+        if (newProducts.length > 0) {
+          const qtyInit = {};
+          newProducts.forEach((p) => (qtyInit[p._id] = 1));
+          setQuantities(prev => ({ ...prev, ...qtyInit }));
+        }
+        
+      } else {
+        setError(result.error || 'Failed to load products');
+      }
+    } catch (err) {
+      console.error("Error loading category products:", err);
+      setError('Failed to load products. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  }, [groupName, sortBy]);
+
+  // Load more products for infinite scroll
+  const loadMoreProducts = useCallback(() => {
+    if (!loadingMore && hasNextPage && !loading) {
+      loadProducts(currentPage + 1, false);
+    }
+  }, [currentPage, hasNextPage, loadingMore, loading, loadProducts]);
+
+  useEffect(() => {
+    // SEO: Dynamic document title
+    document.title = `${displayGroup.charAt(0).toUpperCase() + displayGroup.slice(1)} Products - International Tijarat`;
+    
+    if (groupName) {
+      setCurrentPage(1);
+      setHasNextPage(true);
+      loadProducts(1, true);
+    }
+  }, [groupName, loadProducts]);
+
+  // Reload products when sort changes
+  useEffect(() => {
+    if (groupName) {
+      setCurrentPage(1);
+      setHasNextPage(true);
+      loadProducts(1, true);
+    }
+  }, [sortBy, groupName, loadProducts]);
+
+  // Since we're using server-side sorting, just use products directly
+  const sortedProducts = useMemo(() => {
+    return products;
+  }, [products]);
+
+  const handleQuantityChange = useCallback((productId, value) => {
+    const newQuantity = Math.max(1, parseInt(value));
+    setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
+  }, []);
+
+  const addToCart = useCallback(async (product) => {
+    // Clear any previous error messages for this product
+    setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+    
+    try {
+      // Set loading state immediately
+      setAddingToCart(prev => ({ ...prev, [product._id]: true }));
+      
+      // Call addToCart and wait for result
+      const quantityToAdd = quantities[product._id] || 1;
+      const result = await addToCartContext(product, quantityToAdd);
+      
+      if (result && result.success) {
+        // Success - the cart state will automatically update to show "In Cart"
+        console.log(`${product.title || product.name} (x${quantityToAdd}) added to cart successfully`);
+      } else {
+        // Handle specific error cases
+        const errorMsg = result?.error || 'Failed to add to cart';
+        setErrorMessages(prev => ({ ...prev, [product._id]: errorMsg }));
+        
+        // Clear error message after delay
+        setTimeout(() => {
+          setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+        }, 4000);
+        
+        console.error('Cart operation failed:', errorMsg);
+      }
+      
+    } catch (error) {
+      // Handle unexpected errors
+      const errorMsg = 'Something went wrong. Please try again.';
+      setErrorMessages(prev => ({ ...prev, [product._id]: errorMsg }));
+      
+      setTimeout(() => {
+        setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+      }, 4000);
+      
+      console.error('Error adding to cart:', error);
+    } finally {
+      // Always clear loading state
+      setAddingToCart(prev => ({ ...prev, [product._id]: false }));
+    }
+  }, [quantities, addToCartContext]);
+
+  // Helper function to check if product is in cart and get quantity
+  const getCartItemQuantity = (productId) => {
+    // Safety check: ensure cartItems exists and is an array
+    if (!cartItems || !Array.isArray(cartItems)) {
+      return 0;
+    }
+    
+    // Check for both direct _id and productData._id structures (backend vs local)
+    const cartItem = cartItems.find(item => 
+      item._id === productId || 
+      item.productData?._id === productId ||
+      item.productId === productId
+    );
+    
+    return cartItem ? (cartItem.quantity || 0) : 0;
+  };
+
+  // Helper function to check if product is in cart
+  const isProductInCart = (productId) => {
+    return getCartItemQuantity(productId) > 0;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-gray-200 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-orange-500 border-t-transparent absolute top-0 left-1/2 transform -translate-x-1/2"></div>
+          </div>
+          <p className="text-gray-600 font-medium">Loading {displayGroup} products...</p>
+          <p className="text-gray-500 text-sm mt-1">Please wait while we fetch the latest products</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 text-xl mb-4">⚠️</div>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 capitalize">
+                {displayGroup} Products
+              </h1>
+              <p className="text-gray-600 mt-2">
+                {products.length} products found
+              </p>
+            </div>
+            
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="newest">Newest First</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="popularity">Most Popular</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Products */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Products Count */}
+        {totalProducts > 0 && (
+          <div className="mb-6">
+            <p className="text-gray-600">
+              Showing {products.length} of {totalProducts} products in "{displayGroup}"
+            </p>
+          </div>
+        )}
+
+        {products.length === 0 && !loading ? (
+          <div className="text-center py-12">
+            <div className="text-gray-400 text-6xl mb-4">
+              <svg className="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-medium text-gray-900 mb-2">No products found</h3>
+            <p className="text-gray-500">No products available in this category yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {sortedProducts.map((product, index) => (
+              <div
+                key={product._id}
+                ref={index === sortedProducts.length - 1 ? lastProductElementRef : null}
+              >
+                <ProductCard
+                  product={product}
+                  quantity={quantities[product._id] || 1}
+                  onQuantityChange={(value) => handleQuantityChange(product._id, value)}
+                  onAddToCart={() => addToCart(product)}
+                  isAddingToCart={addingToCart[product._id]}
+                  errorMessage={errorMessages[product._id]}
+                  cartQuantity={getCartItemQuantity(product._id)}
+                  isInCart={isProductInCart(product._id)}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Loading More Indicator */}
+        {loadingMore && (
+          <div className="text-center mt-12 mb-8">
+            <div className="inline-flex items-center space-x-2 bg-white rounded-full px-6 py-3 shadow-lg border border-gray-100">
+              <div className="relative">
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200"></div>
+                <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent absolute top-0 left-0"></div>
+              </div>
+              <span className="text-gray-700 font-medium">Loading more products...</span>
+            </div>
+          </div>
+        )}
+
+        {/* End of Products Message */}
+        {!hasNextPage && products.length > 0 && !loading && (
+          <div className="text-center mt-12 mb-8">
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-50 to-orange-100 rounded-full px-6 py-3 border border-orange-200">
+              <div className="text-left">
+                <p className="text-gray-800 font-semibold">You've reached the end!</p>
+                <p className="text-gray-600 text-sm">
+                  {totalProducts} products total in "{displayGroup}"
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Product Card Component
+const ProductCard = ({ 
+  product, 
+  quantity, 
+  onQuantityChange, 
+  onAddToCart, 
+  isAddingToCart = false,
+  errorMessage = null,
+  cartQuantity = 0,
+  isInCart = false 
+}) => {
+  const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
+  // Navigate to product detail page
+  const handleProductClick = () => {
+    console.log('🔗 Navigating to product from GroupCategoryPage:', {
+      productId: product._id,
+      title: product.title,
+      fullProduct: product
+    });
+    if (!product._id) {
+      console.error('❌ Product ID is missing!', product);
+      return;
+    }
+    navigate(`/product/${product._id}`);
+  };
+
+  // Determine button state with proper priority - CART STATE DRIVEN
+  const getButtonState = () => {
+    if (isAddingToCart) return 'loading';
+    if (errorMessage) return 'error';
+    if (isInCart && cartQuantity > 0) return 'inCart';  // Direct cart state check
+    if (!product.stock || product.stock === 0) return 'outOfStock';
+    return 'addToCart';
+  };
+
+  const buttonState = getButtonState();
+
+  // Button styling based on state
+  const getButtonStyles = () => {
+    switch (buttonState) {
+      case 'loading':
+        return 'bg-orange-400 text-white cursor-not-allowed';
+      case 'error':
+        return 'bg-red-500 hover:bg-red-600 text-white';
+      case 'inCart':
+        return 'bg-blue-500 hover:bg-blue-600 text-white';
+      case 'addToCart':
+        return 'bg-orange-500 text-white hover:bg-orange-600';
+      case 'outOfStock':
+        return 'bg-gray-300 text-gray-500 cursor-not-allowed';
+      default:
+        return 'bg-orange-500 text-white hover:bg-orange-600';
+    }
+  };
+
+  // Button content based on state
+  const getButtonContent = () => {
+    switch (buttonState) {
+      case 'loading':
+        return 'Adding...';
+      case 'error':
+        return 'Try Again';
+      case 'inCart':
+        return `In Cart (${cartQuantity})`;
+      case 'addToCart':
+        return 'Add to Cart';
+      case 'outOfStock':
+        return 'Out of Stock';
+      default:
+        return 'Add to Cart';
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
+      {/* Image - Clickable */}
+      <div 
+        className="relative aspect-square overflow-hidden cursor-pointer"
+        onClick={handleProductClick}
+      >
+        {!imageError ? (
+          <img
+            src={getImageUrl('products', product.image)}
+            alt={product.title || product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={handleImageError}
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+        )}
+
+        {/* Discount Badge */}
+        {product.discount > 0 && (
+          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+            -{product.discount}%
+          </div>
+        )}
+      </div>
+
+      {/* Details */}
+      <div className="p-4">
+        <h3 
+          className="font-medium text-gray-900 mb-2 line-clamp-2 cursor-pointer hover:text-orange-600 transition-colors"
+          onClick={handleProductClick}
+        >
+          {product.title || product.name}
+        </h3>
+        
+        {/* Vendor Information */}
+        {product.vendor && (
+          <div className="mb-2">
+            <p className="text-xs text-gray-500">
+              Sold by: <span className="text-orange-600 font-medium">
+                {typeof product.vendor === 'object' ? product.vendor.businessName : product.vendor}
+              </span>
+            </p>
+          </div>
+        )}
+        
+        {/* Price */}
+        <div className="text-lg font-bold text-gray-900 mb-3">
+          ${product.price}
+        </div>
+
+        {/* Stock Status - Hide counts from customers */}
+        <div className="mb-3">
+          {product.stock !== undefined ? (
+            product.stock > 0 ? (
+              <div className="text-sm">
+                <span className="text-green-600">
+                  In Stock
+                </span>
+              </div>
+            ) : (
+              <div className="text-sm text-red-600 font-medium">
+                Out of Stock
+              </div>
+            )
+          ) : (
+            <div className="text-sm text-gray-500">
+              Stock info unavailable
+            </div>
+          )}
+        </div>
+
+        {/* Quantity and Actions */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm text-gray-600">Qty:</label>
+            <input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => onQuantityChange(e.target.value)}
+              className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
+            />
+          </div>
+          
+          <button
+            onClick={onAddToCart}
+            disabled={isAddingToCart || buttonState === 'outOfStock'}
+            className={`w-full py-2 rounded-lg font-medium transition-colors text-sm ${getButtonStyles()}`}
+            title={errorMessage || ''}
+          >
+            {getButtonContent()}
+          </button>
+
+          {/* Error Message Display */}
+          {errorMessage && (
+            <div className="mt-2 text-xs text-red-600 text-center bg-red-50 py-1 px-2 rounded">
+              {errorMessage}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GroupCategoryPage;

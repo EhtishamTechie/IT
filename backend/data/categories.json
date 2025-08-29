@@ -1,0 +1,152 @@
+[
+  {
+    "_id": "cat_1",
+    "name": "Electronics",
+    "description": "Electronic devices and gadgets",
+    "parentCategory": null,
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.207Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_2",
+    "name": "Mobile Phones",
+    "description": "Smartphones and mobile devices",
+    "parentCategory": {
+      "_id": "cat_1",
+      "name": "Electronics"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_3",
+    "name": "TV & Audio",
+    "description": "Televisions and audio equipment",
+    "parentCategory": {
+      "_id": "cat_1",
+      "name": "Electronics"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_4",
+    "name": "Cameras",
+    "description": "Digital cameras and photography equipment",
+    "parentCategory": {
+      "_id": "cat_1",
+      "name": "Electronics"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_5",
+    "name": "Fashion",
+    "description": "Clothing and fashion items",
+    "parentCategory": null,
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_6",
+    "name": "Men's Fashion",
+    "description": "Clothing for men",
+    "parentCategory": {
+      "_id": "cat_5",
+      "name": "Fashion"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_7",
+    "name": "Women's Fashion",
+    "description": "Clothing for women",
+    "parentCategory": {
+      "_id": "cat_5",
+      "name": "Fashion"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_8",
+    "name": "Beauty & Personal Care",
+    "description": "Beauty products and personal care items",
+    "parentCategory": null,
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_9",
+    "name": "Fragrances",
+    "description": "Perfumes and fragrances",
+    "parentCategory": {
+      "_id": "cat_8",
+      "name": "Beauty & Personal Care"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_10",
+    "name": "Home & Furniture",
+    "description": "Home decor and furniture",
+    "parentCategory": null,
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_11",
+    "name": "Bedroom",
+    "description": "Bedroom furniture and decor",
+    "parentCategory": {
+      "_id": "cat_10",
+      "name": "Home & Furniture"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_12",
+    "name": "Sports & Outdoors",
+    "description": "Sports equipment and outdoor gear",
+    "parentCategory": null,
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_13",
+    "name": "Fitness Equipment",
+    "description": "Exercise and fitness equipment",
+    "parentCategory": {
+      "_id": "cat_12",
+      "name": "Sports & Outdoors"
+    },
+    "isActive": true,
+    "createdAt": "2025-07-29T15:27:39.208Z",
+    "updatedAt": "2025-07-29T15:27:39.208Z"
+  },
+  {
+    "_id": "cat_1753803650530",
+    "name": "testing category1",
+    "description": "i am just testng",
+    "parentCategory": null,
+    "isActive": true,
+    "createdAt": "2025-07-29T15:40:50.530Z",
+    "updatedAt": "2025-07-29T15:40:50.530Z"
+  }
+]

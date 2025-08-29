@@ -1,0 +1,154 @@
+import React, { useState, useEffect } from 'react';
+import { Box, Button, CircularProgress, Typography } from '@mui/material';
+import PreviewIcon from '@mui/icons-material/Preview';
+import { toast } from 'react-toastify';
+import API from '../../../utils/API';
+import BannerPreview from './BannerPreview';
+
+const BannerManagementNew = () => {
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [isPreviewMode, setIsPreviewMode] = useState(false);
+    const [slides, setSlides] = useState([]);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [title, setTitle] = useState('');
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [selectedPrimaryProduct, setSelectedPrimaryProduct] = useState(null);
+    const [selectedSecondaryProducts, setSelectedSecondaryProducts] = useState([]);
+
+    useEffect(() => {
+        loadBannerData();
+    }, []);
+
+    const loadBannerData = async () => {
+        try {
+            const response = await API.get('/banner');
+            setSlides(response.data);
+        } catch (error) {
+            console.error('Error loading banner data:', error);
+            toast.error('Failed to load banner data');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSaveSlide = async () => {
+        // Initial validation
+        const validationErrors = [];
+        
+        if (!title?.trim()) validationErrors.push('Slide title is required');
+        if (!selectedCategory?._id) validationErrors.push('Please select a category');
+        if (!selectedPrimaryProduct?._id) validationErrors.push('Please select a primary product');
+        if (selectedSecondaryProducts.length !== 3) validationErrors.push('Please select exactly 3 secondary products');
+
+        if (validationErrors.length > 0) {
+            toast.error(validationErrors.join('\n'));
+            return;
+        }
+
+        const prevSlides = [...slides];
+        setSaving(true);
+        
+        try {
+            // Format and validate individual product data
+            const formatProduct = (product) => {
+                if (!product) return null;
+
+                return {
+                    _id: product._id,
+                    title: product.title,
+                    price: product.price || 0,
+                    image: product.image || product.imagePath || '',
+                    images: Array.isArray(product.images) ? product.images : [],
+                    category: product.category._id || product.category || ''
+                };
+            };
+
+            // Format products
+            const primaryProduct = formatProduct(selectedPrimaryProduct);
+            const secondaryProducts = selectedSecondaryProducts.map(formatProduct);
+
+            if (!primaryProduct || secondaryProducts.some(p => !p)) {
+                throw new Error('Invalid product data');
+            }
+
+            // Create the current slide data
+            const currentSlideData = {
+                title: title.trim(),
+                category: selectedCategory._id,
+                primaryProduct,
+                secondaryProducts,
+                order: currentSlide
+            };
+
+            // Update slides array
+            const updatedSlides = [...slides];
+            updatedSlides[currentSlide] = currentSlideData;
+
+            // Format final request
+            const requestPayload = {
+                slides: updatedSlides.map((slide, index) => ({
+                    ...slide,
+                    order: index,
+                }))
+            };
+
+            // Make the API request
+            const response = await API.put('/banner', requestPayload);
+            
+            // Update local state with response
+            setSlides(requestPayload.slides.map((slide, i) => ({
+                ...slide,
+                _id: i === currentSlide ? response.data._id : slide._id
+            })));
+
+            toast.success('Slide saved successfully');
+        } catch (error) {
+            console.error('Error saving slide:', error);
+            console.error('Error details:', {
+                response: error.response?.data,
+                status: error.response?.status,
+                headers: error.response?.headers,
+                config: error.config
+            });
+            toast.error(`Failed to save slide: ${error.response?.data?.message || error.message}`);
+            setSlides(prevSlides);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    return (
+        <Box p={3}>
+            <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
+                <Typography variant="h5">Banner Management</Typography>
+                <Button
+                    startIcon={isPreviewMode ? null : <PreviewIcon />}
+                    onClick={() => setIsPreviewMode(!isPreviewMode)}
+                >
+                    {isPreviewMode ? 'Back to Edit' : 'Preview'}
+                </Button>
+            </Box>
+
+            {isPreviewMode ? (
+                <BannerPreview
+                    slides={slides}
+                    currentSlide={currentSlide}
+                />
+            ) : (
+                // Your banner editor UI here
+                <div>Banner Editor</div>
+            )}
+        </Box>
+    );
+};
+
+export default BannerManagementNew;
