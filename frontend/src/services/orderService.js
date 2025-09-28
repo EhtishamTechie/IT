@@ -21,6 +21,26 @@ class OrderService {
     }
   }
 
+  // Create order with payment receipt for advance payments
+  static async createOrderWithReceipt(formData) {
+    try {
+      const endpoint = '/orders/with-receipt';
+      
+      const response = await API.post(endpoint, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      
+      return response.data;
+    } catch (error) {
+      console.error('OrderService: Error creating order with receipt:', error);
+      console.error('OrderService: Error response:', error.response?.data);
+      console.error('OrderService: Error status:', error.response?.status);
+      throw error;
+    }
+  }
+
   // Get order by ID
   static async getOrderById(orderId) {
     try {

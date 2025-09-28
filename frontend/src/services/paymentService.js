@@ -105,7 +105,7 @@ export const formatCardNumber = (cardNumber) => {
 class PaymentGateway {
   constructor(gatewayType = 'stripe') {
     this.gatewayType = gatewayType;
-    this.apiKey = process.env.REACT_APP_PAYMENT_API_KEY || 'test_key';
+    this.apiKey = import.meta.env.VITE_PAYMENT_API_KEY || 'test_key';
   }
   
   // Process credit/debit card payment

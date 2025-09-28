@@ -44,7 +44,7 @@ const handleSaveSlide = async () => {
             secondaryProducts: selectedSecondaryProducts.map(formatProduct),
             order: currentSlide,
             image: selectedPrimaryProduct.image || selectedPrimaryProduct.imagePath || 
-                   (selectedPrimaryProduct.images && selectedPrimaryProduct.images[0])
+                   selectedPrimaryProduct.image || (selectedPrimaryProduct.images && selectedPrimaryProduct.images[0])
         };
 
         // Update slides array

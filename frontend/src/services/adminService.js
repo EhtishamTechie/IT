@@ -156,6 +156,24 @@ class AdminService {
     }
   }
 
+  static async getCommissionOverview(params = {}) {
+    try {
+      console.log('🔍 Fetching commission overview with params:', params);
+      const response = await API.get('/admin/commissions/overview', {
+        params,
+        headers: { Authorization: `Bearer ${this.getAdminToken()}` }
+      });
+      console.log('📊 Commission overview response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching commission overview:', error);
+      if (error.response?.data) {
+        console.error('Error details:', error.response.data);
+      }
+      throw error;
+    }
+  }
+
   static async getVendorCommissions(params = {}) {
     try {
       const response = await API.get('/admin/commissions/vendors', {
@@ -195,14 +213,88 @@ class AdminService {
 
   static async exportCommissionReport(params = {}) {
     try {
+      console.log('📊 Exporting commission report with params:', params);
+      
       const response = await API.get('/admin/commissions/export', {
         params,
         headers: { Authorization: `Bearer ${this.getAdminToken()}` },
         responseType: 'blob'
       });
+      
+      console.log('✅ Commission report export response received');
+      return response;
+    } catch (error) {
+      console.error('❌ Error exporting commission report:', error);
+      
+      // Provide more specific error messages
+      if (error.response?.status === 404) {
+        throw new Error('Export endpoint not found. Please contact technical support.');
+      } else if (error.response?.status === 401) {
+        throw new Error('You are not authorized to export reports. Please log in again.');
+      } else if (error.response?.status === 500) {
+        throw new Error('Server error occurred while generating the report. Please try again later.');
+      } else {
+        throw new Error(error.response?.data?.message || 'Failed to export commission report. Please try again.');
+      }
+    }
+  }
+
+  // Newsletter Management
+  static async getNewsletterStats() {
+    try {
+      console.log('📧 Fetching newsletter statistics...');
+      const response = await API.get('/admin/newsletter/stats', {
+        headers: { Authorization: `Bearer ${this.getAdminToken()}` }
+      });
+      console.log('📊 Newsletter stats response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Error exporting commission report:', error);
+      console.error('Error fetching newsletter stats:', error);
+      throw error;
+    }
+  }
+
+  static async getNewsletterSubscriptions(params = {}) {
+    try {
+      console.log('📧 Fetching newsletter subscriptions with params:', params);
+      const response = await API.get('/admin/newsletter/subscriptions', {
+        params,
+        headers: { Authorization: `Bearer ${this.getAdminToken()}` }
+      });
+      console.log('📊 Newsletter subscriptions response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching newsletter subscriptions:', error);
+      throw error;
+    }
+  }
+
+  static async exportNewsletterSubscriptions(params = {}) {
+    try {
+      console.log('📧 Exporting newsletter subscriptions with params:', params);
+      const response = await API.get('/admin/newsletter/export', {
+        params,
+        headers: { Authorization: `Bearer ${this.getAdminToken()}` },
+        responseType: 'blob'
+      });
+      console.log('✅ Newsletter export response received');
+      return response;
+    } catch (error) {
+      console.error('Error exporting newsletter subscriptions:', error);
+      throw error;
+    }
+  }
+
+  static async deleteNewsletterSubscription(subscriptionId) {
+    try {
+      console.log('📧 Deleting newsletter subscription:', subscriptionId);
+      const response = await API.delete(`/admin/newsletter/subscriptions/${subscriptionId}`, {
+        headers: { Authorization: `Bearer ${this.getAdminToken()}` }
+      });
+      console.log('✅ Newsletter subscription deleted:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting newsletter subscription:', error);
       throw error;
     }
   }

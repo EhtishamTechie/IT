@@ -112,7 +112,7 @@ const ProductSelectionModal = ({ open, onClose, products = [], selectedProducts 
                                             width: '100%'
                                         }}
                                         image={product.images && product.images.length > 0 
-                                            ? getImageUrl('products', product.images[0])
+                                            ? getImageUrl('products', product.image || product.images[0])
                                             : '/assets/no-image.png'
                                         }
                                         alt={product.name}

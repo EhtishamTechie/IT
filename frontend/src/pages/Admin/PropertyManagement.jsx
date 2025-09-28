@@ -283,7 +283,7 @@ const PropertyManagement = () => {
                       <div className="flex items-center space-x-4">
                         <div className="w-12 h-12 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
                           {(() => {
-                            const firstImage = property.images?.[0];
+                            const firstImage = property.image || property.images?.[0];
                             
                             if (!firstImage) {
                               return (

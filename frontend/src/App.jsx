@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { HelmetProvider } from 'react-helmet-async';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 
@@ -13,6 +14,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Create helmet context for react-helmet-async
+const helmetContext = {};
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import { AdminProvider } from './contexts/AdminContext';
@@ -36,6 +40,7 @@ import OrderHistoryPage from './pages/OrderHistoryPage';
 // NEW: Simple order components to fix blinking issues
 import SimpleOrderHistoryPage from './pages/SimpleOrderHistoryPage';
 import SimpleOrderDetailPage from './pages/SimpleOrderDetailPage';
+import ComingSoon from './components/ComingSoon';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import TrackOrderPage from './pages/TrackOrderPage';
 import SearchPage from './pages/SearchPage';
@@ -116,6 +121,8 @@ const AppContent = () => {
         <Route path="/about" element={<AboutUsPage />} />
         <Route path="/BlogPage" element={<BlogPage />} />
         <Route path="/blog" element={<BlogPage />} />
+        <Route path="/simple-order-history" element={<SimpleOrderHistoryPage />} />
+        <Route path="/coming-soon" element={<ComingSoon />} />
         <Route 
           path="/profile" 
           element={
@@ -355,26 +362,28 @@ const AppContent = () => {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <AuthProvider>
-          <AdminProvider>
-            <AdminAuthProvider>
-              <VendorAuthProvider>
-                <NotificationProvider>
-                  <CartProvider>
-                    <Router>
-                      <AppContent />
-                    </Router>
-                  </CartProvider>
-                </NotificationProvider>
-              </VendorAuthProvider>
-            </AdminAuthProvider>
-          </AdminProvider>
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <HelmetProvider context={helmetContext}>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <AuthProvider>
+            <AdminProvider>
+              <AdminAuthProvider>
+                <VendorAuthProvider>
+                  <NotificationProvider>
+                    <CartProvider>
+                      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                        <AppContent />
+                      </Router>
+                    </CartProvider>
+                  </NotificationProvider>
+                </VendorAuthProvider>
+              </AdminAuthProvider>
+            </AdminProvider>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </HelmetProvider>
   );
 }
 

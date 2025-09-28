@@ -351,11 +351,11 @@ const CartPage = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xl font-bold text-gray-900">
-                  ${(price * item.quantity).toFixed(2)}
+                  PKR {(price * item.quantity).toFixed(2)}
                 </span>
                 {item.originalPrice && item.originalPrice > price && (
                   <span className="text-sm text-gray-500 line-through">
-                    ${(item.originalPrice * item.quantity).toFixed(2)}
+                    PKR {(item.originalPrice * item.quantity).toFixed(2)}
                   </span>
                 )}
               </div>
@@ -466,7 +466,7 @@ const CartPage = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal ({totalItems} items)</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">PKR {subtotal.toFixed(2)}</span>
                 </div>
                 
                 <div className="flex justify-between text-sm">
@@ -478,7 +478,7 @@ const CartPage = () => {
                 
                 <div className="flex justify-between text-lg font-medium">
                   <span>Total</span>
-                  <span className="text-orange-600">${total.toFixed(2)}</span>
+                  <span className="text-orange-600">PKR {total.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -524,14 +524,16 @@ const CartPage = () => {
       </div>
 
       {/* Custom Styles */}
-      <style jsx>{`
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      `}</style>
+      <style>
+        {`
+          .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+        `}
+      </style>
     </div>
   );
 };

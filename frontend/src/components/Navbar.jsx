@@ -145,9 +145,13 @@ const Navbar = () => {
           <div className="flex items-center space-x-2">
             <div className="bg-transparent">
               <img
-                src="./IT Images/ITLOGO2.png"
+                src="/IT Images/ITLOGO2.png"
                 alt="Logo"
                 className="w-30 h-13 rounded"
+                onError={(e) => {
+                  console.error('Logo failed to load:', e.target.src);
+                  e.target.style.display = 'none';
+                }}
               />
             </div>
           </div>
@@ -287,6 +291,14 @@ const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden flex items-center space-x-4">
+            {/* Mobile Search Icon */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="text-white hover:text-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-md p-1"
+              aria-label="Toggle search and menu"
+            >
+              <SearchIcon className="w-6 h-6" />
+            </button>
             <Link to="/cart" className="relative text-white hover:text-orange-500">
               <ShoppingCartIcon className="w-6 h-6" />
               {cartStats.totalItems > 0 && (
@@ -352,14 +364,14 @@ const Navbar = () => {
               <div className="relative" ref={categoriesRef}>
                 <button
                   type="button"
-                  className="flex items-center space-x-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors duration-200 font-medium border border-orange-600 shadow-sm"
+                  className="flex items-center space-x-1 px-2 py-1.5 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors duration-200 font-medium text-xs"
                   onClick={() => setCatOpen(!catOpen)}
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
                   </svg>
-                  <span className="text-sm">All Categories</span>
-                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${catOpen ? "rotate-180" : ""}`} />
+                  <span className="text-xs">All Categories</span>
+                  <ChevronDownIcon className={`w-3 h-3 transition-transform duration-200 ${catOpen ? "rotate-180" : ""}`} />
                 </button>
 
               {catOpen && (

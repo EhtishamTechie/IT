@@ -10,7 +10,8 @@ const createUploadDirs = () => {
     'uploads/vendor-logos',
     'uploads/properties',
     'uploads/products',
-    'uploads/banner'
+    'uploads/banner',
+    'uploads/wholesale-suppliers'
   ];
 
   dirs.forEach(dir => {
@@ -51,6 +52,30 @@ const imageFileFilter = (req, file, cb) => {
     cb(null, true);
   } else {
     cb(new Error('Only JPEG, PNG and GIF image files are allowed!'), false);
+  }
+};
+
+// File filter for videos
+const videoFileFilter = (req, file, cb) => {
+  // Check file type
+  const allowedMimes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'];
+  
+  if (allowedMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only MP4, WebM, OGG, AVI and MOV video files are allowed!'), false);
+  }
+};
+
+// Combined file filter for images and videos
+const mediaFileFilter = (req, file, cb) => {
+  const allowedImageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+  const allowedVideoMimes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'];
+  
+  if (allowedImageMimes.includes(file.mimetype) || allowedVideoMimes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files (JPEG, PNG, GIF) and video files (MP4, WebM, OGG, AVI, MOV) are allowed!'), false);
   }
 };
 
@@ -112,6 +137,39 @@ const uploadMultipleProductImages = multer({
 }).fields([
   { name: 'image', maxCount: 1 },
   { name: 'images', maxCount: 5 }
+]);
+
+// Enhanced product media upload (images + video)
+const uploadProductMedia = multer({
+  storage: productImageStorage, // Same storage for both images and videos
+  fileFilter: (req, file, cb) => {
+    // Different file type validation for different fields
+    if (file.fieldname === 'video') {
+      // Video file filter
+      const allowedVideoMimes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'];
+      if (allowedVideoMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only MP4, WebM, OGG, AVI and MOV video files are allowed!'), false);
+      }
+    } else {
+      // Image file filter for other fields
+      const allowedImageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      if (allowedImageMimes.includes(file.mimetype)) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only JPEG, PNG and GIF image files are allowed!'), false);
+      }
+    }
+  },
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB max (will handle video size validation separately)
+    files: 15 // Total files limit (multiple images + 1 video)
+  }
+}).fields([
+  { name: 'image', maxCount: 1 },    // Primary image
+  { name: 'images', maxCount: 10 },   // Additional images
+  { name: 'video', maxCount: 1 }      // Single video
 ]);
 
 // Watermarking middleware - applies watermark after upload
@@ -270,13 +328,43 @@ const uploadBannerImage = multer({
   }
 }).array('images', 10); // Allow up to 10 images
 
+// Storage configuration for wholesale supplier profile images
+const wholesaleSupplierStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(__dirname, '../uploads/wholesale-suppliers');
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 8);
+    const ext = path.extname(file.originalname);
+    const filename = `supplier-${timestamp}-${random}${ext}`;
+    cb(null, filename);
+  }
+});
+
+// Wholesale supplier profile image upload middleware
+const uploadWholesaleSupplierImage = multer({
+  storage: wholesaleSupplierStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+    files: 1 // Single file upload
+  }
+}).single('profileImage');
+
 module.exports = {
   uploadVendorLogo,
   uploadProductImages,
   uploadSingleProductImage,
   uploadMultipleProductImages,
+  uploadProductMedia,  // New enhanced upload for images + video
   uploadBannerImage,
+  uploadWholesaleSupplierImage,
   applyWatermarkToUploads,
   handleUploadError,
-  deleteUploadedFile
+  deleteUploadedFile,
+  imageFileFilter,
+  videoFileFilter,
+  mediaFileFilter
 };

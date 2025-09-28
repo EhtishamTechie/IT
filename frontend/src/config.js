@@ -6,7 +6,10 @@ const IMAGE_PATHS = {
   vendorLogos: 'vendor-logos',
   profiles: 'profiles',
   homepageCategories: 'homepage-categories',
-  'homepage-cards': 'homepage-cards'
+  'homepage-cards': 'homepage-cards',
+  'wholesale-suppliers': 'wholesale-suppliers',
+  'qr-codes': 'qr-codes',
+  'payment-receipts': 'payment-receipts'
 };
 
 // Get base URL for the application (for API calls)
@@ -49,15 +52,11 @@ export const config = {
 
 // Get image URL with proper path handling (using backend-relative paths)
 export const getImageUrl = (type, originalFilename) => {
-  console.log('🌐 getImageUrl called with:', { type, originalFilename });
-  
   if (!originalFilename) {
-    console.log('⚠️ [getImageUrl] No filename provided');
     return '/assets/no-image.png';
   }
   
   if (!type) {
-    console.log('⚠️ [getImageUrl] No type provided');
     return '/assets/no-image.png';
   }
 
@@ -98,13 +97,6 @@ export const getImageUrl = (type, originalFilename) => {
       relativeUrl = `/uploads/${cleanFilename}`;
     }
 
-    console.log('🔄 [getImageUrl] Path construction:', {
-      type,
-      original: originalFilename,
-      cleaned: cleanFilename,
-      relative: relativeUrl
-    });
-
     // For development, use the full URL
     if (import.meta.env.DEV) {
       return `${config.BASE_URL}${relativeUrl}`;
@@ -113,13 +105,7 @@ export const getImageUrl = (type, originalFilename) => {
     // In production, use relative URL
     return relativeUrl;
   } catch (error) {
-    console.error('❌ [getImageUrl] Error processing image path:', error, {
-      type,
-      originalFilename,
-      baseUrl: config.BASE_URL,
-      uploadsUrl: config.UPLOADS_URL,
-      dev: import.meta.env.DEV
-    });
+    console.error('❌ [getImageUrl] Error processing image path:', error);
     return '/assets/no-image.png';
   }
 };

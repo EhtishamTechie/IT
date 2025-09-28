@@ -19,8 +19,8 @@ import { config } from '../config';
 class EmailNotificationService {
   constructor() {
     this.apiBaseUrl = config.EMAIL_API_URL;
-    this.senderEmail = process.env.REACT_APP_SENDER_EMAIL || 'noreply@internationaltijarat.com';
-    this.senderName = process.env.REACT_APP_SENDER_NAME || 'International Tijarat';
+    this.senderEmail = import.meta.env.VITE_SENDER_EMAIL || 'noreply@internationaltijarat.com';
+    this.senderName = import.meta.env.VITE_SENDER_NAME || 'International Tijarat';
   }
 
   // Generate order confirmation email content
@@ -48,13 +48,13 @@ class EmailNotificationService {
                     <span style="color: #666;">Quantity: ${item.quantity}</span>
                   </div>
                   <div style="text-align: right;">
-                    <strong>$${(item.price * item.quantity).toFixed(2)}</strong>
+                    <strong>PKR ${(item.price * item.quantity).toFixed(2)}</strong>
                   </div>
                 </div>
               `).join('')}
               
               <div style="padding: 15px 0; text-align: right; font-size: 18px;">
-                <strong>Total: $${total.toFixed(2)}</strong>
+                <strong>Total: PKR${total.toFixed(2)}</strong>
               </div>
             </div>
             
@@ -102,9 +102,9 @@ class EmailNotificationService {
         Order Number: ${orderNumber}
         
         Items Ordered:
-        ${items.map(item => `- ${item.title} (Qty: ${item.quantity}) - $${(item.price * item.quantity).toFixed(2)}`).join('\n')}
+        ${items.map(item => `- ${item.title} (Qty: ${item.quantity}) - PKR ${(item.price * item.quantity).toFixed(2)}`).join('\n')}
         
-        Total: $${total.toFixed(2)}
+        Total: PKR ${total.toFixed(2)}
         
         Shipping Address:
         ${customerInfo.name}
@@ -379,7 +379,7 @@ class EmailNotificationService {
             <div style="padding: 30px; background: #f8f9fa;">
               <div style="background: white; padding: 30px; border-radius: 8px;">
                 <h2 style="color: #333; margin-bottom: 20px;">Payment Details</h2>
-                <p><strong>Amount:</strong> $${paymentData.amount.toFixed(2)}</p>
+                <p><strong>Amount:</strong> PKR ${paymentData.amount.toFixed(2)}</p>
                 <p><strong>Payment Method:</strong> ${paymentData.paymentMethod}</p>
                 <p><strong>Order Number:</strong> ${paymentData.orderNumber}</p>
                 <p><strong>Date:</strong> ${new Date(paymentData.timestamp).toLocaleDateString()}</p>

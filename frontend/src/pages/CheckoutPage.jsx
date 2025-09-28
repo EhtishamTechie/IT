@@ -6,6 +6,8 @@ import { getImageUrl } from "../config";
 import OrderService from "../services/orderService";
 import ProductService from "../services/productService";
 import { analyzeCart, shouldShowDeliveryNotification, generateDeliveryEstimate, getOrderTypeDisplayName } from "../utils/cartAnalysis";
+import ImagePlaceholder from "../components/ImagePlaceholder";
+import AdvancePaymentSection from "../components/AdvancePaymentSection";
 
 // Phone number validation function
 const isValidPhoneNumber = (phone) => {
@@ -107,6 +109,34 @@ const CheckoutPage = () => {
   const { cartItems, cartStats, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   
+  // Check for buy now item
+  const [buyNowItem, setBuyNowItem] = useState(null);
+  const [isBuyNowCheckout, setIsBuyNowCheckout] = useState(false);
+  const [buyNowCheckComplete, setBuyNowCheckComplete] = useState(false);
+  
+  // Computed checkout items - use buy now item if available, otherwise use cart
+  const checkoutItems = useMemo(() => {
+    if (isBuyNowCheckout && buyNowItem) {
+      return [buyNowItem];
+    }
+    return cartItems || [];
+  }, [isBuyNowCheckout, buyNowItem, cartItems]);
+
+  // Computed checkout stats for buy now
+  const checkoutStats = useMemo(() => {
+    if (isBuyNowCheckout && buyNowItem) {
+      const price = buyNowItem.price || 0;
+      const quantity = buyNowItem.quantity || 1;
+      return {
+        totalPrice: price * quantity,
+        totalItems: quantity,
+        items: [buyNowItem],
+        isEmpty: false
+      };
+    }
+    return cartStats;
+  }, [isBuyNowCheckout, buyNowItem, cartStats]);
+  
   // State Management
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,17 +144,65 @@ const CheckoutPage = () => {
   const [errors, setErrors] = useState({});
   const [orderCompleted, setOrderCompleted] = useState(false); // Add flag for completed order
 
-  // Redirect if cart is empty (but not if order was just completed)
+  // Check for buy now item on mount
   useEffect(() => {
-    if (cartStats && cartStats.isEmpty && !orderCompleted && !isSubmitting) {
+    console.log('🔍 Checking for buy now item in localStorage...');
+    const buyNowData = localStorage.getItem('buyNowItem');
+    if (buyNowData) {
+      try {
+        const product = JSON.parse(buyNowData);
+        console.log('✅ Found buy now item:', product);
+        setBuyNowItem({
+          ...product,
+          quantity: product.quantity || 1
+        });
+        setIsBuyNowCheckout(true);
+        console.log('✅ Buy now checkout mode activated');
+        // Don't clear localStorage yet - wait until order is complete
+      } catch (error) {
+        console.error('❌ Error parsing buy now item:', error);
+        localStorage.removeItem('buyNowItem');
+      }
+    } else {
+      console.log('ℹ️ No buy now item found in localStorage');
+    }
+    // Mark the check as complete whether we found buy now data or not
+    setBuyNowCheckComplete(true);
+    console.log('✅ Buy now check completed');
+  }, []);
+
+  // Redirect if cart is empty and not buy now (but not if order was just completed)
+  useEffect(() => {
+    console.log('🔄 Redirect check:', {
+      buyNowCheckComplete,
+      isBuyNowCheckout,
+      checkoutStatsEmpty: checkoutStats?.isEmpty,
+      orderCompleted,
+      isSubmitting
+    });
+    
+    // Only redirect after we've checked for buy now data
+    if (buyNowCheckComplete && !isBuyNowCheckout && checkoutStats && checkoutStats.isEmpty && !orderCompleted && !isSubmitting) {
+      console.log('🔄 Redirecting to cart - no buy now item and cart is empty');
       navigate('/cart');
     }
-  }, [cartStats, navigate, orderCompleted, isSubmitting]);
+  }, [buyNowCheckComplete, isBuyNowCheckout, checkoutStats, navigate, orderCompleted, isSubmitting]);
 
   // Ensure only cash payment method is available
   useEffect(() => {
-    setForm(prev => ({ ...prev, paymentMethod: 'cash' }));
+    setForm(prev => ({ ...prev, paymentMethod: 'advance_payment' }));
   }, []);
+
+  // Cleanup buy now item if user navigates away without completing order
+  useEffect(() => {
+    return () => {
+      // Only cleanup if it was a buy now checkout and order wasn't completed
+      if (isBuyNowCheckout && !orderCompleted) {
+        localStorage.removeItem('buyNowItem');
+        console.log('Cleanup: Buy now item removed from localStorage on unmount');
+      }
+    };
+  }, [isBuyNowCheckout, orderCompleted]);
 
   // Note: Removed authentication requirement to allow guest checkout
 
@@ -144,7 +222,11 @@ const CheckoutPage = () => {
     // Removed shippingMethod as no shipping options available
     
     // Payment Information
-    paymentMethod: 'cash',
+    paymentMethod: 'advance_payment', // Changed default to advance payment
+    
+    // Advance Payment Fields
+    selectedPaymentAccount: null,
+    paymentReceipt: null,
     
     // Credit Card Information
     cardNumber: '',
@@ -166,7 +248,7 @@ const CheckoutPage = () => {
 
   // Calculate order totals and analyze cart
   const orderTotals = useMemo(() => {
-    const subtotal = cartStats?.totalPrice || 0;
+    const subtotal = checkoutStats?.totalPrice || 0;
     // No shipping cost - always N/A
     const shippingCost = 0;
     // No tax - removed as requested
@@ -179,18 +261,18 @@ const CheckoutPage = () => {
       tax,
       total
     };
-  }, [cartStats?.totalPrice]);
+  }, [checkoutStats?.totalPrice]);
 
   // Analyze cart for order type and mixed delivery notification
   const cartAnalysis = useMemo(() => {
-    const analysis = analyzeCart(cartStats?.items || []);
+    const analysis = analyzeCart(checkoutStats?.items || []);
     console.log('🔍 Cart Analysis Debug:', {
-      cartItems: cartStats?.items,
+      cartItems: checkoutStats?.items,
       analysis: analysis,
       hasNotification: !!analysis.notification
     });
     return analysis;
-  }, [cartStats?.items]);
+  }, [checkoutStats?.items]);
 
   // Payment validation functions
   const validateCreditCard = (cardNumber) => {
@@ -373,10 +455,19 @@ const CheckoutPage = () => {
   const validatePaymentFields = () => {
     const newErrors = {};
 
-    // Force cash-only payment method
-    if (form.paymentMethod !== 'cash') {
-      newErrors.paymentMethod = 'Only Cash on Delivery is currently available';
-      setForm(prev => ({ ...prev, paymentMethod: 'cash' }));
+    // Validate payment method selection
+    if (!form.paymentMethod) {
+      newErrors.paymentMethod = 'Please select a payment method';
+    }
+
+    // Validate advance payment fields
+    if (form.paymentMethod === 'advance_payment') {
+      if (!form.selectedPaymentAccount) {
+        newErrors.selectedPaymentAccount = 'Please select a payment account';
+      }
+      if (!form.paymentReceipt) {
+        newErrors.paymentReceipt = 'Please upload payment receipt';
+      }
     }
 
     // Cash on delivery doesn't require additional validation
@@ -557,7 +648,13 @@ const CheckoutPage = () => {
         method: form.paymentMethod
       };
 
-      if (form.paymentMethod === 'credit') {
+      if (form.paymentMethod === 'advance_payment') {
+        paymentData = {
+          ...paymentData,
+          selectedPaymentAccount: form.selectedPaymentAccount,
+          advancePaymentAmount: form.advancePaymentAmount
+        };
+      } else if (form.paymentMethod === 'credit') {
         paymentData = {
           ...paymentData,
           cardNumber: form.cardNumber,
@@ -582,9 +679,9 @@ const CheckoutPage = () => {
         };
       }
 
-      // Process payment first (except for cash on delivery)
+      // Process payment first (advance payment only)
       let paymentResult = null;
-      if (form.paymentMethod !== 'cash') {
+      if (form.paymentMethod === 'advance_payment') {
         try {
           console.log('Processing payment...');
           paymentResult = await processPayment(paymentData, orderTotals.total);
@@ -598,7 +695,7 @@ const CheckoutPage = () => {
 
       const orderData = {
         userId: user?._id,
-        items: cartItems.map(item => {
+        items: checkoutItems.map(item => {
           const productData = item.productData || item;
           return {
             productId: productData?._id || item._id || item.id,
@@ -631,6 +728,11 @@ const CheckoutPage = () => {
           ...(paymentResult && {
             transactionId: paymentResult.transactionId,
             paymentStatus: 'completed'
+          }),
+          ...(form.paymentMethod === 'advance_payment' && {
+            selectedPaymentAccount: form.selectedPaymentAccount,
+            advancePaymentAmount: form.advancePaymentAmount,
+            paymentVerified: false
           })
         },
         totals: orderTotals,
@@ -647,17 +749,33 @@ const CheckoutPage = () => {
       console.log('Submitting order data:', orderData);
 
       // Create order and get the response with order number
-      const orderResponse = await OrderService.createOrder(orderData);
+      let orderResponse;
+      if (form.paymentMethod === 'advance_payment' && form.paymentReceipt) {
+        // Use FormData for advance payment orders with receipt
+        const formData = new FormData();
+        formData.append('orderData', JSON.stringify(orderData));
+        formData.append('paymentReceipt', form.paymentReceipt);
+        orderResponse = await OrderService.createOrderWithReceipt(formData);
+      } else {
+        orderResponse = await OrderService.createOrder(orderData);
+      }
       console.log('Order created successfully:', orderResponse);
       
-      // Clear cart after successful order
-      console.log('Clearing cart...');
-      await clearCart();
-      console.log('Cart cleared');
+      // Clear cart after successful order (only for regular cart orders, not buy now)
+      if (!isBuyNowCheckout) {
+        console.log('Clearing cart...');
+        await clearCart();
+        console.log('Cart cleared');
+      } else {
+        console.log('Buy now checkout - cart not cleared');
+        // Clear buy now item from localStorage after successful order
+        localStorage.removeItem('buyNowItem');
+        console.log('Buy now item cleared from localStorage');
+      }
       
-      // Show success message for payment
+      // Log payment success (removed popup as requested)
       if (paymentResult) {
-        alert(`Payment Successful! ${paymentResult.message}`);
+        console.log(`Payment Successful! ${paymentResult.message}`);
       }
       
       // Navigate to order confirmation page with order data
@@ -691,21 +809,21 @@ const CheckoutPage = () => {
       console.error('Order submission failed:', error);
       console.error('Error details:', error.message);
       console.error('Error response:', error.response?.data);
-      alert(`Failed to place order: ${error.message || 'Unknown error'}. Please check console for details.`);
+      console.error(`Failed to place order: ${error.message || 'Unknown error'}. Please check console for details.`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   // Loading state
-  if (!cartStats || cartStats.isEmpty || !cartItems || cartItems.length === 0) {
+  if (!checkoutStats || checkoutStats.isEmpty || !checkoutItems || checkoutItems.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             {!cartStats ? 'Loading cart...' : 'Your cart is empty'}
           </h2>
-          {cartStats && cartStats.isEmpty && (
+          {checkoutStats && checkoutStats.isEmpty && (
             <button
               onClick={() => navigate('/products')}
               className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600"
@@ -993,76 +1111,43 @@ const CheckoutPage = () => {
               <div className="bg-white rounded-lg border border-gray-200 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Information</h2>
                 
-                {/* Payment Notice */}
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                  <div className="flex items-start">
-                    <div className="flex-shrink-0">
-                      <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800">
-                        Payment Method Notice
-                      </h3>
-                      <p className="mt-1 text-sm text-blue-700">
-                        Currently, only Cash on Delivery (COD) is available. Other payment methods will be available soon.
-                      </p>
-                    </div>
-                  </div>
+                {/* Payment Method Selection */}
+                <div className="mb-6">
+                  <PaymentMethod
+                    id="advance_payment"
+                    title="Advance Payment Required"
+                    description="Pay in advance using JazzCash, EasyPaisa, or Bank Transfer - Only payment method available"
+                    selected={true}
+                    onClick={() => setForm(prev => ({ ...prev, paymentMethod: 'advance_payment' }))}
+                  />
                 </div>
                 
-                {/* Payment Method Selection */}
-                <div className="space-y-4 mb-6">
-                  <PaymentMethod
-                    id="cash"
-                    title="Cash on Delivery"
-                    description="Pay when you receive your order"
-                    selected={form.paymentMethod === 'cash'}
-                    onClick={() => setForm(prev => ({ ...prev, paymentMethod: 'cash' }))}
-                  />
-                  
-                  {/* Temporarily disabled payment methods */}
-                  <div className="opacity-50 pointer-events-none">
-                    <PaymentMethod
-                      id="credit"
-                      title="Credit/Debit Card"
-                      description="Coming Soon - Currently unavailable"
-                      selected={false}
-                      onClick={() => {}}
+                {/* Advance Payment Section */}
+                {form.paymentMethod === 'advance_payment' && (
+                  <div className="mb-6">
+                    <AdvancePaymentSection
+                      totalAmount={orderTotals.total}
+                      selectedPaymentAccount={form.selectedPaymentAccount}
+                      uploadedReceipt={form.paymentReceipt}
+                      onPaymentAccountSelect={(account) => {
+                        setForm(prev => ({ ...prev, selectedPaymentAccount: account }));
+                        setErrors(prev => ({ ...prev, selectedPaymentAccount: '' }));
+                      }}
+                      onReceiptUpload={(file) => {
+                        setForm(prev => ({ ...prev, paymentReceipt: file }));
+                        setErrors(prev => ({ ...prev, paymentReceipt: '' }));
+                      }}
+                      onValidationChange={(isValid) => {
+                        // Update validation state for advance payment
+                        setErrors(prev => ({
+                          ...prev,
+                          advancePayment: isValid ? '' : 'Please complete payment setup'
+                        }));
+                      }}
+                      errors={errors}
                     />
                   </div>
-                  
-                  <div className="opacity-50 pointer-events-none">
-                    <PaymentMethod
-                      id="bank"
-                      title="Bank Transfer"
-                      description="Coming Soon - Currently unavailable"
-                      selected={false}
-                      onClick={() => {}}
-                    />
-                  </div>
-                  
-                  <div className="opacity-50 pointer-events-none">
-                    <PaymentMethod
-                      id="jazzcash"
-                      title="JazzCash"
-                      description="Coming Soon - Currently unavailable"
-                      selected={false}
-                      onClick={() => {}}
-                    />
-                  </div>
-                  
-                  <div className="opacity-50 pointer-events-none">
-                    <PaymentMethod
-                      id="easypaisa"
-                      title="EasyPaisa"
-                      description="Coming Soon - Currently unavailable"
-                      selected={false}
-                      onClick={() => {}}
-                    />
-                  </div>
-                </div>
+                )}
 
                 {/* Credit Card Form */}
                 {form.paymentMethod === 'credit' && (
@@ -1458,7 +1543,7 @@ const CheckoutPage = () => {
                     disabled={isSubmitting}
                     className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Processing...' : `${cartAnalysis.notification?.buttonText || 'Place Order'} - $${(cartStats?.totalPrice || 0).toFixed(2)}`}
+                    {isSubmitting ? 'Processing...' : `${cartAnalysis.notification?.buttonText || 'Place Order'} - PKR ${(checkoutStats?.totalPrice || 0).toFixed(2)}`}
                   </button>
                 </div>
               </div>
@@ -1474,21 +1559,24 @@ const CheckoutPage = () => {
               <div className="space-y-4 mb-6">
                 <h3 className="text-lg font-semibold text-gray-900">Order Summary</h3>
                 
-                {cartItems && cartItems.length > 0 ? cartItems.map((item, index) => {
+                {checkoutItems && checkoutItems.length > 0 ? checkoutItems.map((item, index) => {
                   const productData = item.productData || item;
                   
                   return (
                     <div key={item._id || productData._id || item.id || index} className="flex items-center space-x-3">
                       <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                         <img
-                          src={getImageUrl('products', productData.images?.[0] || productData.image)}
+                          src={getImageUrl('products', productData.image || (productData.images?.[0] || null))}
                           alt={productData.title || productData.name || 'Product'}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = '/assets/no-image.png';
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling.style.display = 'block';
                           }}
                         />
+                        <div style={{ display: 'none' }} className="w-full h-full">
+                          <ImagePlaceholder size="normal" className="w-full h-full rounded-lg" />
+                        </div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
@@ -1497,7 +1585,7 @@ const CheckoutPage = () => {
                         <p className="text-sm text-gray-500">Qty: {item.quantity || 1}</p>
                       </div>
                       <div className="text-sm font-medium text-gray-900">
-                        ${((productData.price || 0) * (item.quantity || 1)).toFixed(2)}
+                        PKR {((productData.price || 0) * (item.quantity || 1)).toFixed(2)}
                       </div>
                     </div>
                   );
@@ -1512,16 +1600,16 @@ const CheckoutPage = () => {
               <div className="border-t border-gray-200 pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="text-gray-900">${(cartStats.totalPrice || 0).toFixed(2)}</span>
+                  <span className="text-gray-900">PKR {(checkoutStats.totalPrice || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="text-gray-900">N/A</span>
+                  <span className="text-gray-900">Free</span>
                 </div>
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-base font-semibold">
                     <span className="text-gray-900">Total</span>
-                    <span className="text-gray-900">${(cartStats.totalPrice || 0).toFixed(2)}</span>
+                    <span className="text-gray-900">PKR {(checkoutStats.totalPrice || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

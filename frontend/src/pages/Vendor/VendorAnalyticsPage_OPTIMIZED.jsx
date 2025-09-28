@@ -263,7 +263,7 @@ const VendorAnalyticsPage = () => {
                 </select>
                 
                 {/* Debug Info - Only show in development or when there's an error */}
-                {(process.env.NODE_ENV === 'development' || error) && (
+                {(import.meta.env.DEV || error) && (
                   <div className="mt-2">
                     <button
                       onClick={() => {

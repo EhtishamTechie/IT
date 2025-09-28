@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl } from '../../config';
+import FooterCategoryManager from '../../components/admin/FooterCategoryManager';
 
 const CategoryManagement = () => {
   const [categories, setCategories] = useState([]);
@@ -272,6 +273,9 @@ try {
           <span>Create Category</span>
         </button>
       </div>
+
+      {/* Footer Categories Manager */}
+      <FooterCategoryManager />
 
       {/* Search */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">

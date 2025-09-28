@@ -347,7 +347,7 @@ const EnhancedVendorOrdersPage = () => {
                               <p className="text-xs text-gray-600">Qty: {item.quantity}</p>
                             </div>
                             <div className="text-right">
-                              <p className="font-medium text-sm">${(item.itemTotal || (item.quantity * item.price)).toFixed(2)}</p>
+                              <p className="font-medium text-sm">PKR {(item.itemTotal || (item.quantity * item.price)).toFixed(2)}</p>
                               {item.commissionAmount && (
                                 <p className="text-xs text-green-600">Commission: ${item.commissionAmount.toFixed(2)}</p>
                               )}

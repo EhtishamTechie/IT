@@ -15,13 +15,25 @@ const normalizeImageUrl = (imageUrl) => {
   }
   
   // Clean up the path
-  const cleanPath = imageUrl
+  let cleanPath = imageUrl
     .replace(/^\/+/, '') // Remove leading slashes
     .replace(/([^:])\/+/g, '$1/') // Fix double slashes
     .replace(/products\/products\//, 'products/'); // Fix duplicate products folder
   
-  // If it's a local upload path or relative path, normalize it to a web URL with backend server
-  return getUploadUrl(cleanPath);
+  // Extract filename from path for proper URL construction
+  let filename = cleanPath;
+  if (cleanPath.includes('/')) {
+    filename = cleanPath.split('/').pop(); // Get just the filename
+  }
+  
+  console.log('🔧 normalizeImageUrl processing:', {
+    input: imageUrl,
+    cleanPath: cleanPath,
+    filename: filename
+  });
+  
+  // Use getUploadUrl with proper parameters (type, filename)
+  return getUploadUrl('products', filename);
 };
 
 // Get user's cart
@@ -50,17 +62,13 @@ const getCart = async (req, res) => {
             item.productData.inStock = currentProduct.stock > 0;
           }
           
-          // Normalize image URL for proper frontend display
-          if (item.productData.image) {
-            const originalImage = item.productData.image;
-            item.productData.image = normalizeImageUrl(item.productData.image);
-            console.log('🖼️ Cart image normalization:', {
-              productId: item.productData._id,
-              title: item.productData.title,
-              originalImage: originalImage,
-              normalizedImage: item.productData.image
-            });
-          }
+          // Keep raw image filename - let frontend handle URL construction with getImageUrl
+          console.log('🖼️ Cart item image data:', {
+            productId: item.productData._id,
+            title: item.productData.title,
+            rawImage: item.productData.image,
+            hasImage: !!item.productData.image
+          });
         }
       }
 
@@ -176,7 +184,7 @@ const addToCart = async (req, res) => {
           stock: product.stock || 0,
           inStock: product.stock > 0,
           images: product.images || [],
-          image: product.images?.[0] || product.image
+          image: product.images?.[0] || product.image || 'placeholder-image.jpg'
         };
       } else {
         // Add new item to cart
@@ -204,7 +212,7 @@ const addToCart = async (req, res) => {
             _id: product._id,
             title: product.title,
             price: product.price,
-            image: product.image,
+            image: product.images?.[0] || product.image || 'placeholder-image.jpg',
             currency: product.currency || 'USD',
             stock: product.stock || 0,
             brand: product.brand,

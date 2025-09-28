@@ -259,12 +259,12 @@ const VendorOrderDetailPage = () => {
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{item.title}</h3>
                       <p className="text-sm text-gray-600">
-                        Quantity: {item.quantity} × ${item.price}
+                        Quantity: {item.quantity} × PKR {item.price}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        PKR {(item.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   </div>
@@ -272,7 +272,7 @@ const VendorOrderDetailPage = () => {
               </div>
               <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between items-center">
                 <span className="font-semibold text-gray-900">Your Total:</span>
-                <span className="font-bold text-lg text-orange-600">${vendorTotal.toFixed(2)}</span>
+                <span className="font-bold text-lg text-orange-600">PKR {vendorTotal.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -371,7 +371,7 @@ const VendorOrderDetailPage = () => {
                 </div>
                 <div className="flex justify-between pt-2 border-t border-gray-200">
                   <span className="text-gray-900 font-semibold">Your Revenue:</span>
-                  <span className="font-bold text-orange-600">${vendorTotal.toFixed(2)}</span>
+                  <span className="font-bold text-orange-600">PKR {vendorTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>

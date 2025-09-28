@@ -20,6 +20,9 @@ import BannerManagement from './pages/admin/homepage/BannerManagement';
 import VendorApplicationsPage from './pages/Admin/VendorApplicationsPage';
 import VendorApplicationDetailPage from './pages/Admin/VendorApplicationDetailPage';
 import WholesaleManagement from './pages/Admin/WholesaleManagement';
+import ComingSoon from './components/ComingSoon';
+import OrderHistoryPage from './pages/OrderHistoryPage';
+import SimpleOrderHistoryPage from './pages/SimpleOrderHistoryPage';
 
 export const router = createBrowserRouter([
   {
@@ -39,48 +42,62 @@ export const router = createBrowserRouter([
         element: <GroupCategoryPage></GroupCategoryPage>
       },
   {
-    path: '/product/:id',
+    path: 'product/:id',
     element: <ProductDetailPage />,
   },
   {
-    path: '/cart',
+    path: 'cart',
     element: <CartPage />,
   },
   {
-    path: '/checkout',
+    path: 'checkout',
     element: <CheckoutPage />,
   },
   {
-    path: '/login',
+    path: 'login',
     element: <LoginPage />,
   },
   {
-    path: '/register',
+    path: 'register',
     element: <RegisterPage />,
   },
   {
-    path: '/contact',
+    path: 'contact',
     element: <ContactUsPage />,
   },
   {
-    path: '/about',
+    path: 'about',
     element: <AboutUsPage />,
   },
   {
-    path: '/blog',
+    path: 'blog',
     element: <BlogPage />,
   },
   {
-    path: '/order-confirmation/:orderNumber',
+    path: 'order-confirmation/:orderNumber',
     element: <OrderConfirmationPage />,
   },
   {
-    path: '/track-order/:orderNumber',
+    path: 'track-order/:orderNumber',
     element: <TrackOrderPage />,
   },
   {
-    path: '/track-order',
+    path: 'track-order',
     element: <TrackOrderPage />,
+  },
+  {
+    path: 'order-history',
+    element: <OrderHistoryPage />,
+  },
+  {
+    path: 'simple-order-history',
+    element: <SimpleOrderHistoryPage />,
+  },
+  {
+    path: 'coming-soon',
+    element: <ComingSoon />,
+  },
+    ]
   },
   // Admin Routes
   {
@@ -114,7 +131,7 @@ export const router = createBrowserRouter([
         element: <WholesaleManagement />,
       }
     ]
-  }
+  },
 ], {
   future: {
     v7_startTransition: true,

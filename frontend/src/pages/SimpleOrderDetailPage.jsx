@@ -287,6 +287,7 @@ const SimpleOrderDetailPage = () => {
       
       const result = await response.json();
       console.log('📡 Order response:', result);
+      console.log('💳 Payment receipt in response:', result.data?.paymentReceipt);
       
       // Process the successful result
       processOrderData(result);
@@ -934,12 +935,12 @@ const SimpleOrderDetailPage = () => {
                                   {item.productName || item.title || item.name}
                                 </h5>
                                 <p className="text-sm text-gray-500">
-                                  Quantity: {item.quantity} × ${item.price}
+                                  Quantity: {item.quantity} × PKR {item.price}
                                 </p>
                               </div>
                               <div className="text-right">
                                 <p className="text-sm font-medium text-gray-900">
-                                  ${(item.subtotal || (item.price * item.quantity)).toFixed(2)}
+                                  PKR {(item.subtotal || (item.price * item.quantity)).toFixed(2)}
                                 </p>
                               </div>
                             </div>
@@ -975,7 +976,7 @@ const SimpleOrderDetailPage = () => {
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-gray-900">{item.title || item.name}</h4>
                           <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
-                          <p className="text-sm font-medium text-gray-900">${item.price} each</p>
+                          <p className="text-sm font-medium text-gray-900">PKR {item.price} each</p>
                           
                           {/* Individual Item Status */}
                           <div className="flex items-center mt-2">
@@ -992,7 +993,7 @@ const SimpleOrderDetailPage = () => {
                         </div>
                         <div className="text-right space-y-2">
                           <p className="text-sm font-medium text-gray-900">
-                            ${(item.itemTotal || (item.price * item.quantity)).toFixed(2)}
+                            PKR {(item.itemTotal || (item.price * item.quantity)).toFixed(2)}
                           </p>
                         </div>
                       </div>
@@ -1131,6 +1132,38 @@ const SimpleOrderDetailPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Payment Proof Section */}
+            {console.log('💳 PaymentReceipt check:', orderDetails?.paymentReceipt || orderDetails?.mainOrder?.paymentReceipt)}
+            {(orderDetails.paymentReceipt || orderDetails?.mainOrder?.paymentReceipt) && (
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Payment Proof</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start">
+                    <CreditCardIcon className="h-5 w-5 text-gray-400 mr-3 mt-1" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-900 mb-2">Payment Receipt</p>
+                      <div className="relative">
+                        <img 
+                          src={getImageUrl('payment-receipts', orderDetails.paymentReceipt || orderDetails?.mainOrder?.paymentReceipt)} 
+                          alt="Payment Receipt"
+                          className="max-w-full h-auto max-h-96 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => window.open(getImageUrl('payment-receipts', orderDetails.paymentReceipt || orderDetails?.mainOrder?.paymentReceipt), '_blank')}
+                        />
+                        <div className="mt-2">
+                          <button
+                            onClick={() => window.open(getImageUrl('payment-receipts', orderDetails.paymentReceipt || orderDetails?.mainOrder?.paymentReceipt), '_blank')}
+                            className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View Full Size
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Status History */}
             {orderDetails.statusHistory && orderDetails.statusHistory.length > 0 && (

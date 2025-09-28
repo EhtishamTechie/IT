@@ -38,7 +38,10 @@ const UPLOAD_DIRS = {
     vendorLogos: 'vendor-logos',
     profiles: 'profiles',
     homepageCategories: 'homepage-categories',
-    homepageCards: 'homepage-cards'
+    homepageCards: 'homepage-cards',
+    wholesaleSuppliers: 'wholesale-suppliers',
+    qrCodes: 'qr-codes',
+    paymentReceipts: 'payment-receipts'
 };
 
 // Base upload path configuration
@@ -71,6 +74,16 @@ app.use('/uploads/homepage-categories', express.static(path.join(UPLOADS_ABSOLUT
 
 // Serve homepage card images
 app.use('/uploads/homepage-cards', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'homepage-cards'), {
+    fallthrough: true
+}));
+
+// Serve QR code images for payment accounts
+app.use('/uploads/qr-codes', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'qr-codes'), {
+    fallthrough: true
+}));
+
+// Serve payment receipt images for advance payment orders
+app.use('/uploads/payment-receipts', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'payment-receipts'), {
     fallthrough: true
 }));
 
@@ -119,6 +132,8 @@ const handleImageRequest = (req, res, next) => {
         targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.vendorLogos);
     } else if (filename.startsWith('profile-')) {
         targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.profiles);
+    } else if (filename.startsWith('supplier-')) {
+        targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.wholesaleSuppliers);
     }
   
   console.log('📁 [IMAGE] Target directory determined:', {
@@ -135,6 +150,7 @@ const handleImageRequest = (req, res, next) => {
     path.join(__dirname, 'uploads', 'products', filename),         // Try products
     path.join(__dirname, 'uploads', 'properties', filename),       // Try properties
     path.join(__dirname, 'uploads', 'vendor-logos', filename),     // Try vendor logos
+    path.join(__dirname, 'uploads', 'wholesale-suppliers', filename), // Try wholesale suppliers
     path.join(__dirname, 'uploads', filename)                      // Try root uploads
   ];
   
@@ -199,6 +215,7 @@ serveStatic('products', 'products');
 serveStatic('vendor-logos', 'vendor-logos');
 serveStatic('used-products', 'used-products');
 serveStatic('properties', 'properties');
+serveStatic('wholesale-suppliers', 'wholesale-suppliers');
 
 // Static file serving with caching for all upload directories
 const staticOptions = {
@@ -328,6 +345,8 @@ const propertyRoutes = require('./routes/properties');
 const usedProductRoutes = require('./routes/usedProducts');
 const emailRoutes = require('./routes/emailRoutes');
 const emailVerificationRoutes = require('./routes/emailVerificationRoutes');
+const newsletterRoutes = require('./routes/newsletterRoutes');
+const adminNewsletterRoutes = require('./routes/adminNewsletterRoutes');
 const adminManagementRoutes = require('./routes/adminManagementRoutes');
 const adminAuthRoutes = require('./routes/adminAuth');
 const adminCommissionRoutes = require('./routes/adminCommissionRoutes');
@@ -343,12 +362,14 @@ const adminVendorRoutes = require('./routes/adminVendor');
 const authRoutes = require('./routes/authRoutes');
 const productRoutes = require('./routes/productRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const seoRoutes = require('./routes/seoRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const statusRoutes = require('./routes/simpleStatusRoutes');
 const inventoryRoutes = require('./routes/inventory');
 const contactPublicRouter = require('./routes/contact');
 const contactAdminRouter = require('./routes/contact').adminRouter;
 const wholesaleRoutes = require('./routes/wholesale');
+const paymentAccountRoutes = require('./routes/paymentAccountRoutes');
 
 // ...existing code...
 
@@ -771,6 +792,7 @@ app.use('/api/properties', ensureConnection, propertyRoutes);
 app.use('/api/used-products', ensureConnection, usedProductRoutes);
 app.use('/api/email', ensureConnection, emailRoutes);
 app.use('/api/email-verification', ensureConnection, emailVerificationRoutes);
+app.use('/api/newsletter', ensureConnection, newsletterRoutes);
 app.use('/api/admin/management', ensureConnection, adminManagementRoutes);
 app.use('/api/admin', ensureConnection, adminAuthRoutes);
 // CRITICAL: Add ALL missing admin routes that were causing 404 errors
@@ -785,11 +807,15 @@ app.use('/api/admin/vendor-management', ensureConnection, adminVendorRoutes);
 // Admin commission routes - Organized to avoid conflicts
 // Unified commission routes
 app.use('/api/admin/commissions', ensureConnection, adminCommissionRoutes);  // This will handle all commission routes
+app.use('/api/admin/newsletter', ensureConnection, adminNewsletterRoutes); // Admin newsletter routes
 app.use('/api/admin/contacts', ensureConnection, contactAdminRouter); // Admin contact routes
 app.use('/api/contact', ensureConnection, contactPublicRouter); // Public contact routes
+app.use('/api/payment-accounts', ensureConnection, paymentAccountRoutes); // Payment account routes
 app.use('/api/auth', ensureConnection, authRoutes);
 app.use('/api/products', ensureConnection, productRoutes);
 app.use('/api/categories', ensureConnection, categoryRoutes);
+app.use('/api/seo', ensureConnection, seoRoutes);
+app.use('/api/footer-categories', ensureConnection, require('./routes/publicFooterRoutes'));
 app.use('/api/homepage/categories', ensureConnection, require('./routes/homepageCategoryRoutes'));
 app.use('/api/homepage/static-categories', ensureConnection, require('./routes/homepageStaticCategoryRoutes'));
 app.use('/api/homepage/cards', ensureConnection, homepageCardRoutes);

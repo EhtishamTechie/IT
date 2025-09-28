@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { vendorService } from '../../services/vendorService';
-import { getUploadUrl } from '../../config';
+import { getImageUrl } from '../../config';
 
 const SimpleProductForm = () => {
   const navigate = useNavigate();
@@ -9,8 +9,11 @@ const SimpleProductForm = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [categories, setCategories] = useState([]);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [videoFile, setVideoFile] = useState(null);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [videoPreview, setVideoPreview] = useState(null);
+  const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
   
   const [formData, setFormData] = useState({
     name: '',
@@ -20,7 +23,13 @@ const SimpleProductForm = () => {
     mainCategory: '',
     subCategory: '',
     brand: '',
-    keywords: ''
+    keywords: '',
+    // SEO Fields
+    slug: '',
+    metaTitle: '',
+    metaDescription: '',
+    altText: '',
+    seoKeywords: ''
   });
 
   // Get main categories (categories without parent) and subcategories based on actual database structure
@@ -53,21 +62,63 @@ const SimpleProductForm = () => {
     }));
   };
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
+  const handleMultipleImagesChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      // Accumulate images instead of replacing them
+      setImageFiles(prev => [...prev, ...files]);
+      
+      const readers = files.map(file => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      Promise.all(readers).then(newPreviews => {
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+      });
     }
   };
 
-  const removeImage = () => {
-    setImageFile(null);
-    setImagePreview(null);
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      const url = URL.createObjectURL(file);
+      setVideoPreview(url);
+    }
+  };
+
+  const removeMultipleImages = () => {
+    setImageFiles([]);
+    setImagePreviews([]);
+    setPrimaryImageIndex(0);
+  };
+
+  const removeImageAt = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    
+    // Adjust primary image index if needed
+    if (primaryImageIndex === index) {
+      setPrimaryImageIndex(0);
+    } else if (primaryImageIndex > index) {
+      setPrimaryImageIndex(prev => prev - 1);
+    }
+  };
+
+  const setPrimaryImage = (index) => {
+    setPrimaryImageIndex(index);
+  };
+
+  const removeVideo = () => {
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideoFile(null);
+    setVideoPreview(null);
   };
 
   const handleSubmit = async (e) => {
@@ -85,14 +136,34 @@ const SimpleProductForm = () => {
       submitData.append('stock', formData.stock);
       submitData.append('keywords', formData.keywords);
       
+      // Add SEO fields
+      if (formData.slug) submitData.append('slug', formData.slug);
+      if (formData.metaTitle) submitData.append('metaTitle', formData.metaTitle);
+      if (formData.metaDescription) submitData.append('metaDescription', formData.metaDescription);
+      if (formData.altText) submitData.append('altText', formData.altText);
+      if (formData.seoKeywords) submitData.append('seoKeywords', formData.seoKeywords);
+      
       // Handle categories - ensure they're arrays for backend compatibility
       const mainCategory = formData.mainCategory ? [formData.mainCategory] : [];
       const subCategory = formData.subCategory ? [formData.subCategory] : [];
       submitData.append('mainCategory', JSON.stringify(mainCategory));
       submitData.append('subCategory', JSON.stringify(subCategory));
       
-      if (imageFile) {
-        submitData.append('image', imageFile);
+      // Handle multiple images
+      if (imageFiles && imageFiles.length > 0) {
+        console.log('📤 Appending multiple images:', imageFiles.length);
+        imageFiles.forEach((file) => {
+          submitData.append('images', file);
+        });
+        
+        // Send primary image index
+        submitData.append('primaryImageIndex', primaryImageIndex.toString());
+      }
+      
+      // Handle video
+      if (videoFile) {
+        console.log('📤 Appending video:', videoFile.name);
+        submitData.append('video', videoFile);
       }
 
       const response = await vendorService.addVendorProduct(submitData);
@@ -392,62 +463,336 @@ const SimpleProductForm = () => {
             </div>
           </div>
 
-          {/* Product Image Section */}
+          {/* Product Media Section */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 rounded-t-lg">
               <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                 <svg className="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Product Image
+                Product Media
               </h3>
             </div>
             
-            <div className="p-6">
-              {!imagePreview ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-orange-500 transition-colors bg-gray-50 hover:bg-orange-50">
-                  <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-gray-600 mb-2 font-medium">Click to upload product image</p>
-                  <p className="text-sm text-gray-500 mb-4">PNG, JPG up to 5MB</p>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="hidden"
-                    id="imageUpload"
-                    required
-                  />
-                  <label
-                    htmlFor="imageUpload"
-                    className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg cursor-pointer transition-colors font-medium shadow-sm"
-                  >
-                    Choose Image
-                  </label>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm text-gray-700 font-medium">
-                    Preview (Watermark will be applied automatically)
-                  </p>
-                  <div className="relative inline-block">
-                    <img
-                      src={imagePreview}
-                      alt="Product Preview"
-                      className="w-80 h-80 rounded-lg border border-gray-200 shadow-sm"
+            <div className="p-6 space-y-6">
+              {/* Multiple Images Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Images (Multiple) - Recommended
+                </label>
+                <p className="text-sm text-gray-600 mb-3">
+                  Upload multiple product images. Click "Add More Images" to keep adding images to your existing selection. 
+                  The first image is set as primary by default, but you can change it by clicking "Set Primary" on any image.
+                </p>
+                {imagePreviews.length === 0 ? (
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-orange-500 transition-colors bg-gray-50 hover:bg-orange-50">
+                    <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-gray-600 mb-2 font-medium">Select multiple product images</p>
+                    <p className="text-sm text-gray-500 mb-4">PNG, JPG up to 5MB each. Select up to 10 images.</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleMultipleImagesChange}
+                      className="hidden"
+                      id="multipleImageUpload"
                     />
-                    <button
-                      type="button"
-                      onClick={removeImage}
-                      className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-lg z-20"
+                    <label
+                      htmlFor="multipleImageUpload"
+                      className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-lg cursor-pointer transition-colors font-medium shadow-sm"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      Choose Images
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className={`relative group ${primaryImageIndex === index ? 'ring-2 ring-orange-500' : ''}`}>
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border border-gray-200 shadow-sm"
+                          />
+                          
+                          {/* Remove Button */}
+                          <button
+                            type="button"
+                            onClick={() => removeImageAt(index)}
+                            className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                          
+                          {/* Primary Image Indicator */}
+                          {primaryImageIndex === index ? (
+                            <div className="absolute top-1 left-1 bg-orange-500 text-white px-2 py-1 rounded text-xs font-bold">
+                              PRIMARY
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => setPrimaryImage(index)}
+                              className="absolute top-1 left-1 bg-gray-600 hover:bg-orange-500 text-white px-2 py-1 rounded text-xs transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              Set Primary
+                            </button>
+                          )}
+                          
+                          {/* Image Number */}
+                          <div className="absolute bottom-1 right-1 bg-black bg-opacity-70 text-white px-1 py-0.5 rounded text-xs">
+                            {index + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={removeMultipleImages}
+                        className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors text-sm"
+                      >
+                        Remove All
+                      </button>
+                      <label
+                        htmlFor="multipleImageUpload"
+                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg cursor-pointer transition-colors text-sm"
+                      >
+                        Add More Images
+                      </label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleMultipleImagesChange}
+                        className="hidden"
+                        id="multipleImageUpload"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Video Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Video (Optional)
+                </label>
+                {!videoPreview ? (
+                  <div className="border-2 border-dashed border-purple-300 rounded-lg p-8 text-center hover:border-purple-500 transition-colors bg-purple-50 hover:bg-purple-100">
+                    <svg className="w-16 h-16 mx-auto text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-purple-600 mb-2 font-medium">Upload product video</p>
+                    <p className="text-sm text-purple-500 mb-4">MP4, WebM up to 50MB</p>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoChange}
+                      className="hidden"
+                      id="videoUpload"
+                    />
+                    <label
+                      htmlFor="videoUpload"
+                      className="inline-block bg-purple-500 hover:bg-purple-600 text-white px-8 py-3 rounded-lg cursor-pointer transition-colors font-medium shadow-sm"
+                    >
+                      Choose Video
+                    </label>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-700 font-medium">Video Preview</p>
+                    <div className="relative inline-block">
+                      <video
+                        src={videoPreview}
+                        controls
+                        className="w-full max-w-md h-64 rounded-lg border border-gray-200 shadow-sm"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                      <button
+                        type="button"
+                        onClick={removeVideo}
+                        className="absolute -top-3 -right-3 bg-red-500 hover:bg-red-600 text-white rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-lg"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                      <div className="absolute bottom-2 left-2 bg-purple-100 text-purple-800 px-2 py-1 rounded text-xs">
+                        🎥 Product Video
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+
+            </div>
+          </div>
+
+          {/* SEO Optimization Section */}
+          <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg shadow-sm border border-green-200">
+            <div className="px-6 py-4 border-b border-green-200">
+              <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+                <svg className="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                SEO Optimization
+                <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Enhanced</span>
+              </h3>
+              <p className="text-sm text-gray-600 mt-1">Optimize your product for search engines and better visibility</p>
+            </div>
+            
+            <div className="px-6 py-6 space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* SEO Slug */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    URL Slug
+                  </label>
+                  <input
+                    type="text"
+                    name="slug"
+                    value={formData.slug}
+                    onChange={(e) => setFormData(prev => ({...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}))}
+                    placeholder="auto-generated-from-product-name"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Leave empty to auto-generate. Used in URL: /product/your-slug</p>
+                </div>
+
+                {/* Meta Title */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SEO Meta Title
+                  </label>
+                  <input
+                    type="text"
+                    name="metaTitle"
+                    maxLength="60"
+                    value={formData.metaTitle}
+                    onChange={handleInputChange}
+                    placeholder="Optimized title for search engines"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.metaTitle.length}/60 characters. Leave empty to use product name.
+                  </p>
+                </div>
+
+                {/* Meta Description */}
+                <div className="lg:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SEO Meta Description
+                  </label>
+                  <textarea
+                    name="metaDescription"
+                    rows={3}
+                    maxLength="160"
+                    value={formData.metaDescription}
+                    onChange={handleInputChange}
+                    placeholder="Brief description that appears in search results..."
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors resize-none"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formData.metaDescription.length}/160 characters. Leave empty to auto-generate from description.
+                  </p>
+                </div>
+
+                {/* Alt Text with Smart Suggestions */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Image Alt Text
+                    <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      SEO Important
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    name="altText"
+                    maxLength="125"
+                    value={formData.altText}
+                    onChange={handleInputChange}
+                    placeholder={formData.name ? `${formData.name} - Buy online at International Tijarat` : "Descriptive text for product images"}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  />
+                  <div className="mt-2 space-y-2">
+                    <p className="text-xs text-gray-500">
+                      {formData.altText.length}/125 characters. Helps screen readers and SEO.
+                    </p>
+                    
+                    {/* Auto-generate Alt Text Button */}
+                    {formData.name && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const category = mainCategories.find(cat => cat._id === formData.mainCategory)?.name || '';
+                          const autoAltText = `${formData.name}${formData.brand ? ` by ${formData.brand}` : ''}${category ? ` - ${category}` : ''} - Buy online at International Tijarat`;
+                          setFormData(prev => ({
+                            ...prev,
+                            altText: autoAltText.substring(0, 125)
+                          }));
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 underline"
+                      >
+                        Auto-generate from product details
+                      </button>
+                    )}
+                  </div>
+                  
+                  {/* Image SEO Tips */}
+                  <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h5 className="text-sm font-medium text-blue-900 mb-2 flex items-center">
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                    </button>
-                    <div className="absolute bottom-2 left-2 bg-orange-100 text-orange-800 px-2 py-1 rounded text-xs">
-                      🛡️ Protected Image
+                      Image SEO Tips
+                    </h5>
+                    <ul className="text-xs text-blue-800 space-y-1">
+                      <li>• Include product name and key features in alt text</li>
+                      <li>• Add category or brand for better context</li>
+                      <li>• Use descriptive words like "high-quality", "premium"</li>
+                      <li>• Images are automatically watermarked and optimized</li>
+                      <li>• First image is most important for SEO</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* SEO Keywords */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    SEO Keywords
+                  </label>
+                  <input
+                    type="text"
+                    name="seoKeywords"
+                    value={formData.seoKeywords}
+                    onChange={handleInputChange}
+                    placeholder="seo-keyword1, seo-keyword2, seo-keyword3"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Separate with commas. Focus on specific product keywords.</p>
+                </div>
+              </div>
+
+              {/* SEO Preview */}
+              {(formData.metaTitle || formData.name) && (
+                <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg">
+                  <h4 className="text-sm font-medium text-gray-700 mb-2">Search Engine Preview:</h4>
+                  <div className="space-y-1">
+                    <div className="text-blue-600 text-lg hover:underline cursor-pointer">
+                      {formData.metaTitle || formData.name}
+                    </div>
+                    <div className="text-green-600 text-sm">
+                      internationaltijarat.com/product/{formData.slug || 'product-slug'}
+                    </div>
+                    <div className="text-gray-600 text-sm">
+                      {formData.metaDescription || (formData.description ? formData.description.substring(0, 160) + '...' : 'Product description will appear here...')}
                     </div>
                   </div>
                 </div>

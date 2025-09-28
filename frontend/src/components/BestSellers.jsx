@@ -1,42 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import API from '../api';
 import { getApiUrl, getImageUrl } from '../config';
 import { toast } from 'react-toastify';
+import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import EnhancedProductCard from './EnhancedProductCard';
 
 const CACHE_DURATION = 30000; // 30 seconds
 
-const ProductCard = ({ product }) => (
-  <div className="group relative overflow-hidden rounded-lg shadow hover:shadow-lg transition-all duration-300">
-    <div className="aspect-square w-full overflow-hidden">
-      <img
-        src={getImageUrl('products', product.image)}
-        alt={product.name}
-        className="h-full w-full object-cover object-center group-hover:scale-105 transition-transform duration-300"
-        onError={(e) => {
-          e.target.onerror = null;
-          e.target.src = '/placeholder-product.jpg';
-        }}
-      />
-    </div>
-    <div className="p-3 sm:p-4 bg-white">
-      <h3 className="text-sm font-medium text-gray-900 truncate">{product.name}</h3>
-      <p className="mt-1 text-base sm:text-lg font-semibold text-gray-900">${product.price.toFixed(2)}</p>
-      <div className="mt-2">
-        <Link
-          to={`/product/${product._id}`}
-          className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
-        >
-          View Details →
-        </Link>
-      </div>
-    </div>
-  </div>
-);
-
 const BestSellers = () => {
+  const navigate = useNavigate();
+  const { addToCart, cartItems } = useCart();
+  const { user } = useAuth();
+  
   const [categoryProducts, setCategoryProducts] = useState({});
   const [loading, setLoading] = useState(true);
+  const [addingToCart, setAddingToCart] = useState({});
+  const [errorMessages, setErrorMessages] = useState({});
   
   // Cache
   const cache = useRef({
@@ -86,6 +67,77 @@ const BestSellers = () => {
     fetchCategoryProducts();
   }, []);
 
+  // Handle add to cart
+  const handleAddToCart = async (product) => {
+    setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+    
+    try {
+      setAddingToCart(prev => ({ ...prev, [product._id]: true }));
+      
+      const result = await addToCart(product);
+      
+      if (result && result.success) {
+        console.log(`${product.title || product.name} added to cart successfully`);
+      } else {
+        console.error('Cart operation failed:', result?.error || 'Failed to add to cart');
+      }
+      
+    } catch (error) {
+      console.error('Cart add error:', error);
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [product._id]: false }));
+    }
+  };
+
+  // Handle buy now with authentication check
+  const handleBuyNow = async (product) => {
+    try {
+      // Check if user is authenticated first
+      if (!user) {
+        // Redirect to login if not authenticated
+        navigate('/login');
+        return;
+      }
+
+      // Store product in localStorage for buy now checkout
+      const buyNowItem = {
+        _id: product._id,
+        title: product.title,
+        price: product.price,
+        image: product.image || (product.images?.[0] || null),
+        stock: product.stock || 100,
+        quantity: 1
+      };
+      
+      localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+      
+      // Navigate directly to checkout, skipping cart page
+      navigate('/checkout');
+    } catch (error) {
+      console.error('Buy now error:', error);
+    }
+  };
+
+  // Helper function to check if product is in cart and get quantity
+  const getCartItemQuantity = (productId) => {
+    if (!cartItems || !Array.isArray(cartItems)) {
+      return 0;
+    }
+    
+    const cartItem = cartItems.find(item => 
+      item._id === productId || 
+      item.productData?._id === productId ||
+      item.productId === productId
+    );
+    
+    return cartItem ? (cartItem.quantity || 0) : 0;
+  };
+
+  // Helper function to check if product is in cart
+  const isProductInCart = (productId) => {
+    return getCartItemQuantity(productId) > 0;
+  };
+
   if (loading) {
     return (
       <div className="py-8 sm:py-12">
@@ -120,7 +172,17 @@ const BestSellers = () => {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {products.slice(0, 4).map((product) => (
-                  <ProductCard key={product._id} product={product} />
+                  <EnhancedProductCard 
+                    key={product._id} 
+                    product={product}
+                    onAddToCart={handleAddToCart}
+                    onBuyNow={handleBuyNow}
+                    cartQuantity={getCartItemQuantity(product._id)}
+                    isInCart={isProductInCart(product._id)}
+                    isAddingToCart={addingToCart[product._id] || false}
+                    errorMessage={errorMessages[product._id]}
+                    showBuyNow={true}
+                  />
                 ))}
               </div>
             </div>

@@ -194,11 +194,24 @@ const updateParentOrderStatus = async (parentOrderId) => {
     }
 
     // Update parent order
+    const oldParentStatus = parentOrder.status;
     parentOrder.status = newParentStatus;
     parentOrder.statusUpdatedAt = new Date();
     await parentOrder.save();
 
     console.log(`✅ Updated parent order ${parentOrderId} status to ${newParentStatus}`);
+
+    // Send email notification for parent order status change
+    if (oldParentStatus !== newParentStatus && parentOrder.email) {
+      try {
+        const { emailService } = require('../services/emailService');
+        await emailService.sendOrderStatusUpdate(parentOrder.email, parentOrder, newParentStatus, oldParentStatus);
+        console.log(`📧 [EMAIL] Parent order status update email sent for ${parentOrder.orderNumber}: ${oldParentStatus} → ${newParentStatus}`);
+      } catch (emailError) {
+        console.error('❌ [EMAIL] Failed to send parent order status update email:', emailError);
+        // Don't fail the operation if email fails
+      }
+    }
   } catch (error) {
     console.error('❌ Error updating parent order status:', error);
   }

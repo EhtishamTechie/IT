@@ -224,22 +224,7 @@ const AboutUsPage = () => {
           </div>
         </div>
 
-        {/* Stats Section */}
-        <div id="stats-section" className="mb-20">
-          <div className="bg-white rounded-3xl p-12 shadow-lg border border-gray-200">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-gray-900 mb-4">Our Impact by Numbers</h2>
-              <p className="text-gray-600 text-xl">Building trust through measurable results</p>
-            </div>
-            
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-              <StatsCard number="150" suffix="+" label="Countries Served" delay={0} />
-              <StatsCard number="100000" suffix="+" label="Happy Customers" delay={200} />
-              <StatsCard number="500" suffix="+" label="Brand Partners" delay={400} />
-              <StatsCard number="99.9" suffix="%" label="Customer Satisfaction" delay={600} />
-            </div>
-          </div>
-        </div>
+
 
         {/* Core Values */}
         <div className="mb-20">

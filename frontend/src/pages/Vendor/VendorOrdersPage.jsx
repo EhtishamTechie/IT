@@ -290,9 +290,9 @@ const VendorOrdersPage = () => {
         'Customer Name': order.customer?.name || order.name || 'N/A',
         'Customer Email': order.customer?.email || order.email || 'N/A',
         'Status': order.status?.replace('_', ' ') || 'N/A',
-        'Total Amount': `$${order.totalAmount || order.vendorSubtotal || 0}`,
-        'Commission': `$${order.commissionAmount || 0}`,
-        'Your Amount': `$${order.vendorAmount || (order.totalAmount - order.commissionAmount) || 0}`,
+        'Total Amount': `PKR ${order.totalAmount || order.vendorSubtotal || 0}`,
+        'Commission': `PKR ${order.commissionAmount || 0}`,
+        'Your Amount': `PKR ${order.vendorAmount || (order.totalAmount - order.commissionAmount) || 0}`,
         'Order Date': new Date(order.createdAt).toLocaleDateString(),
         'Items Count': (order.items || order.vendorItems || []).length,
         'Order Type': (order.orderType || 'legacy_order').replace('_', ' ')
@@ -420,7 +420,7 @@ const VendorOrdersPage = () => {
                 {filteredOrders.length > 0 && (
                   <div className="text-sm text-gray-500">
                     Total Revenue: <span className="font-semibold text-green-600">
-                      ${filteredOrders.reduce((sum, order) => sum + (order.vendorAmount || order.totalAmount - order.commissionAmount || 0), 0).toFixed(2)}
+                      PKR {filteredOrders.reduce((sum, order) => sum + (order.vendorAmount || order.totalAmount - order.commissionAmount || 0), 0).toFixed(2)}
                     </span>
                   </div>
                 )}
@@ -480,11 +480,11 @@ const VendorOrdersPage = () => {
                                 </div>
                                 <div className="flex items-center text-gray-600">
                                   <DollarSign className="w-4 h-4 mr-2 text-green-500" />
-                                  <span><strong>Total:</strong> ${order.totalAmount || order.vendorSubtotal || 0}</span>
+                                  <span><strong>Total:</strong> PKR {order.totalAmount || order.vendorSubtotal || 0}</span>
                                 </div>
                                 <div className="flex items-center text-gray-600">
                                   <DollarSign className="w-4 h-4 mr-2 text-orange-500" />
-                                  <span><strong>Commission:</strong> ${order.commissionAmount || 0}</span>
+                                  <span><strong>Commission:</strong> PKR {order.commissionAmount || 0}</span>
                                 </div>
                                 <div className="flex items-center text-gray-600">
                                   <Calendar className="w-4 h-4 mr-2 text-blue-500" />
@@ -582,14 +582,14 @@ const VendorOrdersPage = () => {
                                           {item.title || item.productName || 'Product'}
                                         </span>
                                         <div className="text-sm text-gray-500">
-                                          Unit Price: ${item.price}
+                                          Unit Price: PKR {item.price}
                                         </div>
                                       </div>
                                     </div>
                                     <div className="text-right">
                                       <div className="font-semibold text-gray-900">Qty: {item.quantity}</div>
                                       <div className="text-sm font-medium text-green-600">
-                                        Total: ${item.itemTotal || (item.quantity * item.price)}
+                                        Total: PKR {item.itemTotal || (item.quantity * item.price)}
                                       </div>
                                     </div>
                                   </div>

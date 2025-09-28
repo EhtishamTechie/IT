@@ -5,15 +5,15 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'shami537uet@gmail.com',
-    pass: process.env.EMAIL_PASS || 'vjlk swal olbh bopt'
+    user: process.env.EMAIL_USER || 'internationaltijarat.com@gmail.com',
+    pass: process.env.EMAIL_PASS || 'ehzq rwnf qjdd rfbs'
   }
 });
 
 const sendEmail = async (to, subject, html) => {
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER || 'shami537uet@gmail.com',
+      from: process.env.EMAIL_USER || 'internationaltijarat.com@gmail.com',
       to,
       subject,
       html

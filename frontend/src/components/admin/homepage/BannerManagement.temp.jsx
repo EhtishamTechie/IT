@@ -47,7 +47,7 @@ const getProductImage = (product) => {
     if (!product) return null;
     
     if (Array.isArray(product.images) && product.images.length > 0) {
-        const image = product.images[0];
+        const image = product.image || product.images[0];
         return typeof image === 'string' ? getImageUrl('products', image) : null;
     }
     

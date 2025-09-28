@@ -12,7 +12,7 @@ import {
   Filter
 } from 'lucide-react';
 import axios from 'axios';
-import { getApiUrl } from '../config';
+import { getApiUrl, getImageUrl } from '../config';
 
 const ContactWholeseller = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -141,23 +141,47 @@ const ContactWholeseller = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {category.suppliers.map((supplier, supplierIndex) => (
                       <div key={supplierIndex} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
-                        {/* Supplier Header */}
-                        <div className="mb-4">
-                          <h3 className="text-lg font-semibold text-gray-900 mb-2">{supplier.supplierName}</h3>
-                          {supplier.specialties && supplier.specialties.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {supplier.specialties.slice(0, 3).map((specialty, idx) => (
-                                <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                  {specialty}
-                                </span>
-                              ))}
-                              {supplier.specialties.length > 3 && (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                  +{supplier.specialties.length - 3} more
-                                </span>
+                        {/* Card Content with Logo on Left, Details on Right */}
+                        <div className="flex gap-4 mb-4">
+                          {/* Large Logo on Left */}
+                          <div className="flex-shrink-0">
+                            {supplier.profileImage ? (
+                              <img
+                                src={getImageUrl('wholesale-suppliers', supplier.profileImage)}
+                                alt={`${supplier.supplierName} logo`}
+                                className="w-24 h-24 object-contain rounded-lg border-2 border-gray-200"
+                                onError={(e) => {
+                                  e.target.style.display = 'none';
+                                  e.target.nextSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            <div className={`w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center ${supplier.profileImage ? 'hidden' : 'flex'}`}>
+                              <Store className="w-12 h-12 text-white" />
+                            </div>
+                          </div>
+
+                          {/* Supplier Info on Right */}
+                          <div className="flex-1 min-w-0">
+                            {/* Supplier Header */}
+                            <div className="mb-3">
+                              <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{supplier.supplierName}</h3>
+                              {supplier.specialties && supplier.specialties.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                  {supplier.specialties.slice(0, 2).map((specialty, idx) => (
+                                    <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                      {specialty}
+                                    </span>
+                                  ))}
+                                  {supplier.specialties.length > 2 && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                                      +{supplier.specialties.length - 2} more
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
-                          )}
+                          </div>
                         </div>
 
                         {/* Supplier Details */}

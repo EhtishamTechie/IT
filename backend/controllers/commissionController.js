@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const VendorOrder = require('../models/VendorOrder');
 const MonthlyCommission = require('../models/MonthlyCommission');
+const Commission = require('../models/Commission');
 const Vendor = require('../models/Vendor');
 const CommissionConfig = require('../config/commission');
 const nodemailer = require('nodemailer');
@@ -24,12 +25,8 @@ const transporter = nodemailer.createTransport({
 // @access  Private (Admin)
 const getCommissionOverview = async (req, res) => {
   try {
-    console.log('🔥 COMMISSION API CALLED - Route hit successfully!');
-    console.log('🔥 Request query:', req.query);
-    console.log('🔥 Request user:', req.user ? 'User exists' : 'No user found');
-    
     const { 
-      period = 'month', // 'month', '90days', 'year'
+      period = 'all', // 'all', 'month', '90days', 'year'
       status,
       search,
       sortBy = 'totalCommission',
@@ -38,7 +35,7 @@ const getCommissionOverview = async (req, res) => {
       limit = 9 // 9 items per page for 3x3 grid
     } = req.query;
 
-    console.log(`🔍 Admin: Getting commission overview with period: ${period}, page: ${page}, limit: ${limit}`);
+    console.log(`� Commission Overview - Period: ${period}, Page: ${page}`);
 
     // Calculate pagination
     const pageNum = parseInt(page);
@@ -47,7 +44,7 @@ const getCommissionOverview = async (req, res) => {
 
     // Calculate date range based on period filter
     const now = new Date();
-    let startDate;
+    let startDate = null; // null means no date filtering (all time)
     
     switch (period) {
       case '90days':
@@ -57,12 +54,19 @@ const getCommissionOverview = async (req, res) => {
         startDate = new Date(now.getFullYear(), 0, 1); // January 1st of current year
         break;
       case 'month':
-      default:
         startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
+        break;
+      case 'all':
+      default:
+        startDate = null; // No date filtering for all time
         break;
     }
 
-    console.log(`📅 Date range: ${startDate.toISOString()} to ${now.toISOString()}`);
+    if (startDate) {
+      console.log(`📅 Date range: ${startDate.toISOString()} to ${now.toISOString()}`);
+    } else {
+      console.log(`📅 Date range: All time (no date filtering)`);
+    }
 
     // Build vendor query with search
     const vendorQuery = { 
@@ -136,23 +140,14 @@ const getCommissionOverview = async (req, res) => {
 
     // Calculate commission data for each vendor
     for (const vendor of vendors) {
-      console.log(`\n🔍 Processing vendor: ${vendor.businessName} (${vendor._id})`);
-      
-      // Get VendorOrders for this vendor - ALL TIME to match vendor dashboard
-      const vendorOrders = await VendorOrder.find({
-        vendor: vendor._id
-      });
-
-      console.log(`📦 Found ${vendorOrders.length} VendorOrders for ${vendor.businessName} (all time)`);
-      
-      if (vendorOrders.length > 0) {
-        console.log('📋 Sample orders:', vendorOrders.slice(0, 2).map(o => ({
-          id: o._id,
-          totalAmount: o.totalAmount,
-          commissionAmount: o.commissionAmount,
-          createdAt: o.createdAt
-        })));
+      // Build VendorOrder query with date filtering if specified
+      const vendorOrderQuery = { vendor: vendor._id };
+      if (startDate) {
+        vendorOrderQuery.createdAt = { $gte: startDate, $lte: now };
       }
+      
+      // Get VendorOrders for this vendor with period filtering
+      const vendorOrders = await VendorOrder.find(vendorOrderQuery);
 
       // Calculate total commission from orders - Check reversal status with dedicated flag
       const totalCommission = vendorOrders.reduce((sum, vo) => {
@@ -161,51 +156,40 @@ const getCommissionOverview = async (req, res) => {
         // If commission has been explicitly reversed, respect that
         if (vo.commissionReversed === true) {
           commission = 0;
-          console.log(`  Order ${vo._id}: Commission REVERSED - showing $0`);
         }
         // For display purposes, calculate commission based on forwarded status
         // Use explicit positive commissionAmount values if available
         else if (vo.commissionAmount && vo.commissionAmount > 0) {
           commission = vo.commissionAmount;
-          console.log(`  Order ${vo._id}: Using explicit commission amount: $${commission}`);
         }
         // If order was manually forwarded by admin or has forwardedAt date, calculate commission
         else if (vo.isForwardedByAdmin || vo.forwardedAt) {
           commission = vo.totalAmount * CommissionConfig.VENDOR_COMMISSION_RATE; // Dynamic commission for forwarded orders
-          console.log(`  Order ${vo._id}: CALCULATED - Total: $${vo.totalAmount}, Rate: ${CommissionConfig.VENDOR_COMMISSION_RATE}, Commission: $${commission}`);
         }
         // Auto-created orders that haven't been forwarded get 0 commission
         else {
           commission = 0;
-          console.log(`  Order ${vo._id}: NOT FORWARDED - Commission: $0`);
         }
         
-        console.log(`  Order ${vo._id}: $${vo.totalAmount} → Forwarded: ${!!(vo.isForwardedByAdmin || vo.forwardedAt)} → CommissionReversed: ${vo.commissionReversed} → CommissionAmount: ${vo.commissionAmount} → Final Commission: $${commission}`);
         return sum + commission;
       }, 0);
 
-      console.log(`💰 Total commission for ${vendor.businessName}: $${totalCommission}`);
-
-      // Get paid commission from MonthlyCommission records - ALL TIME to match vendor dashboard  
+      // Get paid commission from MonthlyCommission records with period filtering
       let totalPaid = 0;
       try {
-        const paidCommissions = await MonthlyCommission.find({
+        // Build MonthlyCommission query with date filtering if specified
+        const paidCommissionQuery = {
           vendor: vendor._id,
           paymentStatus: { $in: ['paid', 'processing'] }
-        });
-
-        totalPaid = paidCommissions.reduce((sum, mc) => sum + (mc.paidCommission || 0), 0);
-        console.log(`✅ Total paid for ${vendor.businessName}: $${totalPaid} (from ${paidCommissions.length} records)`);
+        };
         
-        if (paidCommissions.length > 0) {
-          console.log('📋 Payment records:', paidCommissions.map(pc => ({
-            month: pc.month,
-            year: pc.year,
-            paidCommission: pc.paidCommission,
-            paymentStatus: pc.paymentStatus,
-            lastPaymentDate: pc.lastPaymentDate
-          })));
+        // Apply date filtering to MonthlyCommission if period is specified
+        if (startDate) {
+          paidCommissionQuery.lastPaymentDate = { $gte: startDate, $lte: now };
         }
+        
+        const paidCommissions = await MonthlyCommission.find(paidCommissionQuery);
+        totalPaid = paidCommissions.reduce((sum, mc) => sum + (mc.paidCommission || 0), 0);
       } catch (error) {
         console.log(`❌ Error getting paid commissions for vendor ${vendor._id}:`, error.message);
       }
@@ -225,19 +209,9 @@ const getCommissionOverview = async (req, res) => {
 
       // Create a meaningful display name with proper fallback hierarchy
       const getVendorDisplayName = (vendor) => {
-        console.log(`🔍 Resolving name for vendor ${vendor._id}:`, {
-          businessName: vendor.businessName,
-          email: vendor.email,
-          contactPerson: vendor.contactPerson,
-          hasBusinessName: !!vendor.businessName,
-          businessNameLength: vendor.businessName ? vendor.businessName.length : 0
-        });
-
         // Priority 1: businessName
         if (vendor.businessName && typeof vendor.businessName === 'string' && vendor.businessName.trim()) {
-          const name = vendor.businessName.trim();
-          console.log(`✅ Using business name: "${name}"`);
-          return name;
+          return vendor.businessName.trim();
         }
         
         // Priority 2: Contact person name
@@ -246,14 +220,10 @@ const getCommissionOverview = async (req, res) => {
           const lastName = vendor.contactPerson.lastName?.trim() || '';
           
           if (firstName && lastName) {
-            const name = `${firstName} ${lastName}`;
-            console.log(`✅ Using contact person full name: "${name}"`);
-            return name;
+            return `${firstName} ${lastName}`;
           } else if (firstName) {
-            console.log(`✅ Using contact person first name: "${firstName}"`);
             return firstName;
           } else if (lastName) {
-            console.log(`✅ Using contact person last name: "${lastName}"`);
             return lastName;
           }
         }
@@ -303,19 +273,6 @@ const getCommissionOverview = async (req, res) => {
         orderCount: vendorOrders.length,
         status: pendingAmount > 0 ? 'pending' : 'paid'
       };
-
-      console.log(`📊 Vendor data for ${getVendorDisplayName(vendor)}:`, {
-        vendorId: vendor._id,
-        originalBusinessName: vendor.businessName,
-        contactFirstName: vendor.contactPerson?.firstName,
-        contactLastName: vendor.contactPerson?.lastName,
-        finalDisplayName: vendorData.businessName,
-        email: vendor.email,
-        hasBusinessName: !!vendor.businessName,
-        totalCommission,
-        totalPaid,
-        pendingAmount
-      });
 
       vendorCommissions.push(vendorData);
 
@@ -1027,6 +984,207 @@ const getCommissionConfig = async (req, res) => {
   }
 };
 
+// @desc    Export commission report as CSV
+// @route   GET /api/admin/commissions/export
+// @access  Private (Admin)
+const exportCommissionReport = async (req, res) => {
+  try {
+    console.log('📊 Exporting commission report for admin');
+    
+    // Get query parameters
+    const { period = 'all' } = req.query;
+    
+    console.log(`📅 Export period: ${period}`);
+    
+    // Calculate date range based on period filter (same as overview)
+    const now = new Date();
+    let startDate = null; // null means no date filtering (all time)
+    
+    switch (period) {
+      case '90days':
+        startDate = new Date(now.getTime() - (90 * 24 * 60 * 60 * 1000));
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1); // January 1st of current year
+        break;
+      case 'month':
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1); // First day of current month
+        break;
+      case 'all':
+      default:
+        startDate = null; // No date filtering for all time
+        break;
+    }
+
+    if (startDate) {
+      console.log(`📅 Export date range: ${startDate.toISOString()} to ${now.toISOString()}`);
+    } else {
+      console.log(`📅 Export date range: All time (no date filtering)`);
+    }
+    
+    // Get all approved vendors (same as dashboard)
+    const vendors = await Vendor.find({ 
+      verificationStatus: 'approved'
+    }).select('_id businessName contactPerson email contactPhone status verificationStatus');
+
+    console.log(`👥 Found ${vendors.length} approved vendors for export`);
+    
+    if (vendors.length === 0) {
+      return res.status(200).json({
+        success: false,
+        message: 'No approved vendors found to export'
+      });
+    }
+
+    const exportData = [];
+
+    // Process each vendor (using same logic as dashboard)
+    for (const vendor of vendors) {
+      console.log(`\n� Processing vendor for export: ${vendor.businessName} (${vendor._id})`);
+      
+      // Build VendorOrder query with date filtering if specified (same as overview)
+      const vendorOrderQuery = { vendor: vendor._id };
+      if (startDate) {
+        vendorOrderQuery.createdAt = { $gte: startDate, $lte: now };
+      }
+      
+      // Get VendorOrders for this vendor with period filtering
+      const vendorOrders = await VendorOrder.find(vendorOrderQuery)
+        .populate('parentOrderId', 'orderNumber totalAmount createdAt')
+        .sort({ createdAt: -1 });
+
+      console.log(`📦 Found ${vendorOrders.length} VendorOrders for export (${period} period)`);
+      
+      // Calculate total commission (same logic as dashboard)
+      let totalCommission = 0;
+
+      for (const vo of vendorOrders) {
+        let commission = 0;
+        
+        // Same commission calculation logic as dashboard
+        if (vo.commissionReversed === true) {
+          commission = 0;
+        } else if (vo.commissionAmount && vo.commissionAmount > 0) {
+          commission = vo.commissionAmount;
+        } else if (vo.isForwardedByAdmin || vo.forwardedAt) {
+          commission = vo.totalAmount * CommissionConfig.VENDOR_COMMISSION_RATE;
+        } else {
+          commission = 0;
+        }
+        
+        totalCommission += commission;
+      }
+
+      // Get paid commission from MonthlyCommission records with period filtering (same as overview)
+      let totalPaid = 0;
+      try {
+        // Build MonthlyCommission query with date filtering if specified
+        const paidCommissionQuery = {
+          vendor: vendor._id,
+          paymentStatus: { $in: ['paid', 'processing'] }
+        };
+        
+        // Apply date filtering to MonthlyCommission if period is specified
+        if (startDate) {
+          paidCommissionQuery.lastPaymentDate = { $gte: startDate, $lte: now };
+        }
+        
+        const paidCommissions = await MonthlyCommission.find(paidCommissionQuery);
+
+        totalPaid = paidCommissions.reduce((sum, mc) => sum + (mc.paidCommission || 0), 0);
+      } catch (error) {
+        console.log(`❌ Error getting paid commissions for vendor ${vendor._id}:`, error.message);
+      }
+
+      const pendingAmount = Math.max(0, totalCommission - totalPaid);
+
+      // Create vendor display name (same logic as dashboard)
+      const getVendorDisplayName = (vendor) => {
+        if (vendor.businessName && typeof vendor.businessName === 'string' && vendor.businessName.trim()) {
+          return vendor.businessName.trim();
+        }
+        
+        if (vendor.contactPerson) {
+          const firstName = vendor.contactPerson.firstName?.trim() || '';
+          const lastName = vendor.contactPerson.lastName?.trim() || '';
+          
+          if (firstName && lastName) {
+            return `${firstName} ${lastName}`;
+          } else if (firstName) {
+            return firstName;
+          } else if (lastName) {
+            return lastName;
+          }
+        }
+        
+        if (vendor.email && typeof vendor.email === 'string') {
+          return `Business (${vendor.email})`;
+        }
+        
+        return `Vendor ${vendor._id.toString().slice(-6)}`;
+      };
+
+      // Add vendor data to export
+      exportData.push({
+        vendorName: getVendorDisplayName(vendor),
+        vendorEmail: vendor.email || '',
+        totalCommission: totalCommission,
+        paidCommission: totalPaid,
+        pendingCommission: pendingAmount,
+        orderCount: vendorOrders.length
+      });
+    }
+
+    console.log(`📊 Export data prepared for ${exportData.length} vendors`);
+    
+    // Create CSV content (vendor summary only - no order details)
+    const csvHeaders = [
+      'Vendor Name',
+      'Vendor Email', 
+      'Total Commission',
+      'Paid Commission',
+      'Pending Commission',
+      'Order Count'
+    ];
+    
+    let csvContent = csvHeaders.join(',') + '\n';
+    
+    // Add data rows (vendor summary only)
+    for (const vendorData of exportData) {
+      const row = [
+        `"${vendorData.vendorName}"`,
+        `"${vendorData.vendorEmail}"`,
+        vendorData.totalCommission.toFixed(2),
+        vendorData.paidCommission.toFixed(2),
+        vendorData.pendingCommission.toFixed(2),
+        vendorData.orderCount
+      ];
+      csvContent += row.join(',') + '\n';
+    }
+    
+    // Set headers for file download
+    const filename = `commission-report-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Pragma', 'no-cache');
+    
+    console.log(`✅ Commission report exported successfully: ${filename}`);
+    console.log(`📊 Report contains data for ${exportData.length} vendors`);
+    
+    res.status(200).send(csvContent);
+    
+  } catch (error) {
+    console.error('❌ Export commission report error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error exporting commission report',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
+};
+
 module.exports = {
   getCommissionOverview,
   updateVendorPayment,
@@ -1036,6 +1194,7 @@ module.exports = {
   getCommissionAnalytics,
   resetVendorCommission,
   getCommissionConfig,
+  exportCommissionReport,
   getCommissionSummary: getCommissionOverview,  // Alias for backward compatibility
   getCommissionSettings: getCommissionConfig,    // Alias for backward compatibility
   updateCommissionSettings: async (req, res) => {

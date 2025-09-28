@@ -95,7 +95,7 @@ const BannerPreview = ({
                         }}
                     >
                         <PreviewImage
-                            imageUrl={getImageUrl('products', activeSlide.primaryProduct.images?.[0] || activeSlide.primaryProduct.image || 'placeholder.jpg')}
+                            imageUrl={getImageUrl('products', activeSlide.primaryProduct.image || (activeSlide.primaryProduct.images?.[0] || 'placeholder.jpg'))}
                             alt={activeSlide.primaryProduct.title || activeSlide.primaryProduct.name}
                             title={activeSlide.primaryProduct.title || activeSlide.primaryProduct.name}
                             price={activeSlide.primaryProduct.price}
@@ -121,7 +121,7 @@ const BannerPreview = ({
                         }}
                     >
                         <PreviewImage
-                            imageUrl={getImageUrl('products', product.images?.[0] || product.image || 'placeholder.jpg')}
+                            imageUrl={getImageUrl('products', product.image || (product.images?.[0] || 'placeholder.jpg'))}
                             alt={product.title || product.name}
                             title={product.title || product.name}
                             price={product.price}

@@ -6,7 +6,7 @@ const router = express.Router();
 const { protectVendor } = require('../middleware/vendorAuth');
 
 // Import watermarking middleware
-const { uploadMultipleProductImages, handleUploadError } = require('../middleware/uploadMiddleware');
+const { uploadMultipleProductImages, uploadProductMedia, handleUploadError } = require('../middleware/uploadMiddleware');
 const { watermarkProductImages, logWatermarkResults } = require('../middleware/watermarkMiddleware');
 
 // Import controller with error handling
@@ -40,16 +40,16 @@ router.get('/:id', (req, res, next) => {
   next();
 }, vendorProductController.getVendorProductById);
 
-// Routes with watermarked file upload
+// Routes with watermarked file upload (enhanced for images + video)
 router.post('/', 
-  uploadMultipleProductImages,
+  uploadProductMedia,
   watermarkProductImages,
   logWatermarkResults,
   vendorProductController.addVendorProduct
 );
 
 router.put('/:id', 
-  uploadMultipleProductImages,
+  uploadProductMedia,
   watermarkProductImages,
   logWatermarkResults,
   vendorProductController.updateVendorProduct

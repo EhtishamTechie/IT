@@ -469,7 +469,7 @@ const InventoryManagement = () => {
                             />
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{item.product.name}</div>
-                              <div className="text-sm text-gray-500">${item.product.price}</div>
+                              <div className="text-sm text-gray-500">PKR {item.product.price}</div>
                             </div>
                           </div>
                         </td>

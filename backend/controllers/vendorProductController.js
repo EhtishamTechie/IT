@@ -371,20 +371,31 @@ const addVendorProduct = async (req, res) => {
     if (req.processedFiles && Object.keys(req.processedFiles).length > 0) {
       console.log('🖼️ Using processed files from watermarking middleware');
       
+      // Handle each field type separately to avoid conflicts
       for (const [fieldName, processedFiles] of Object.entries(req.processedFiles)) {
         console.log(`🖼️ Processing field ${fieldName} with ${processedFiles.length} files`);
         
         if (processedFiles && processedFiles.length > 0) {
-          if (fieldName === 'image' || fieldName === 'images') {
-            // Store just the filename without products/ prefix to match existing pattern
-            productData.image = processedFiles[0].filename;
-            console.log(`🖼️ Set main image:`, productData.image);
+          if (fieldName === 'image') {
+            // Handle primary image
+            productData.image = `products/${processedFiles[0].filename}`;
+            console.log(`🖼️ Set primary image from '${fieldName}':`, productData.image);
+          }
+          else if (fieldName === 'images') {
+            // Handle multiple images
+            productData.images = processedFiles.map(file => `products/${file.filename}`);
+            console.log(`🖼️ Set additional images from '${fieldName}':`, productData.images);
             
-            if (processedFiles.length > 1) {
-              productData.images = processedFiles.map(file => file.filename);
-              console.log(`🖼️ Set additional images:`, productData.images);
+            // If no primary image set yet, use first additional image as primary
+            if (!productData.image && productData.images.length > 0) {
+              productData.image = productData.images[0];
+              console.log(`🖼️ AUTO-SET: Using first additional image as primary image:`, productData.image);
             }
-            break; // Use the first valid field found
+          }
+          else if (fieldName === 'video') {
+            // Process video files with products/ prefix
+            productData.video = `products/${processedFiles[0].filename}`;
+            console.log(`🎥 Set video from '${fieldName}':`, productData.video);
           }
         }
       }
@@ -396,13 +407,13 @@ const addVendorProduct = async (req, res) => {
       // Handle single file upload (req.file)
       if (req.file) {
         console.log('🖼️ Single file upload detected:', req.file.filename);
-        productData.image = req.file.filename; // Store just the filename without products/ prefix
+        productData.image = `products/${req.file.filename}`; // Store with products/ prefix to match updateVendorProduct
       } 
       // Handle multiple file fields (req.files)
       else if (req.files) {
         console.log('🖼️ Multiple files upload detected');
         
-        // Check for different possible field names
+        // Process images
         if (req.files.image) {
           console.log('🖼️ Image field found:', req.files.image);
           if (Array.isArray(req.files.image)) {
@@ -414,20 +425,43 @@ const addVendorProduct = async (req, res) => {
             console.log('🖼️ Single image file with products/ prefix:', productData.image);
           }
         }
-        // Check for 'images' field
-        else if (req.files.images) {
-          console.log('🖼️ Images field found:', req.files.images);
-          if (Array.isArray(req.files.images)) {
-            productData.image = `products/${req.files.images[0].filename}`;
-            productData.images = req.files.images.map(file => `products/${file.filename}`);
+        
+        // Process additional images
+        if (req.files.images) {
+          console.log('🖼️ Additional images field found:', req.files.images);
+          const additionalImages = Array.isArray(req.files.images) 
+            ? req.files.images.map(file => `products/${file.filename}`)
+            : [`products/${req.files.images.filename}`];
+          
+          // Combine with existing images or set as new
+          if (productData.images) {
+            productData.images = [...productData.images, ...additionalImages];
           } else {
-            productData.image = `products/${req.files.images.filename}`;
+            productData.images = additionalImages;
+            // If no primary image, use first additional image as primary
+            if (!productData.image && additionalImages.length > 0) {
+              productData.image = additionalImages[0];
+            }
+          }
+          console.log('🖼️ Total images after processing:', productData.images.length);
+        }
+        
+        // Process video
+        if (req.files.video) {
+          console.log('🎥 Video field found:', req.files.video);
+          if (Array.isArray(req.files.video)) {
+            productData.video = `products/${req.files.video[0].filename}`;
+            console.log('🎥 Video file with products/ prefix:', productData.video);
+          } else {
+            productData.video = `products/${req.files.video.filename}`;
+            console.log('🎥 Single video file with products/ prefix:', productData.video);
           }
         }
-        // Check for any file field (fallback)
-        else {
+        
+        // Fallback for old implementations
+        if (!productData.image && !productData.images && !productData.video) {
           const fileKeys = Object.keys(req.files);
-          console.log('🖼️ Available file fields:', fileKeys);
+          console.log('🖼️ Available file fields for fallback:', fileKeys);
           if (fileKeys.length > 0) {
             const firstFieldFiles = req.files[fileKeys[0]];
             if (Array.isArray(firstFieldFiles) && firstFieldFiles.length > 0) {
@@ -455,28 +489,23 @@ const addVendorProduct = async (req, res) => {
       imagesCount: productData.images?.length || 0
     });
     
-    console.log('📦 Final processed productData:', {
+    console.log('📦 Final processed productData (summary):', {
       title: productData.title,
       price: productData.price,
-      vendor: productData.vendor,
-      mainCategory: productData.mainCategory,
-      subCategory: productData.subCategory,
       hasImage: !!productData.image,
-      imageName: productData.image,
-      hasImages: !!productData.images,
-      imagesArray: productData.images,
-      fullProductData: productData
+      imagesCount: productData.images?.length || 0,
+      hasVideo: !!productData.video,
+      mainCategoryCount: productData.mainCategory?.length || 0
     });
     
     const product = new Product(productData);
     
-    // Log what's about to be saved
-    console.log('💾 About to save product with image data:', {
+    // Log what's about to be saved (summary)
+    console.log('💾 About to save product:', {
       productId: product._id,
-      image: product.image,
-      images: product.images,
-      hasImageField: product.image !== undefined,
-      imageValue: product.image
+      hasImage: !!product.image,
+      hasVideo: !!product.video,
+      imagesCount: product.images?.length || 0
     });
     
     await product.save();
@@ -488,12 +517,12 @@ const addVendorProduct = async (req, res) => {
     await cacheInvalidator.invalidateProducts();
     console.log('🔄 Product caches invalidated');
     
-    // Verify what was actually saved
+    // Verify what was actually saved (summary)
     const savedProduct = await Product.findById(product._id).lean();
-    console.log('🔍 Verified saved product image data:', {
-      savedImage: savedProduct.image,
-      savedImages: savedProduct.images,
-      imageExists: !!savedProduct.image
+    console.log('🔍 Verified saved product:', {
+      hasImage: !!savedProduct.image,
+      hasVideo: !!savedProduct.video,
+      imagesCount: savedProduct.images?.length || 0
     });
     
     const populatedProduct = await Product.findById(product._id)
@@ -622,35 +651,108 @@ const updateVendorProduct = async (req, res) => {
       }
     }
     
-    // Handle image updates with proper products/ prefix
-    if (req.files || req.file) {
+    // Handle image and video updates with proper products/ prefix
+    if (req.files || req.file || req.processedFiles) {
       console.log('🖼️ Processing file uploads for update');
+      console.log('🖼️ req.files:', req.files);
+      console.log('🖼️ req.file:', req.file);
+      console.log('🖼️ req.processedFiles:', req.processedFiles);
       
-      // Keep track of old images for cleanup
+      // Keep track of old media for cleanup
       const oldMainImage = existingProduct.image;
       const oldAdditionalImages = existingProduct.images || [];
+      const oldVideo = existingProduct.video;
       
-      if (req.file) {
+      // Check for processed files first (after watermarking)
+      if (req.processedFiles && Object.keys(req.processedFiles).length > 0) {
+        console.log('🖼️ Using processed files from watermarking middleware for update');
+        
+        // Handle each field type separately to avoid conflicts
+        for (const [fieldName, processedFiles] of Object.entries(req.processedFiles)) {
+          console.log(`🖼️ Processing field ${fieldName} with ${processedFiles.length} files`);
+          
+          if (processedFiles && processedFiles.length > 0) {
+            if (fieldName === 'image') {
+              // Handle primary image
+              updateData.image = `products/${processedFiles[0].filename}`;
+              console.log(`🖼️ Set primary image from '${fieldName}':`, updateData.image);
+            }
+            else if (fieldName === 'images') {
+              // Handle multiple images
+              updateData.images = processedFiles.map(file => `products/${file.filename}`);
+              console.log(`🖼️ Set additional images from '${fieldName}':`, updateData.images);
+              
+              // If no primary image set yet, use first additional image as primary
+              if (!updateData.image && updateData.images.length > 0) {
+                updateData.image = updateData.images[0];
+                console.log(`🖼️ AUTO-SET: Using first additional image as primary image:`, updateData.image);
+              }
+            }
+            else if (fieldName === 'video') {
+              // Process video files with products/ prefix
+              updateData.video = `products/${processedFiles[0].filename}`;
+              console.log(`🎥 Set video from '${fieldName}':`, updateData.video);
+            }
+          }
+        }
+      }
+      // Fallback to original files if no processed files
+      else if (req.file) {
         // Single file upload
         updateData.image = `products/${req.file.filename}`;
         console.log('🖼️ Single file update with products/ prefix:', updateData.image);
-      } else if (req.files && req.files.image) {
-        if (Array.isArray(req.files.image)) {
-          // Multiple files upload
-          updateData.image = `products/${req.files.image[0].filename}`;
-          updateData.images = req.files.image.map(file => `products/${file.filename}`);
-          console.log('🖼️ Multiple files update with products/ prefix:', {
-            main: updateData.image,
-            additional: updateData.images
-          });
-        } else {
-          // Single file in files object
-          updateData.image = `products/${req.files.image.filename}`;
-          console.log('🖼️ Single file from files object with products/ prefix:', updateData.image);
+      } else if (req.files) {
+        // Handle image uploads
+        if (req.files.image) {
+          if (Array.isArray(req.files.image)) {
+            // Multiple files upload
+            updateData.image = `products/${req.files.image[0].filename}`;
+            updateData.images = req.files.image.map(file => `products/${file.filename}`);
+            console.log('🖼️ Multiple files update with products/ prefix:', {
+              main: updateData.image,
+              additional: updateData.images
+            });
+          } else {
+            // Single file in files object
+            updateData.image = `products/${req.files.image.filename}`;
+            console.log('🖼️ Single file from files object with products/ prefix:', updateData.image);
+          }
+        }
+        
+        // Process additional images
+        if (req.files.images) {
+          console.log('🖼️ Additional images field found for update:', req.files.images);
+          const additionalImages = Array.isArray(req.files.images) 
+            ? req.files.images.map(file => `products/${file.filename}`)
+            : [`products/${req.files.images.filename}`];
+          
+          // Combine with existing images or set as new
+          if (updateData.images) {
+            updateData.images = [...updateData.images, ...additionalImages];
+          } else {
+            updateData.images = additionalImages;
+            // If no primary image, use first additional image as primary
+            if (!updateData.image && additionalImages.length > 0) {
+              updateData.image = additionalImages[0];
+            }
+          }
+          console.log('🖼️ Total images after processing update:', updateData.images.length);
+        }
+        
+        // Handle video uploads
+        if (req.files.video) {
+          console.log('🎥 Video field found for update:', req.files.video);
+          if (Array.isArray(req.files.video)) {
+            updateData.video = `products/${req.files.video[0].filename}`;
+            console.log('🎥 Video file update with products/ prefix:', updateData.video);
+          } else {
+            updateData.video = `products/${req.files.video.filename}`;
+            console.log('🎥 Single video file update with products/ prefix:', updateData.video);
+          }
         }
       }
       
-      // TODO: Add cleanup of old images after successful update
+      // TODO: Add cleanup of old images and video after successful update
       // This should be handled by a separate cleanup service
     }
     

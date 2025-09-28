@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import ProductService from '../services/productService';
 import { getApiUrl, getImageUrl } from '../config';
+import EnhancedProductCard from '../components/EnhancedProductCard';
+import { getCanonicalUrl, generateBreadcrumbs } from '../utils/seoHelpers';
+import { getCollectionSchema, getBreadcrumbSchema } from '../utils/schemaGenerator';
 
 const AllProductsPage = () => {
     const navigate = useNavigate();
   const { addToCart, cartItems, loading: cartLoading } = useCart();
+  const { user } = useAuth();
   
   // State for products from backend API with pagination
   const [products, setProducts] = useState([]);
@@ -187,6 +193,35 @@ const AllProductsPage = () => {
     }
   };
 
+  // Handle buy now with authentication check
+  const handleBuyNow = async (product) => {
+    try {
+      // Check if user is authenticated first
+      if (!user) {
+        // Redirect to login if not authenticated
+        navigate('/login');
+        return;
+      }
+
+      // Store product in localStorage for buy now checkout
+      const buyNowItem = {
+        _id: product._id,
+        title: product.title,
+        price: product.price,
+        image: product.image || (product.images?.[0] || null),
+        stock: product.stock || 100,
+        quantity: 1
+      };
+      
+      localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+      
+      // Navigate directly to checkout, skipping cart page
+      navigate('/checkout');
+    } catch (error) {
+      console.error('Buy now error:', error);
+    }
+  };
+
   // Helper function to check if product is in cart and get quantity
   const getCartItemQuantity = (productId) => {
     // Safety check: ensure cartItems exists and is an array
@@ -229,6 +264,58 @@ const AllProductsPage = () => {
     return products;
   }, [products]);
 
+  // Generate SEO data (MOVED BEFORE CONDITIONAL RETURNS)
+  const allProductsSEO = useMemo(() => ({
+    title: `All Products - Shop Quality Products Online | International Tijarat`,
+    description: `Discover ${totalProducts > 0 ? totalProducts : 'thousands of'} premium products across all categories at International Tijarat. Electronics, fashion, home goods, and more with fast delivery.`,
+    keywords: [
+      'all products',
+      'online shopping',
+      'electronics',
+      'fashion',
+      'home goods',
+      'international tijarat',
+      'buy online',
+      'premium products',
+      'fast delivery'
+    ],
+    canonicalUrl: getCanonicalUrl('/products/all'),
+    openGraph: {
+      title: 'All Products | International Tijarat',
+      description: `Shop from ${totalProducts > 0 ? totalProducts : 'thousands of'} premium products with fast delivery and best prices.`,
+      type: 'website',
+      url: getCanonicalUrl('/products/all'),
+      images: products.length > 0 && products[0].image ? [
+        {
+          url: products[0].image,
+          width: 1200,
+          height: 630,
+          alt: 'All Products at International Tijarat'
+        }
+      ] : []
+    },
+    twitter: {
+      title: 'All Products | International Tijarat',
+      description: `Shop from ${totalProducts > 0 ? totalProducts : 'thousands of'} premium products with fast delivery and best prices.`,
+      images: products.length > 0 && products[0].image ? [products[0].image] : []
+    }
+  }), [totalProducts, products]);
+
+  const breadcrumbs = useMemo(() => 
+    generateBreadcrumbs('/products/all'), 
+    []
+  );
+
+  const collectionSchema = useMemo(() => 
+    getCollectionSchema('All Products', `Shop from ${totalProducts} premium products across all categories`, totalProducts), 
+    [totalProducts]
+  );
+
+  const breadcrumbSchema = useMemo(() => 
+    getBreadcrumbSchema(breadcrumbs), 
+    [breadcrumbs]
+  );
+
   // Loading state
   if (isLoading) {
     return (
@@ -265,6 +352,52 @@ const AllProductsPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* SEO Head Tags */}
+      <Helmet>
+        {/* Basic Meta Tags */}
+        <title>{allProductsSEO.title}</title>
+        <meta name="description" content={allProductsSEO.description} />
+        <meta name="keywords" content={allProductsSEO.keywords.join(', ')} />
+        <link rel="canonical" href={allProductsSEO.canonicalUrl} />
+        
+        {/* Open Graph Meta Tags */}
+        <meta property="og:title" content={allProductsSEO.openGraph.title} />
+        <meta property="og:description" content={allProductsSEO.openGraph.description} />
+        <meta property="og:type" content={allProductsSEO.openGraph.type} />
+        <meta property="og:url" content={allProductsSEO.openGraph.url} />
+        <meta property="og:site_name" content="International Tijarat" />
+        {allProductsSEO.openGraph.images.length > 0 && (
+          <>
+            <meta property="og:image" content={allProductsSEO.openGraph.images[0].url} />
+            <meta property="og:image:width" content={allProductsSEO.openGraph.images[0].width} />
+            <meta property="og:image:height" content={allProductsSEO.openGraph.images[0].height} />
+            <meta property="og:image:alt" content={allProductsSEO.openGraph.images[0].alt} />
+          </>
+        )}
+        
+        {/* Twitter Card Meta Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={allProductsSEO.twitter.title} />
+        <meta name="twitter:description" content={allProductsSEO.twitter.description} />
+        {allProductsSEO.twitter.images.length > 0 && (
+          <meta name="twitter:image" content={allProductsSEO.twitter.images[0]} />
+        )}
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="author" content="International Tijarat" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        
+        {/* Schema.org Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(collectionSchema)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
+      </Helmet>
+
       {/* Cart Loading Indicator */}
       {cartLoading && (
         <div className="fixed top-4 right-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center gap-2">
@@ -278,6 +411,33 @@ const AllProductsPage = () => {
       {/* Enhanced Modern Header */}
       <div className="bg-white shadow-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center space-x-2 text-sm mb-4" aria-label="Breadcrumb">
+            {breadcrumbs.map((crumb, index) => (
+              <div key={index} className="flex items-center">
+                {index > 0 && (
+                  <svg className="w-4 h-4 text-gray-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
+                {index === breadcrumbs.length - 1 ? (
+                  <span className="text-gray-900 font-medium">{crumb.name}</span>
+                ) : (
+                  <a 
+                    href={crumb.url} 
+                    className="text-blue-600 hover:text-blue-800 transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(crumb.url);
+                    }}
+                  >
+                    {crumb.name}
+                  </a>
+                )}
+              </div>
+            ))}
+          </nav>
+
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             {/* Title and Stats */}
             <div className="flex-1">
@@ -285,7 +445,7 @@ const AllProductsPage = () => {
                 All Products
               </h1>
               <p className="text-gray-600 text-lg">
-                Discover {products.length} amazing products
+                Discover {products.length} amazing products {totalProducts > products.length && `of ${totalProducts} total`}
               </p>
             </div>
 
@@ -343,14 +503,15 @@ const AllProductsPage = () => {
               key={product._id}
               ref={index === filteredAndSortedProducts.length - 1 ? lastProductElementRef : null}
             >
-              <ProductCard
+              <EnhancedProductCard
                 product={product}
-                onAddToCart={() => handleAddToCart(product)}
-                onToggleWishlist={() => handleToggleWishlist(product._id)}
-                isAddingToCart={addingToCart[product._id]}
-                errorMessage={errorMessages[product._id]}
+                onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyNow}
                 cartQuantity={getCartItemQuantity(product._id)}
                 isInCart={isProductInCart(product._id)}
+                isAddingToCart={addingToCart[product._id] || false}
+                errorMessage={errorMessages[product._id]}
+                showBuyNow={true}
               />
             </div>
           ))}
@@ -441,241 +602,5 @@ const CheckIcon = ({ className = "w-5 h-5" }) => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
   </svg>
 );
-
-// Clean Product Card
-const ProductCard = ({ 
-  product, 
-  onAddToCart, 
-  onToggleWishlist, 
-  isAddingToCart = false, 
-  errorMessage = null,
-  cartQuantity = 0,
-  isInCart = false 
-}) => {
-  const navigate = useNavigate();
-  const [imageError, setImageError] = useState(false);
-
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  // Navigate to product detail page
-  const handleProductClick = () => {
-    console.log('🔗 Navigating to product from AllProductsPage:', {
-      productId: product._id,
-      title: product.title,
-      fullProduct: product
-    });
-    if (!product._id) {
-      console.error('❌ Product ID is missing!', product);
-      return;
-    }
-    navigate(`/product/${product._id}`);
-  };
-
-  // Determine button state with proper priority - CART STATE DRIVEN
-  const getButtonState = () => {
-    if (isAddingToCart) return 'loading';
-    if (errorMessage) return 'error';
-    if (isInCart && cartQuantity > 0) return 'inCart';  // Direct cart state check
-    if (!product.stock || product.stock === 0) return 'outOfStock';
-    return 'addToCart';
-  };
-
-  const buttonState = getButtonState();
-
-  // Button styling based on state
-  const getButtonStyles = () => {
-    switch (buttonState) {
-      case 'loading':
-        return 'bg-orange-400 text-white cursor-not-allowed';
-      case 'error':
-        return 'bg-red-500 hover:bg-red-600 text-white';
-      case 'inCart':
-        return 'bg-blue-500 hover:bg-blue-600 text-white';
-      case 'addToCart':
-        return 'bg-orange-500 hover:bg-orange-600 text-white';
-      case 'outOfStock':
-        return 'bg-gray-300 text-gray-500 cursor-not-allowed';
-      default:
-        return 'bg-orange-500 hover:bg-orange-600 text-white';
-    }
-  };
-
-  // Button content based on state
-  const getButtonContent = () => {
-    switch (buttonState) {
-      case 'loading':
-        return (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            Adding...
-          </>
-        );
-      case 'error':
-        return (
-          <>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            Try Again
-          </>
-        );
-      case 'inCart':
-        return (
-          <>
-            <ShoppingCartIcon className="w-4 h-4" />
-            In Cart ({cartQuantity})
-          </>
-        );
-      case 'addToCart':
-        return (
-          <>
-            <ShoppingCartIcon className="w-4 h-4" />
-            Add to Cart
-          </>
-        );
-      case 'outOfStock':
-        return 'Out of Stock';
-      default:
-        return 'Add to Cart';
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden group">
-      {/* Product Image - Clickable with hover animation */}
-      <div 
-        className="relative aspect-square overflow-hidden cursor-pointer group"
-        onClick={handleProductClick}
-      >
-        {!imageError ? (
-          <img
-            src={getImageUrl('products', product.image)}
-            alt={product.title || product.name}
-            className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110 group-hover:brightness-110"
-            onError={handleImageError}
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center transition-all duration-300 group-hover:bg-gray-300">
-            <div className="text-center text-gray-500">
-              <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="text-sm">No Image</span>
-            </div>
-          </div>
-        )}
-
-        {/* Discount Badge */}
-        {product.discount > 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-            -{product.discount}%
-          </div>
-        )}
-
-        {/* Wishlist Button */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent event bubbling to parent div
-            onToggleWishlist(product._id);
-          }}
-          className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
-        >
-          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Product Info */}
-      <div className="p-4">
-        {/* Brand */}
-        {product.brand && (
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            {product.brand}
-          </p>
-        )}
-
-        {/* Product Name - Clickable */}
-        <h3 
-          className="font-medium text-gray-900 mb-2 line-clamp-2 text-sm cursor-pointer hover:text-orange-600 transition-colors"
-          onClick={handleProductClick}
-        >
-          {product.title || product.name}
-        </h3>
-
-        {/* Vendor/Admin Information */}
-        {product.vendor && typeof product.vendor === 'object' && product.vendor.businessName ? (
-          <div className="mb-2 flex items-center text-xs text-gray-600">
-            <svg className="w-3 h-3 mr-1 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <span className="text-emerald-600 font-medium">
-              {product.vendor.businessName}
-            </span>
-          </div>
-        ) : (
-          <div className="mb-2 flex items-center text-xs text-gray-600">
-            <div className="flex items-center">
-              <div 
-                className="relative cursor-help mr-1"
-                title="Directly owned by International Tijarat"
-              >
-                <svg className="w-3 h-3 text-blue-600 peer" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {/* Hover tooltip - only appears when hovering over the checkmark */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 peer-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-20 pointer-events-none">
-                  Directly owned by International Tijarat
-                </div>
-              </div>
-              <span className="text-blue-600 font-medium">International Tijarat</span>
-            </div>
-          </div>
-        )}
-
-        {/* Price */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg font-bold text-gray-900">
-            ${product.price}
-          </span>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <span className="text-sm text-gray-500 line-through">
-              ${product.originalPrice}
-            </span>
-          )}
-        </div>
-
-        {/* Stock Information - Only show out of stock, hide counts from customers */}
-        <div className="mb-3">
-          {product.stock === 0 ? (
-            <span className="text-sm text-red-600 font-medium">Out of Stock</span>
-          ) : (
-            <span className="text-sm text-green-600">In Stock</span>
-          )}
-        </div>
-
-        {/* Add to Cart Button */}
-        <button
-          onClick={onAddToCart}
-          disabled={isAddingToCart || buttonState === 'outOfStock'}
-          className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${getButtonStyles()}`}
-          title={errorMessage || ''}
-        >
-          {getButtonContent()}
-        </button>
-
-        {/* Error Message Display */}
-        {errorMessage && (
-          <div className="mt-2 text-xs text-red-600 text-center bg-red-50 py-1 px-2 rounded">
-            {errorMessage}
-          </div>
-        )}
-      </div>
-
-    </div>
-  );
-};
 
 export default AllProductsPage;

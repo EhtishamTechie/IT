@@ -1,6 +1,6 @@
 // API and Image configuration
-export const API_BASE_URL = process.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
-export const IMAGE_BASE_URL = process.env.VITE_IMAGE_BASE_URL || 'http://localhost:3000/uploads';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+export const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_BASE_URL || 'http://localhost:3000/uploads';
 
 // Route configuration
 export const ROUTES = {

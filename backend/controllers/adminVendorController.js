@@ -4,13 +4,14 @@ const Product = require('../models/Product');
 const Commission = require('../models/Commission');
 const User = require('../models/User');
 const Order = require('../models/Order');
+const { sendVendorApplicationApproval, sendVendorApplicationRejection } = require('../services/emailService');
 
 // @desc    Get all vendor applications
 // @route   GET /api/admin/vendor-applications
 // @access  Private (Admin)
 const getVendorApplications = async (req, res) => {
   try {
-    const { page = 1, limit = 10, status, search, sortBy = 'applicationDate', sortOrder = 'desc' } = req.query;
+    const { page = 1, limit = 10, status, search, sortBy = 'createdAt', sortOrder = 'desc' } = req.query;
 
     // Build query
     const query = {};
@@ -201,53 +202,13 @@ const approveVendorApplication = async (req, res) => {
 
     // Send approval notification email to vendor
     try {
-      const approvalEmail = {
-        to: vendor.email,
-        subject: 'Vendor Application Approved - Welcome to International Tijarat!',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <h2 style="color: #2563eb;">Congratulations! Your Vendor Application Has Been Approved</h2>
-            
-            <p>Dear ${vendor.contactPerson.firstName} ${vendor.contactPerson.lastName},</p>
-            
-            <p>We're excited to inform you that your vendor application for <strong>${vendor.businessName}</strong> has been approved!</p>
-            
-            <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-              <h3 style="color: #1e40af; margin-top: 0;">Your Vendor Account Details:</h3>
-              <p><strong>Business Name:</strong> ${vendor.businessName}</p>
-              <p><strong>Email:</strong> ${vendor.email}</p>
-              <p><strong>Login URL:</strong> <a href="http://localhost:5173/vendor/login" style="color: #2563eb;">http://localhost:5173/vendor/login</a></p>
-              <p><strong>Temporary Password:</strong> <code style="background-color: #e2e8f0; padding: 4px 8px; border-radius: 4px;">${tempPassword}</code></p>
-            </div>
-            
-            <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
-              <p style="margin: 0;"><strong>⚠️ Important:</strong> Please change your password immediately after your first login for security purposes.</p>
-            </div>
-            
-            <p><strong>Next Steps:</strong></p>
-            <ol>
-              <li>Log in to your vendor dashboard using the credentials above</li>
-              <li>Complete your vendor profile</li>
-              <li>Start adding your products</li>
-              <li>Configure your payment and shipping settings</li>
-            </ol>
-            
-            <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
-            
-            <p>Welcome to the International Tijarat marketplace!</p>
-            
-            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 30px 0;">
-            <p style="color: #64748b; font-size: 14px;">
-              This is an automated message. Please do not reply to this email.<br>
-              International Tijarat | support@internationaltijarat.com
-            </p>
-          </div>
-        `
-      };
-
-      console.log('📧 Sending approval notification email to:', vendor.email);
-      // For now, just log the email content (in production, integrate with actual email service)
-      console.log('📧 Email content:', approvalEmail.subject);
+      await sendVendorApplicationApproval(
+        vendor.email,
+        vendor.businessName,
+        application.applicationId,
+        tempPassword
+      );
+      console.log('✅ Approval email sent successfully');
       
     } catch (emailError) {
       console.error('❌ Error sending approval email:', emailError.message);
@@ -262,9 +223,9 @@ const approveVendorApplication = async (req, res) => {
         applicationId: application._id,
         businessName: vendor.businessName,
         email: vendor.email,
-        temporaryPassword: password || 'VendorPass123',
+        temporaryPassword: tempPassword,
         loginUrl: 'http://localhost:5173/vendor/login',
-        emailSent: true // In production, this would reflect actual email status
+        emailSent: true
       }
     });
 
@@ -316,6 +277,21 @@ const rejectVendorApplication = async (req, res) => {
     application.reviewedBy = adminId;
     application.notes = reason;
     await application.save();
+
+    // Send rejection notification email to vendor
+    try {
+      await sendVendorApplicationRejection(
+        application.email,
+        application.businessName,
+        application.applicationId,
+        reason
+      );
+      console.log('✅ Rejection email sent successfully');
+      
+    } catch (emailError) {
+      console.error('❌ Error sending rejection email:', emailError.message);
+      // Don't fail the rejection process if email fails
+    }
 
     res.json({
       success: true,

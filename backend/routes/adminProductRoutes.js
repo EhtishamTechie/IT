@@ -5,27 +5,56 @@ const Vendor = require('../models/Vendor');
 const multer = require('multer');
 const path = require('path');
 const authAdmin = require('../middleware/authAdmin'); // FIXED MIDDLEWARE
-const { uploadSingleProductImage, handleUploadError } = require('../middleware/uploadMiddleware');
+const { uploadSingleProductImage, uploadProductMedia, handleUploadError } = require('../middleware/uploadMiddleware');
 const { getImageUrl } = require('../config/serverConfig');
 
 // Create new product
-router.post('/', authAdmin, uploadSingleProductImage, async (req, res) => {
+router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
   try {
     console.log('➕ [PRODUCT CREATE] Starting product creation');
     console.log('➕ [PRODUCT CREATE] Raw data received:', req.body);
 
-    // Get the file if uploaded
-    const image = req.file ? req.file.filename : null;
+    // Get the files if uploaded
+    console.log('🔍 [ADMIN PRODUCT DEBUG] Raw req.files received:', JSON.stringify(req.files, null, 2));
+    console.log('🔍 [ADMIN PRODUCT DEBUG] req.files?.image:', req.files?.image);
+    console.log('🔍 [ADMIN PRODUCT DEBUG] req.files?.images:', req.files?.images);
+    
+    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : [];
+    const video = req.files?.video ? `products/${req.files.video[0].filename}` : null;
+    
+    // Handle PRIMARY image field (dedicated primary image upload)
+    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : null;
     
     // Process category data - ensure arrays for all category fields
     const mainCategory = req.body['mainCategory[]'] || req.body.mainCategory;
     const subCategory = req.body['subCategory[]'] || req.body.subCategory;
     const category = req.body['category[]'] || req.body.category || mainCategory;
 
+    console.log('📸 [ADMIN PRODUCT CREATE] Image processing:', {
+      primaryImage,
+      multipleImagesCount: images.length,
+      videoFile: !!video,
+      imagesArray: images
+    });
+
+    // Set image fields with correct priority: Primary image takes precedence
+    let finalPrimaryImage = null;
+    if (primaryImage) {
+      // Use the dedicated primary image
+      finalPrimaryImage = primaryImage;
+      console.log('✅ [ADMIN PRODUCT CREATE] Using dedicated primary image:', primaryImage);
+    } else if (images.length > 0) {
+      // Fallback to first multiple image if no primary image provided
+      finalPrimaryImage = images[0];
+      console.log('⚠️ [ADMIN PRODUCT CREATE] No primary image provided, using first multiple image:', images[0]);
+    }
+
     // Create the product using standardized image path format
     const productData = {
       ...req.body,
-      image: image ? `products/${image}` : null, // Store with products/ prefix
+      image: finalPrimaryImage, // Use the correctly prioritized primary image
+      images: images.length > 0 ? images : [], // Multiple images array
+      video: video, // Video file
       createdBy: req.user.id,
       vendor: null, // This is an admin product
       mainCategory: mainCategory ? [mainCategory] : [],
@@ -379,13 +408,19 @@ router.delete('/:id', authAdmin, async (req, res) => {
 });
 
 // Update a product
-router.put('/:id', authAdmin, uploadSingleProductImage, async (req, res) => {
+router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
   try {
     console.log('🔄 [ADMIN] Updating product:', req.params.id);
     console.log('🔄 [ADMIN] Update data:', req.body);
 
-    // Process image if uploaded
-    const image = req.file ? req.file.filename : undefined;
+    // Process files if uploaded
+    console.log('🔍 [ADMIN UPDATE DEBUG] Raw req.files received:', JSON.stringify(req.files, null, 2));
+    console.log('🔍 [ADMIN UPDATE DEBUG] req.files?.image:', req.files?.image);
+    console.log('🔍 [ADMIN UPDATE DEBUG] req.files?.images:', req.files?.images);
+    
+    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : undefined;
+    const video = req.files?.video ? `products/${req.files.video[0].filename}` : undefined;
+    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : undefined;
     
     // Process category data - ensure arrays for all category fields
     const mainCategory = req.body['mainCategory[]'] || req.body.mainCategory;
@@ -400,9 +435,34 @@ router.put('/:id', authAdmin, uploadSingleProductImage, async (req, res) => {
       category: category ? [category] : mainCategory ? [mainCategory] : undefined
     };
 
-    // Only update image if a new one was uploaded
-    if (image) {
-      updateData.image = `products/${image}`; // Store with products/ prefix
+    // Only update files if new ones were uploaded
+    if (primaryImage || (images && images.length > 0)) {
+      console.log('📸 [ADMIN UPDATE] Image processing:', {
+        primaryImage,
+        multipleImagesCount: images ? images.length : 0,
+        videoFile: !!video
+      });
+
+      // Set image fields with correct priority: Primary image takes precedence
+      if (primaryImage) {
+        // Use the dedicated primary image
+        updateData.image = primaryImage;
+        console.log('✅ [ADMIN UPDATE] Using dedicated primary image:', primaryImage);
+      } else if (images && images.length > 0) {
+        // Fallback to first multiple image if no primary image provided
+        updateData.image = images[0];
+        console.log('⚠️ [ADMIN UPDATE] No primary image provided, using first multiple image:', images[0]);
+      }
+
+      // Update multiple images if provided
+      if (images && images.length > 0) {
+        updateData.images = images;
+        console.log('✅ [ADMIN UPDATE] Set multiple images:', images.length);
+      }
+    }
+    
+    if (video !== undefined) {
+      updateData.video = video;
     }
 
     // Remove undefined fields

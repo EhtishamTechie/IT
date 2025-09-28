@@ -196,10 +196,10 @@ const OrderConfirmationPage = () => {
                     </div>
                     <div className="text-right">
                       <p className="font-semibold">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        PKR {(item.price * item.quantity).toFixed(2)}
                       </p>
                       <p className="text-sm text-gray-500">
-                        ${item.price} each
+                        PKR {item.price} each
                       </p>
                     </div>
                   </div>
@@ -272,7 +272,7 @@ const OrderConfirmationPage = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>N/A</span>
+                  <span>Free</span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-semibold">

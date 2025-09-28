@@ -19,11 +19,11 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Get category by ID
-router.get('/:id', async (req, res) => {
+// Get category by ID (legacy support)
+router.get('/id/:id', async (req, res) => {
   try {
     const category = await Category.findById(req.params.id)
-      .populate('parentCategory', 'name');
+      .populate('parentCategory', 'name slug');
     
     if (!category) {
       return res.status(404).json({ message: 'Category not found' });
@@ -33,6 +33,62 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     console.error('Error fetching category:', error);
     res.status(500).json({ message: 'Failed to fetch category' });
+  }
+});
+
+// Get category by slug or ID (SEO-friendly unified endpoint)
+router.get('/:identifier', async (req, res) => {
+  try {
+    const identifier = req.params.identifier;
+    let category = null;
+    
+    console.log('🔍 [CATEGORY FETCH] Looking for category:', identifier);
+    
+    // Check if identifier is a valid MongoDB ObjectId format
+    const mongoose = require('mongoose');
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(identifier) && identifier.length === 24;
+    
+    if (isValidObjectId) {
+      // Try by ID first for backward compatibility
+      category = await Category.findById(identifier)
+        .populate('parentCategory', 'name slug');
+      
+      console.log('📋 [CATEGORY FETCH] Found by ID:', !!category);
+    } else {
+      // Try by slug for SEO URLs
+      category = await Category.findOne({ slug: identifier })
+        .populate('parentCategory', 'name slug');
+      
+      console.log('🔗 [CATEGORY FETCH] Found by slug:', !!category);
+    }
+    
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: `Category '${identifier}' not found. Please check the category URL and try again.`
+      });
+    }
+
+    // Add SEO data to response
+    const seoData = {
+      title: category.metaTitle || category.name,
+      description: category.metaDescription || category.description,
+      keywords: category.seoKeywords || [],
+      canonicalUrl: category.canonicalUrl || `/category/${category.slug || category._id}`,
+      slug: category.slug
+    };
+
+    res.json({
+      success: true,
+      category: { ...category.toObject(), seo: seoData }
+    });
+  } catch (error) {
+    console.error('Error fetching category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch category',
+      error: error.message
+    });
   }
 });
 

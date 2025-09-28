@@ -25,20 +25,6 @@ import SearchIcon from '@mui/icons-material/Search';
 import ClearIcon from '@mui/icons-material/Clear';
 import CloseIcon from '@mui/icons-material/Close';
 import { toast } from 'react-toastify';
-import API from '../../../utils/API';
-import getImageUrl from '../../../utils/getImageUrl';
-    IconButton,
-    TextField,
-    Tabs,
-    Tab,
-    Paper,
-    Grid,
-    Modal,
-    Pagination
-} from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PreviewIcon from '@mui/icons-material/Preview';
-import { toast } from 'react-toastify';
 import API from '../../../api';
 import { config, getImageUrl } from '../../../config';
 import CategorySelector from './CategorySelector';
@@ -73,7 +59,7 @@ const getProductImage = (product) => {
     
     // Try different image fields in order of preference
     if (Array.isArray(product.images) && product.images.length > 0) {
-        const image = product.images[0];
+        const image = product.image || product.images[0];
         return typeof image === 'string' ? getImageUrl('products', image) : null;
     }
     
@@ -508,7 +494,7 @@ const BannerManagement = () => {
                 if (processedProduct.images.length > 0) {
                     processedProduct.images = processedProduct.images.map(img => getImageUrl('products', img));
                     if (!processedProduct.image) {
-                        processedProduct.image = processedProduct.images[0];
+                        processedProduct.image = processedProduct.image || processedProduct.images[0];
                         processedProduct.imagePath = processedProduct.images[0];
                     }
                 } else if (processedProduct.image) {
@@ -541,6 +527,7 @@ const BannerManagement = () => {
 
     const handleCategorySelect = (category) => {
         // Reset products when category changes
+        console.log('🏷️ [BANNER] Category selected:', category);
         setSelectedCategory(category);
         setSelectedPrimaryProduct(null);
         setSelectedSecondaryProducts([]);
@@ -782,85 +769,9 @@ const BannerManagement = () => {
                 }
             });
 
+            // Make the API call
             try {
-                // Make the API call
-                const result = await API.put('/homepage/banners', requestData
-                );
-
-                // Log the complete response for debugging
-                console.log('API Response:', {
-                    status: result.status,
-                    data: result.data,
-                    headers: result.headers
-                });
-
-                // Log the successful response
-                console.log('Server response:', result.data);
-
-                if (!result.data || !Array.isArray(result.data)) {
-                    throw new Error('Invalid server response');
-                }
-            } catch (apiError) {
-                console.error('API call failed:', {
-                    status: apiError.response?.status,
-                    statusText: apiError.response?.statusText,
-                    data: apiError.response?.data,
-                    message: apiError.message,
-                    requestData: JSON.stringify(requestData, null, 2)
-                });
-
-                // Log additional request details
-                if (apiError.config) {
-                    console.error('Request details:', {
-                        url: apiError.config.url,
-                        method: apiError.config.method,
-                        headers: apiError.config.headers,
-                        data: apiError.config.data
-                    });
-                }
-
-                // Throw a more descriptive error
-                throw new Error(
-                    apiError.response?.data?.message || 
-                    apiError.message || 
-                    'Failed to save banner data'
-                );
-            }
-
-            // Update the local slides array
-            const updatedSlides = [...slides];
-updatedSlides[currentSlide] = {
-    ...slides[currentSlide],
-    title,
-    category: selectedCategory,
-    primaryProduct: selectedPrimaryProduct,
-    secondaryProducts: selectedSecondaryProducts.map(product => ({
-        _id: product._id,
-        title: product.title || 'Secondary Product',
-        price: product.price || 0,
-        image: product.image || product.imagePath || (Array.isArray(product.images) && product.images[0]) || '',
-        imagePath: product.imagePath || product.image || (Array.isArray(product.images) && product.images[0]) || '',
-        images: Array.isArray(product.images) ? product.images : [product.image || product.imagePath].filter(Boolean)
-    })),
-    // Also store as individual fields for backward compatibility
-    secondaryImage1: selectedSecondaryProducts[0]?.image || selectedSecondaryProducts[0]?.images?.[0] || null,
-    secondaryImage2: selectedSecondaryProducts[1]?.image || selectedSecondaryProducts[1]?.images?.[0] || null,
-    secondaryImage3: selectedSecondaryProducts[2]?.image || selectedSecondaryProducts[2]?.images?.[0] || null,
-};
-
-            // Update states and cache
-            setSlides(updatedSlides);
-            cache.current.bannerData = {
-                data: updatedSlides,
-                timestamp: Date.now()
-            };
-
-            // Inside handleSaveSlide function, after creating requestData:
-            let apiResponse;
-            try {
-                // Make the API call
-                apiResponse = await API.put('/homepage/banners', requestData
-                );
+                const apiResponse = await API.put('/homepage/banners', requestData);
 
                 // Log the complete response
                 console.log('API Response:', {
@@ -1119,6 +1030,7 @@ updatedSlides[currentSlide] = {
                             <CategorySelector
                                 selectedCategory={selectedCategory}
                                 onCategoryChange={handleCategorySelect}
+                                returnFullObject={true}
                             />
                         </Box>
 
@@ -1157,9 +1069,6 @@ updatedSlides[currentSlide] = {
                                                     </Typography>
                                                 </Box>
                                             )}
-                                                    p: 1
-                                                }}
-                                            />
                                             <Typography
                                                 variant="caption"
                                                 sx={{
@@ -1243,8 +1152,6 @@ updatedSlides[currentSlide] = {
                                                         </Typography>
                                                     </Box>
                                                 )}
-                                                    }}
-                                                />
                                                 <CardContent sx={{ p: 1, flexGrow: 1 }}>
                                                     <Typography variant="subtitle2" noWrap>{product.title}</Typography>
                                                     <Typography variant="caption" color="text.secondary" display="block">
@@ -1457,9 +1364,6 @@ updatedSlides[currentSlide] = {
                                                             </Typography>
                                                         </Box>
                                                     )}
-                                                        image={getProductImage(product)}
-                                                        alt={product.title}
-                                                    />
                                                 </Box>
                                                 <CardContent 
                                                     sx={{ 

@@ -199,9 +199,11 @@ class ProductService {
       ...product,
       // Keep original images array and add formatted image
       images: product.images || [],
-      image: (product.images && product.images.length > 0) 
-        ? this.formatImageUrl(product.images[0])
-        : this.formatImageUrl(product.image),
+      image: product.image 
+        ? this.formatImageUrl(product.image)
+        : (product.images && product.images.length > 0) 
+          ? this.formatImageUrl(product.images[0])
+          : null,
       // Ensure these fields exist
       price: product.price || 0,
       title: product.title || 'Untitled Product',

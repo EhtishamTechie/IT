@@ -32,7 +32,7 @@ const CommissionDashboard = () => {
     activeVendors: 0
   });
   const [loading, setLoading] = useState(true);
-  const [filterPeriod, setFilterPeriod] = useState('month'); // 'month', '90days', 'year'
+  const [filterPeriod, setFilterPeriod] = useState('all'); // 'all', 'month', '90days', 'year'
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'pending', 'paid'
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
@@ -48,6 +48,7 @@ const CommissionDashboard = () => {
   const [resetNotes, setResetNotes] = useState('');
   const [showResetModal, setShowResetModal] = useState(false);
   const [selectedVendors, setSelectedVendors] = useState([]);
+  const [isExporting, setIsExporting] = useState(false);
   const [commissionData, setCommissionData] = useState([]);
   
   // Pagination states
@@ -60,6 +61,7 @@ const CommissionDashboard = () => {
   const [newCommissionRate, setNewCommissionRate] = useState(20);
 
   const filterOptions = [
+    { value: 'all', label: 'All Time' },
     { value: 'month', label: 'This Month' },
     { value: '90days', label: 'Last 90 Days' },
     { value: 'year', label: 'This Year' }
@@ -74,11 +76,13 @@ const CommissionDashboard = () => {
   useEffect(() => {
     loadCommissionData();
     loadCurrentCommissionRate();
-  }, [currentPage]); // Only depend on currentPage
+  }, [currentPage, filterPeriod, statusFilter, searchTerm]); // Add filter dependencies
   
   // Reset to page 1 when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
   }, [filterPeriod, statusFilter, searchTerm]);
 
   const loadCommissionData = async () => {
@@ -362,21 +366,39 @@ const CommissionDashboard = () => {
 
   const exportReport = async () => {
     try {
+      setIsExporting(true);
+      console.log('📊 Starting commission report export...');
+      
       const response = await adminAPI.exportCommissionReport({
         period: filterPeriod
       });
       
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      console.log('✅ Commission report export response received');
+      
+      // Create blob and download link
+      const blob = new Blob([response.data], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.download = `commission-report-${filterPeriod}-${new Date().toISOString().split('T')[0]}.csv`;
+      
+      // Trigger download
       document.body.appendChild(link);
       link.click();
+      
+      // Cleanup
       link.remove();
       window.URL.revokeObjectURL(url);
+      
+      console.log('✅ Commission report downloaded successfully');
     } catch (error) {
-      console.error('Error exporting report:', error);
-      alert('Failed to export report. Please try again.');
+      console.error('❌ Error exporting report:', error);
+      
+      // Show user-friendly error message
+      const errorMessage = error.message || 'Failed to export commission report. Please try again.';
+      alert(errorMessage);
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -486,10 +508,27 @@ const CommissionDashboard = () => {
             
             <button
               onClick={exportReport}
-              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              disabled={isExporting}
+              className={`flex items-center px-4 py-2 text-white rounded-lg transition-all duration-200 ${
+                isExporting 
+                  ? 'bg-green-500 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700 transform hover:scale-105'
+              }`}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export Report
+              {isExporting ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Report
+                </>
+              )}
             </button>
           </div>
         </div>

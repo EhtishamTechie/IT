@@ -5,7 +5,9 @@ const {
   getCommissionSummary,
   getCommissionSettings,
   updateCommissionSettings,
-  getCommissionAnalytics
+  getCommissionAnalytics,
+  updateVendorPayment,
+  exportCommissionReport
 } = require('../controllers/commissionController');
 const authAdmin = require('../middleware/authAdmin');
 
@@ -18,5 +20,9 @@ router.get('/summary', getCommissionSummary);    // /api/admin/commissions/summa
 router.get('/config', getCommissionSettings);    // /api/admin/commissions/config
 router.put('/config', updateCommissionSettings); // /api/admin/commissions/config
 router.get('/analytics', getCommissionAnalytics); // /api/admin/commissions/analytics
+router.get('/export', exportCommissionReport);   // /api/admin/commissions/export
+
+// Vendor payment management routes
+router.post('/vendor/:vendorId/payment', updateVendorPayment); // /api/admin/commissions/vendor/:id/payment
 
 module.exports = router;

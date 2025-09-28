@@ -271,7 +271,15 @@ const getSplitOrderDetails = async (req, res) => {
       });
     }
 
-    console.log('📋 Main order details:', {
+    console.log('� [PAYMENT RECEIPT DEBUG] Order payment fields:', {
+      orderId: mainOrder._id,
+      orderNumber: mainOrder.orderNumber,
+      paymentMethod: mainOrder.paymentMethod,
+      paymentReceipt: mainOrder.paymentReceipt,
+      hasPaymentReceipt: !!mainOrder.paymentReceipt
+    });
+
+    console.log('�📋 Main order details:', {
       orderNumber: mainOrder.orderNumber,
       orderType: mainOrder.orderType,
       isSplitOrder: mainOrder.isSplitOrder,
@@ -343,7 +351,8 @@ const getSplitOrderDetails = async (req, res) => {
             phone: parentOrder.phone,
             address: parentOrder.address,
             city: parentOrder.city,
-            paymentMethod: parentOrder.paymentMethod
+            paymentMethod: parentOrder.paymentMethod,
+            paymentReceipt: parentOrder.paymentReceipt
           },
           parts: [],
           isSplit: false,
@@ -406,7 +415,8 @@ const getSplitOrderDetails = async (req, res) => {
           phone: displayOrder.phone,
           address: displayOrder.address,
           city: displayOrder.city,
-          paymentMethod: displayOrder.paymentMethod
+          paymentMethod: displayOrder.paymentMethod,
+          paymentReceipt: displayOrder.paymentReceipt
         },
         parts: [],
         isSplit: false,
@@ -475,7 +485,8 @@ const getSplitOrderDetails = async (req, res) => {
           phone: displayOrder.phone,
           address: displayOrder.address,
           city: displayOrder.city,
-          paymentMethod: displayOrder.paymentMethod
+          paymentMethod: displayOrder.paymentMethod,
+          paymentReceipt: displayOrder.paymentReceipt
         },
         parts: [],
         isSplit: false,
@@ -794,7 +805,8 @@ const getSplitOrderDetails = async (req, res) => {
         phone: mainOrder.phone,
         address: mainOrder.address,
         city: mainOrder.city,
-        paymentMethod: mainOrder.paymentMethod
+        paymentMethod: mainOrder.paymentMethod,
+        paymentReceipt: mainOrder.paymentReceipt
       },
       parts: parts,
       isSplit: actuallyHasParts, // Use actual parts detection instead of flag

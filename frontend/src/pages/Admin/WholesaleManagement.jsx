@@ -14,7 +14,7 @@ import {
   X
 } from 'lucide-react';
 import axios from 'axios';
-import { getApiUrl } from '../../config';
+import { getApiUrl, getImageUrl } from '../../config';
 
 const WholesaleManagement = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -33,6 +33,7 @@ const WholesaleManagement = () => {
     categoryName: '',
     categoryDescription: '',
     supplierName: '',
+    profileImage: null,
     contactNumber: '',
     whatsappNumber: '',
     email: '',
@@ -150,15 +151,38 @@ const WholesaleManagement = () => {
       
       const method = editingSupplier ? 'put' : 'post';
       
-      // Process the form data to convert string arrays to proper arrays
-      const processedFormData = {
-        ...formData,
-        specialties: processArrayForSubmission(formData.specialties),
-        deliveryAreas: processArrayForSubmission(formData.deliveryAreas)
-      };
+      // Create FormData for file upload
+      const submitData = new FormData();
       
-      const response = await axios[method](url, processedFormData, {
-        headers: { Authorization: `Bearer ${token}` }
+      // Add all form fields
+      submitData.append('categoryName', formData.categoryName);
+      submitData.append('categoryDescription', formData.categoryDescription);
+      submitData.append('supplierName', formData.supplierName);
+      submitData.append('contactNumber', formData.contactNumber);
+      submitData.append('whatsappNumber', formData.whatsappNumber);
+      submitData.append('email', formData.email);
+      submitData.append('address', formData.address);
+      submitData.append('minimumOrderQuantity', formData.minimumOrderQuantity);
+      submitData.append('businessHours', formData.businessHours);
+      submitData.append('displayOrder', formData.displayOrder);
+      
+      // Handle arrays
+      const specialties = processArrayForSubmission(formData.specialties);
+      const deliveryAreas = processArrayForSubmission(formData.deliveryAreas);
+      
+      specialties.forEach(specialty => submitData.append('specialties[]', specialty));
+      deliveryAreas.forEach(area => submitData.append('deliveryAreas[]', area));
+      
+      // Add profile image if selected
+      if (formData.profileImage) {
+        submitData.append('profileImage', formData.profileImage);
+      }
+      
+      const response = await axios[method](url, submitData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
       if (response.data.success) {
@@ -180,6 +204,7 @@ const WholesaleManagement = () => {
       categoryName: supplier.categoryName,
       categoryDescription: supplier.categoryDescription || '',
       supplierName: supplier.supplierName,
+      profileImage: null, // Reset file input for editing
       contactNumber: supplier.contactNumber,
       whatsappNumber: supplier.whatsappNumber,
       email: supplier.email || '',
@@ -233,6 +258,7 @@ const WholesaleManagement = () => {
       categoryName: '',
       categoryDescription: '',
       supplierName: '',
+      profileImage: null,
       contactNumber: '',
       whatsappNumber: '',
       email: '',
@@ -315,23 +341,42 @@ const WholesaleManagement = () => {
               {suppliers.map((supplier) => (
                 <tr key={supplier._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{supplier.supplierName}</div>
-                      {supplier.address && (
-                        <div className="text-sm text-gray-500">{supplier.address}</div>
-                      )}
-                      {supplier.specialties && supplier.specialties.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {supplier.specialties.slice(0, 2).map((specialty, idx) => (
-                            <span key={idx} className="inline-flex items-center px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
-                              {specialty}
+                    <div className="flex items-start space-x-4">
+                      {/* Supplier Logo */}
+                      <div className="flex-shrink-0">
+                        {supplier.profileImage ? (
+                          <img 
+                            src={getImageUrl('wholesale-suppliers', supplier.profileImage)}
+                            alt={supplier.supplierName}
+                            className="w-16 h-16 object-contain rounded-lg border bg-white p-1"
+                          />
+                        ) : (
+                          <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center">
+                            <span className="text-white font-bold text-xl">
+                              {supplier.supplierName.charAt(0).toUpperCase()}
                             </span>
-                          ))}
-                          {supplier.specialties.length > 2 && (
-                            <span className="text-xs text-gray-500">+{supplier.specialties.length - 2} more</span>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
+                      {/* Supplier Info */}
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-900">{supplier.supplierName}</div>
+                        {supplier.address && (
+                          <div className="text-sm text-gray-500">{supplier.address}</div>
+                        )}
+                        {supplier.specialties && supplier.specialties.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {supplier.specialties.slice(0, 2).map((specialty, idx) => (
+                              <span key={idx} className="inline-flex items-center px-2 py-1 rounded text-xs bg-orange-100 text-orange-800">
+                                {specialty}
+                              </span>
+                            ))}
+                            {supplier.specialties.length > 2 && (
+                              <span className="text-xs text-gray-500">+{supplier.specialties.length - 2} more</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -511,6 +556,32 @@ const WholesaleManagement = () => {
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Supplier Logo
+                  </label>
+                  <input
+                    type="file"
+                    name="profileImage"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      setFormData({...formData, profileImage: file});
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
+                  {editingSupplier && editingSupplier.profileImage && (
+                    <div className="mt-2">
+                      <img 
+                        src={getImageUrl('wholesale-suppliers', editingSupplier.profileImage)}
+                        alt="Current logo"
+                        className="w-24 h-24 object-contain rounded-lg border bg-white p-2"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Current logo (select new file to replace)</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
 const constants = require('../config/constants');
+const { sendVendorApplicationConfirmation } = require('../services/emailService');
 
 // Generate JWT token for vendor
 const generateToken = (vendorId) => {
@@ -63,10 +64,23 @@ const applyAsVendor = async (req, res) => {
       intendedCategories: categories, // Map categories to intendedCategories
       documents,
       status: 'submitted', // Set status to submitted when application is complete
-      applicationDate: new Date()
+      submittedAt: new Date()
     });
 
     await vendorApplication.save();
+
+    // Send confirmation email to vendor
+    try {
+      await sendVendorApplicationConfirmation(
+        email, 
+        businessName, 
+        vendorApplication.applicationId
+      );
+      console.log(`✅ Vendor application confirmation email sent to: ${email}`);
+    } catch (emailError) {
+      console.error('❌ Failed to send confirmation email:', emailError);
+      // Don't fail the application submission if email fails
+    }
 
     res.status(201).json({
       success: true,
@@ -74,7 +88,7 @@ const applyAsVendor = async (req, res) => {
       data: {
         applicationId: vendorApplication.applicationId,
         status: vendorApplication.status,
-        submittedAt: vendorApplication.applicationDate
+        submittedAt: vendorApplication.submittedAt || vendorApplication.createdAt
       }
     });
 
@@ -775,16 +789,34 @@ const checkApplicationStatus = async (req, res) => {
       });
     }
 
+    // Base response data
+    const responseData = {
+      applicationId: application.applicationId,
+      status: application.status,
+      businessName: application.businessName,
+      submittedAt: application.submittedAt || application.createdAt,
+      reviewedAt: application.reviewedAt,
+      notes: application.notes
+    };
+
+    // If application is approved, include login credentials
+    if (application.status === 'approved') {
+      // Find the created vendor account to get the password
+      const vendor = await Vendor.findOne({ email: application.email })
+        .select('+tempPasswordForAdmin');
+      
+      if (vendor && vendor.tempPasswordForAdmin) {
+        responseData.loginCredentials = {
+          email: application.email,
+          password: vendor.tempPasswordForAdmin,
+          loginUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/vendor/login`
+        };
+      }
+    }
+
     res.json({
       success: true,
-      data: {
-        applicationId: application.applicationId,
-        status: application.status,
-        businessName: application.businessName,
-        submittedAt: application.applicationDate,
-        reviewedAt: application.reviewedAt,
-        notes: application.notes
-      }
+      data: responseData
     });
 
   } catch (error) {

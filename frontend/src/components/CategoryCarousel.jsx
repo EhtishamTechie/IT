@@ -179,19 +179,19 @@ const CategoryCarousel = () => {
 
   return (
     <>
-      <section className="py-8 sm:py-12 lg:py-16 bg-gradient-to-br from-gray-50 to-blue-50 overflow-hidden">
+      <section className="py-4 sm:py-6 lg:py-8 bg-gradient-to-br from-gray-50 to-blue-50 overflow-hidden">
         <div className="container mx-auto px-4 lg:px-8">
           {/* Section Header */}
-          <div className="text-center mb-8 sm:mb-10 lg:mb-12">
+          <div className="text-center mb-6 sm:mb-7 lg:mb-8">
             <div className="inline-flex items-center space-x-2 bg-orange-100 text-orange-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
               <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-orange-500 rounded-full animate-pulse"></span>
               <span>Explore Categories</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-gray-900 mb-3 sm:mb-4">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
               Shop by 
               <span className="bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text text-transparent"> Category</span>
             </h2>
-            <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl mx-auto px-4 sm:px-0">
+            <p className="text-xs sm:text-sm lg:text-base text-gray-600 max-w-2xl mx-auto px-4 sm:px-0">
               Discover amazing products across all categories with unbeatable prices and quality
             </p>
           </div>
@@ -304,28 +304,7 @@ const CategoryCarousel = () => {
           </button>
         </div>
 
-        {/* Stats Section */}
-        <div className="container mx-auto px-4 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 mt-12 sm:mt-16 text-center">
-            {[
-              { number: "15+", label: "Categories", image: statsImages.categories },
-              { number: "99%", label: "Satisfaction", image: statsImages.satisfaction },
-              { number: "24/7", label: "Support", image: statsImages.support }
-            ].map((stat, index) => (
-              <div key={index} className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 shadow-md hover:shadow-lg transition-shadow duration-300">
-                <div className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 rounded-full overflow-hidden">
-                  <img 
-                    src={stat.image} 
-                    alt={stat.label}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-1">{stat.number}</div>
-                <div className="text-xs sm:text-sm text-gray-600">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+
 
         {/* Background Decorations */}
         <div className="absolute top-20 left-10 w-20 h-20 bg-orange-200 rounded-full opacity-20 animate-pulse"></div>
@@ -334,31 +313,33 @@ const CategoryCarousel = () => {
       </section>
 
       {/* Custom CSS for Infinite Scroll Animation */}
-      <style jsx>{`
-        @keyframes infinite-scroll {
-          0% {
-            transform: translateX(0);
+      <style>
+        {`
+          @keyframes infinite-scroll {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-${homepageCategories.length * 250}px);
+            }
           }
-          100% {
-            transform: translateX(-${homepageCategories.length * 250}px);
+          
+          .animate-infinite-scroll {
+            animation: infinite-scroll 25s linear infinite;
+            will-change: transform;
           }
-        }
-        
-        .animate-infinite-scroll {
-          animation: infinite-scroll 25s linear infinite;
-         will-change: transform;
-        }
-        
-        /* Pause animation when hovering over the carousel container */
-        .carousel-container:hover .animate-infinite-scroll {
-          animation-play-state: paused;
-        }
-        
-        /* Override the paused state when isPaused is true */
-        .animate-infinite-scroll.paused {
-          animation-play-state: paused;
-        }
-      `}</style>
+          
+          /* Pause animation when hovering over the carousel container */
+          .carousel-container:hover .animate-infinite-scroll {
+            animation-play-state: paused;
+          }
+          
+          /* Override the paused state when isPaused is true */
+          .animate-infinite-scroll.paused {
+            animation-play-state: paused;
+          }
+        `}
+      </style>
     </>
   );
 };

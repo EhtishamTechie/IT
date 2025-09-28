@@ -15,6 +15,11 @@ const wholesaleSupplierSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  profileImage: {
+    type: String,
+    default: null,
+    trim: true
+  },
   contactNumber: {
     type: String,
     required: true,

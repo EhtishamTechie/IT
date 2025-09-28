@@ -19,7 +19,9 @@ import {
   Home,
   Truck,
   MessageSquare,
-  LayoutGrid
+  LayoutGrid,
+  Mail,
+  CreditCard
 } from 'lucide-react';
 import { useAdmin } from '../../contexts/AdminContext';
 import { AdminAuthProvider } from '../../contexts/AdminAuthContext';
@@ -43,7 +45,9 @@ import PropertyManagement from './PropertyManagement';
 import PropertyDetail from './PropertyDetail';
 import WholesaleManagement from './WholesaleManagement';
 import FeedbackManagement from './FeedbackManagement';
+import NewsletterManagement from './NewsletterManagement';
 import HomepageManagement from './homepage';
+import PaymentAccountManagement from './PaymentAccountManagement';
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -71,10 +75,12 @@ const AdminPage = () => {
     { id: 'properties', label: 'Property Listings', icon: Home, path: '/admin/properties' },
     { id: 'wholesale', label: 'Wholesale Suppliers', icon: Truck, path: '/admin/wholesale' },
     { id: 'commissions', label: 'Commission Management', icon: DollarSign, path: '/admin/commissions' },
+    { id: 'payment-accounts', label: 'Payment Accounts', icon: CreditCard, path: '/admin/payment-accounts' },
     { id: 'users', label: 'Users', icon: Users, path: '/admin/users' },
     { id: 'vendor-applications', label: 'Vendor Applications', icon: Store, path: '/admin/vendor-applications' },
     { id: 'vendors', label: 'Vendors', icon: Store, path: '/admin/vendors' },
     { id: 'feedback', label: 'Feedback', icon: MessageSquare, path: '/admin/feedback' },
+    { id: 'newsletter', label: 'Newsletter', icon: Mail, path: '/admin/newsletter' },
     { id: 'categories', label: 'Categories', icon: Tag, path: '/admin/categories' },
     { id: 'admins', label: 'Admin Management', icon: Shield, path: '/admin/admins' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/admin/settings' },
@@ -109,6 +115,7 @@ const AdminPage = () => {
         <Route path="properties/:id" element={<PropertyDetail />} />
         <Route path="wholesale" element={<WholesaleManagement />} />
         <Route path="commissions" element={<CommissionDashboard />} />
+        <Route path="payment-accounts" element={<PaymentAccountManagement />} />
         <Route path="users" element={<UserManagement />} />
         <Route path="users/:userId" element={<UserProfile />} />
         <Route path="categories" element={<CategoryManagement />} />
@@ -119,6 +126,7 @@ const AdminPage = () => {
         <Route path="vendor-applications" element={<VendorApplicationsPage />} />
         <Route path="vendor-applications/:id" element={<VendorApplicationDetailPage />} />
         <Route path="feedback" element={<FeedbackManagement />} />
+        <Route path="newsletter" element={<NewsletterManagement />} />
         <Route path="homepage" element={<HomepageManagement />} />
         <Route path="settings" element={
           <div className="text-center py-12">

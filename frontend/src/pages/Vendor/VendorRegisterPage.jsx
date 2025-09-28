@@ -5,9 +5,10 @@ import OTPVerification from '../../components/Auth/OTPVerification';
 import emailVerificationService from '../../services/emailVerificationService';
 
 const VendorRegisterPage = () => {
-  const { register, isLoading } = useVendorAuth();
+  const { register, isLoading: contextLoading } = useVendorAuth();
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [showEmailVerification, setShowEmailVerification] = useState(false);
   const [applicationId, setApplicationId] = useState('');
@@ -170,7 +171,8 @@ const VendorRegisterPage = () => {
     // Check if email verification is required
     if (!emailVerified) {
       try {
-        const result = await emailVerificationService.sendVendorOTP(formData.email);
+        setIsLoading(true); // Start loading for OTP sending
+        const result = await emailVerificationService.sendVendorOTP(formData.email, formData.businessName);
         
         if (result.success) {
           setShowEmailVerification(true);
@@ -185,16 +187,20 @@ const VendorRegisterPage = () => {
           });
         }
       } catch (error) {
+        console.error('OTP Error:', error);
         setNotification({
           type: 'error',
-          message: 'Failed to send verification code. Please try again.'
+          message: error.message || 'Failed to send verification code. Please try again.'
         });
+      } finally {
+        setIsLoading(false); // Stop loading after OTP process
       }
       return;
     }
 
     // Proceed with vendor registration after email verification
     try {
+      setIsLoading(true); // Start loading for application submission
       const result = await register(formData);
       
       if (result.success) {
@@ -205,6 +211,8 @@ const VendorRegisterPage = () => {
       }
     } catch (error) {
       setErrors({ submit: 'An unexpected error occurred. Please try again.' });
+    } finally {
+      setIsLoading(false); // Stop loading after submission
     }
   };
 
@@ -214,19 +222,35 @@ const VendorRegisterPage = () => {
     setShowEmailVerification(false);
     setNotification({
       type: 'success',
-      message: 'Email verified successfully! Submitting your vendor application...'
+      message: 'Email verified successfully! You can now submit your application.'
     });
     
-    // Auto-submit the form after verification
-    setTimeout(() => {
-      handleSubmit({ preventDefault: () => {} });
-    }, 1000);
+    // Remove auto-submit - let user click the submit button manually
+    // This prevents double submission issue
   };
 
   if (showSuccess) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
+          {/* Back to Home Navigation */}
+          <div className="text-center">
+            <Link 
+              to="/" 
+              className="inline-flex items-center text-orange-600 hover:text-orange-700 transition-colors group mb-6"
+            >
+              <svg 
+                className="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span className="font-medium">Back to Home</span>
+            </Link>
+          </div>
+          
           <div className="text-center">
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -272,6 +296,24 @@ const VendorRegisterPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
+          {/* Back to Home Navigation */}
+          <div className="text-center">
+            <Link 
+              to="/" 
+              className="inline-flex items-center text-orange-600 hover:text-orange-700 transition-colors group mb-6"
+            >
+              <svg 
+                className="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              <span className="font-medium">Back to Home</span>
+            </Link>
+          </div>
+          
           {/* Header */}
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -302,6 +344,24 @@ const VendorRegisterPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
+        {/* Back to Home Navigation */}
+        <div className="mb-6">
+          <Link 
+            to="/" 
+            className="inline-flex items-center text-orange-600 hover:text-orange-700 transition-colors group"
+          >
+            <svg 
+              className="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            <span className="font-medium">Back to Home</span>
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Become a Vendor</h1>
@@ -650,9 +710,20 @@ const VendorRegisterPage = () => {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="px-6 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
                   >
-                    {isLoading ? 'Submitting...' : emailVerified ? 'Submit Application' : 'Verify Email & Submit'}
+                    {isLoading && (
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    )}
+                    <span>
+                      {isLoading ? 
+                        (emailVerified ? 'Submitting Application...' : 'Sending Verification Code...') : 
+                        (emailVerified ? 'Submit Application' : 'Verify Email & Submit')
+                      }
+                    </span>
                   </button>
                 )}
               </div>

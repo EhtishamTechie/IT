@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Search, Filter, Grid, List, SortAsc, Eye, Heart, ShoppingCart } from 'lucide-react';
 import ProductService from '../services/productService';
 import { getApiUrl } from '../config';
+import EnhancedProductCard from '../components/EnhancedProductCard';
+import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 
 const SearchResultsPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { addToCart } = useCart();
+  const { user } = useAuth();
+  
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,6 +28,45 @@ const SearchResultsPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalResults, setTotalResults] = useState(0);
   const resultsPerPage = 12;
+
+  // Cart handlers
+  const handleAddToCart = async (product) => {
+    try {
+      const result = await addToCart(product, 1);
+      // CartContext handles notifications
+    } catch (error) {
+      console.error('Add to cart error:', error);
+    }
+  };
+
+  // Handle buy now with authentication check
+  const handleBuyNow = async (product) => {
+    try {
+      // Check if user is authenticated first
+      if (!user) {
+        // Redirect to login if not authenticated
+        navigate('/login');
+        return;
+      }
+
+      // Store product in localStorage for buy now checkout
+      const buyNowItem = {
+        _id: product._id,
+        title: product.title,
+        price: product.price,
+        image: product.image || (product.images?.[0] || null),
+        stock: product.stock || 100,
+        quantity: 1
+      };
+      
+      localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+      
+      // Navigate directly to checkout, skipping cart page
+      navigate('/checkout');
+    } catch (error) {
+      console.error('Buy now error:', error);
+    }
+  };
 
   useEffect(() => {
     loadCategories();
@@ -77,39 +123,6 @@ const SearchResultsPage = () => {
       setLoading(false);
     }
   };
-
-  const ProductCard = ({ product }) => (
-    <div className="group bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
-      <div className="relative aspect-square overflow-hidden">
-        <img
-          src={product.image}
-          alt={product.title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="flex gap-1">
-            <button className="p-2 bg-white rounded-full shadow-md hover:bg-gray-50">
-              <Heart className="w-4 h-4" />
-            </button>
-            <button className="p-2 bg-white rounded-full shadow-md hover:bg-gray-50">
-              <Eye className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="p-4">
-        <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{product.title}</h3>
-        <p className="text-sm text-gray-600 mb-3 line-clamp-2">{product.description}</p>
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-bold text-orange-600">{product.formattedPrice}</span>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2">
-            <ShoppingCart className="w-4 h-4" />
-            Add to Cart
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   const ListProductCard = ({ product }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-300">
@@ -288,7 +301,13 @@ const SearchResultsPage = () => {
                 }>
                   {products.map((product) => (
                     viewMode === 'grid' 
-                      ? <ProductCard key={product._id} product={product} />
+                      ? <EnhancedProductCard 
+                          key={product._id} 
+                          product={product} 
+                          onAddToCart={handleAddToCart}
+                          onBuyNow={handleBuyNow}
+                          showBuyNow={true} 
+                        />
                       : <ListProductCard key={product._id} product={product} />
                   ))}
                 </div>
@@ -343,14 +362,16 @@ const SearchResultsPage = () => {
         </div>
       </div>
 
-      <style jsx>{`
-        .line-clamp-2 {
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      `}</style>
+      <style>
+        {`
+          .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+          }
+        `}
+      </style>
     </div>
   );
 };

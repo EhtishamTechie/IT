@@ -271,7 +271,7 @@ const SimpleOrderHistoryPage = () => {
                                   {item.title || item.name}
                                 </p>
                                 <p className="text-sm text-gray-500 truncate">
-                                  Qty: {item.quantity} × ${item.price}
+                                  Qty: {item.quantity} × PKR {item.price}
                                 </p>
                               </div>
                             </div>

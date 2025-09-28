@@ -36,6 +36,11 @@ const productSchema = new mongoose.Schema({
   images: [{
     type: String
   }],
+  video: {
+    type: String,
+    required: false,
+    default: null
+  },
   category: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
@@ -61,6 +66,53 @@ const productSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  // SEO Fields
+  slug: {
+    type: String,
+    unique: true,
+    sparse: true,
+    trim: true,
+    lowercase: true,
+    maxlength: [100, 'Slug cannot be longer than 100 characters']
+  },
+  metaTitle: {
+    type: String,
+    trim: true,
+    maxlength: [60, 'Meta title cannot be longer than 60 characters']
+  },
+  metaDescription: {
+    type: String,
+    trim: true,
+    maxlength: [160, 'Meta description cannot be longer than 160 characters']
+  },
+  altText: {
+    type: String,
+    trim: true,
+    maxlength: [125, 'Alt text cannot be longer than 125 characters']
+  },
+  // Enhanced image handling with SEO
+  imageAltTexts: [{
+    filename: String,
+    altText: String,
+    keywords: [String]
+  }],
+  // SEO Keywords specific for search optimization
+  seoKeywords: [{
+    type: String,
+    trim: true,
+    lowercase: true
+  }],
+  // Canonical URL for duplicate content prevention
+  canonicalUrl: {
+    type: String,
+    trim: true
+  },
+  // Schema.org structured data type
+  schemaType: {
+    type: String,
+    default: 'Product',
+    enum: ['Product', 'DigitalProduct', 'SoftwareApplication']
+  },
   features: [{
     name: { type: String, required: true },
     value: { type: String, required: true }
@@ -195,10 +247,54 @@ productSchema.index({ mainCategory: 1 });
 productSchema.index({ subCategory: 1 });
 productSchema.index({ isActive: 1, isVisible: 1 });
 productSchema.index({ createdAt: -1 });
+// SEO Indexes
+productSchema.index({ slug: 1 });
+productSchema.index({ seoKeywords: 1 });
+productSchema.index({ 'title': 'text', 'description': 'text', 'metaTitle': 'text', 'metaDescription': 'text' });
 
 // Update timestamp on save
 productSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
+  next();
+});
+
+// Auto-generate slug from title if not provided
+productSchema.pre('save', async function(next) {
+  if (this.isNew || this.isModified('title')) {
+    if (!this.slug) {
+      const { generateUniqueSlug } = require('../utils/seoUtils');
+      try {
+        this.slug = await generateUniqueSlug(this.title, this.constructor, this._id);
+      } catch (error) {
+        return next(error);
+      }
+    }
+  }
+  
+  // Auto-generate meta title and description if not provided
+  if (this.isNew || this.isModified('title')) {
+    if (!this.metaTitle) {
+      this.metaTitle = this.title.length > 60 ? 
+        this.title.substring(0, 57) + '...' : 
+        this.title;
+    }
+  }
+  
+  if (this.isNew || this.isModified('description')) {
+    if (!this.metaDescription && this.description) {
+      const { generateMetaDescription } = require('../utils/seoUtils');
+      this.metaDescription = generateMetaDescription(this.description);
+    }
+  }
+  
+  // Auto-generate alt text if not provided
+  if (this.isNew || this.isModified('title')) {
+    if (!this.altText) {
+      const { generateAltText } = require('../utils/seoUtils');
+      this.altText = generateAltText(this.title);
+    }
+  }
+  
   next();
 });
 

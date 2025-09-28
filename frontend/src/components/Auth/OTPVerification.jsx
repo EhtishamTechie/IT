@@ -51,10 +51,7 @@ const OTPVerification = ({
       inputRefs.current[index + 1]?.focus();
     }
 
-    // Auto-submit when all 6 digits are entered
-    if (newOtp.every(digit => digit !== '') && newOtp.join('').length === 6) {
-      handleVerifyOTP(newOtp.join(''));
-    }
+    // Remove auto-submit - let user click verify button
   };
 
   // Handle backspace
@@ -74,7 +71,7 @@ const OTPVerification = ({
       const newOtp = digits.split('');
       setOtp(newOtp);
       setError('');
-      handleVerifyOTP(digits);
+      // Remove auto-verification on paste - let user click verify button
     }
   };
 

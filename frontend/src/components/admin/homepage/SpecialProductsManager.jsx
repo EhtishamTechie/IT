@@ -35,7 +35,7 @@ const getProductImage = (product) => {
     if (!product) return null;
     // Try different image fields in order of preference
     if (Array.isArray(product.images) && product.images.length > 0) {
-        return product.images[0];
+        return product.image || product.images[0];
     }
     if (product.image) {
         return product.image;
@@ -144,6 +144,7 @@ const SpecialProductsManager = ({ type }) => {
     };
 
     const handleCategoryChange = async (categoryId) => {
+        console.log('🏷️ [SPECIAL PRODUCTS] Category selected:', categoryId);
         if (!categoryId) {
             setSelectedCategory(null);
             setCategoryProducts([]);
@@ -373,7 +374,7 @@ const SpecialProductsManager = ({ type }) => {
                                             image={getImageUrl('products', getProductImage(product))}
                                             alt={product.title}
                                             onError={(e) => {
-                                                console.log('🖼️ Image load failed:', product.images?.[0]);
+                                                console.log('🖼️ Image load failed:', product.image || product.images?.[0]);
                                                 e.target.onerror = null;
                                                 e.target.src = '/assets/no-image.png';
                                             }}

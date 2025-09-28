@@ -55,7 +55,18 @@ const ProductManagement = () => {
     mainCategory: '',
     subCategory: '',
     image: null,
-    imagePreview: null
+    images: [],
+    video: null,
+    imagePreview: null,
+    imagePreviews: [],
+    videoPreview: null,
+    // SEO Fields
+    slug: '',
+    metaTitle: '',
+    metaDescription: '',
+    altText: '',
+    seoKeywords: '',
+    canonicalUrl: ''
   });
 
   // Create mappings for category IDs to names and vice versa
@@ -221,6 +232,14 @@ const ProductManagement = () => {
       submitData.append('stock', formData.stock);
       submitData.append('keywords', formData.keywords);
       
+      // Add SEO fields
+      if (formData.slug) submitData.append('slug', formData.slug);
+      if (formData.metaTitle) submitData.append('metaTitle', formData.metaTitle);
+      if (formData.metaDescription) submitData.append('metaDescription', formData.metaDescription);
+      if (formData.altText) submitData.append('altText', formData.altText);
+      if (formData.seoKeywords) submitData.append('seoKeywords', formData.seoKeywords);
+      if (formData.canonicalUrl) submitData.append('canonicalUrl', formData.canonicalUrl);
+      
       // Send categories as arrays with proper IDs
       if (formData.mainCategory) {
         submitData.append('mainCategory', formData.mainCategory);
@@ -232,35 +251,63 @@ const ProductManagement = () => {
         submitData.append('subcategory', formData.subCategory); // Legacy field
       }
       
-      // Handle image upload for both new and edit
-      if (formData.image && formData.image instanceof File) {
-        // Create unique filename with timestamp and random string
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(2, 11); // Generate shorter random string
-        const ext = formData.image.name.split('.').pop().toUpperCase(); // Make extension uppercase
-        const filename = `product-${timestamp}-${random}.${ext}`; // Use 'product-' prefix
-        
-        console.log('📸 [PRODUCT SAVE] Generated filename:', filename);
-        
-        // Create a new File object with the custom filename
-        const renamedFile = new File([formData.image], filename, {
-          type: formData.image.type
+      // Handle file uploads for multiple images and video
+      if (formData.images && formData.images.length > 0) {
+        formData.images.forEach((file, index) => {
+          if (file instanceof File) {
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(2, 11);
+            const ext = file.name.split('.').pop().toUpperCase();
+            const filename = `product-${timestamp}-${random}-${index}.${ext}`;
+            
+            const renamedFile = new File([file], filename, { type: file.type });
+            submitData.append('images', renamedFile);
+            console.log('📸 [PRODUCT SAVE] Appending image file:', filename);
+          }
         });
+      }
+      
+      if (formData.video && formData.video instanceof File) {
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 11);
+        const ext = formData.video.name.split('.').pop().toUpperCase();
+        const filename = `product-video-${timestamp}-${random}.${ext}`;
         
-        // Append both image and filename to ensure server gets the correct name
+        const renamedFile = new File([formData.video], filename, { type: formData.video.type });
+        submitData.append('video', renamedFile);
+        console.log('🎥 [PRODUCT SAVE] Appending video file:', filename);
+      }
+
+      // Handle PRIMARY image upload (dedicated primary image field)
+      if (formData.image && formData.image instanceof File) {
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(2, 11);
+        const ext = formData.image.name.split('.').pop().toUpperCase();
+        const filename = `product-primary-${timestamp}-${random}.${ext}`;
+        
+        const renamedFile = new File([formData.image], filename, { type: formData.image.type });
         submitData.append('image', renamedFile);
-        submitData.append('filename', filename); // Add filename separately for server reference
-        
-        console.log('📸 [PRODUCT SAVE] Appending image file:', filename);
-      } else if (editingProduct && editingProduct.image && !formData.image) {
-        // Keep existing image if editing and no new image selected
+        console.log('📸 [PRODUCT SAVE] Appending PRIMARY image file:', filename);
+        console.log('📸 [PRODUCT SAVE] Primary image file object:', renamedFile);
+      } else if (editingProduct && editingProduct.image && !formData.image && (!formData.images || formData.images.length === 0)) {
+        // Keep existing image if editing and no new images selected
         submitData.append('image', editingProduct.image);
         console.log('📸 [PRODUCT SAVE] Keeping existing image:', editingProduct.image);
+      } else {
+        console.log('⚠️ [PRODUCT SAVE] No primary image to append - formData.image:', formData.image);
       }
 
       console.log('💾 [PRODUCT SAVE] FormData contents:');
+      console.log('💾 [PRODUCT SAVE] formData.image (before append):', formData.image);
+      console.log('💾 [PRODUCT SAVE] formData.images (before append):', formData.images);
       for (let [key, value] of submitData.entries()) {
         console.log(`💾 [PRODUCT SAVE] ${key}:`, value);
+        if (key === 'image' && value instanceof File) {
+          console.log(`💾 [PRODUCT SAVE] PRIMARY IMAGE FILE Details - Name: ${value.name}, Size: ${value.size}, Type: ${value.type}`);
+        }
+        if (key === 'images' && value instanceof File) {
+          console.log(`💾 [PRODUCT SAVE] MULTIPLE IMAGE FILE Details - Name: ${value.name}, Size: ${value.size}, Type: ${value.type}`);
+        }
       }
 
       if (editingProduct) {
@@ -365,14 +412,16 @@ const ProductManagement = () => {
         originalSub: product.subCategory
       });
 
-      // Process the image URL
+      // Process images and video URLs
       let imagePreview = null;
+      let imagePreviews = [];
+      let videoPreview = null;
+      
+      // Handle primary image for backward compatibility
       if (product.image) {
-        // Handle both full URLs and relative paths
         if (product.image.startsWith('http')) {
           imagePreview = product.image;
         } else {
-          // Ensure the path is properly formatted
           const cleanPath = product.image
             .replace(/^\/+/, '')
             .replace(/^uploads\/+/, '')
@@ -380,6 +429,36 @@ const ProductManagement = () => {
           imagePreview = `${config.BASE_URL}/uploads/products/${cleanPath}`;
         }
         console.log('🔧 Image preview URL:', imagePreview);
+      }
+      
+      // Handle multiple images
+      if (product.images && Array.isArray(product.images)) {
+        imagePreviews = product.images.map(img => {
+          if (img.startsWith('http')) {
+            return img;
+          } else {
+            const cleanPath = img
+              .replace(/^\/+/, '')
+              .replace(/^uploads\/+/, '')
+              .replace(/^products\/+/, '');
+            return `${config.BASE_URL}/uploads/products/${cleanPath}`;
+          }
+        });
+        console.log('🔧 Multiple image previews:', imagePreviews);
+      }
+      
+      // Handle video
+      if (product.video) {
+        if (product.video.startsWith('http')) {
+          videoPreview = product.video;
+        } else {
+          const cleanPath = product.video
+            .replace(/^\/+/, '')
+            .replace(/^uploads\/+/, '')
+            .replace(/^products\/+/, '');
+          videoPreview = `${config.BASE_URL}/uploads/products/${cleanPath}`;
+        }
+        console.log('🔧 Video preview URL:', videoPreview);
       }
       
       // Set form data
@@ -392,8 +471,21 @@ const ProductManagement = () => {
         mainCategory: mainCat,
         subCategory: subCat,
         image: null,
+        images: [],
+        video: null,
         imagePreview,
-        existingImage: product.image // Store the original image path
+        imagePreviews,
+        videoPreview,
+        existingImage: product.image, // Store the original image path
+        existingImages: product.images || [], // Store original images
+        existingVideo: product.video, // Store original video
+        // SEO Fields
+        slug: product.slug || '',
+        metaTitle: product.metaTitle || '',
+        metaDescription: product.metaDescription || '',
+        altText: product.altText || '',
+        seoKeywords: Array.isArray(product.seoKeywords) ? product.seoKeywords.join(', ') : product.seoKeywords || '',
+        canonicalUrl: product.canonicalUrl || ''
       });
 
       // Show the form
@@ -416,7 +508,18 @@ const ProductManagement = () => {
       mainCategory: '',
       subCategory: '',
       image: null,
-      imagePreview: null
+      images: [],
+      video: null,
+      imagePreview: null,
+      imagePreviews: [],
+      videoPreview: null,
+      // SEO Fields
+      slug: '',
+      metaTitle: '',
+      metaDescription: '',
+      altText: '',
+      seoKeywords: '',
+      canonicalUrl: ''
     });
     setEditingProduct(null);
     setShowAddForm(false);
@@ -745,49 +848,7 @@ const ProductManagement = () => {
                     Basic Information
                   </h3>
                   
-                  {/* Image Preview Section */}
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Product Image
-                    </label>
-                    <div className="flex items-start space-x-4">
-                      <div className="w-32 h-32 border-2 border-gray-300 rounded-lg overflow-hidden flex items-center justify-center bg-gray-50">
-                        {formData.imagePreview ? (
-                          <img 
-                            src={formData.imagePreview}
-                            alt="Product preview"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              console.error('Image preview failed to load:', formData.imagePreview);
-                              e.target.src = '/assets/no-image.png';
-                            }}
-                          />
-                        ) : (
-                          <ImageIcon className="w-8 h-8 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              setFormData(prev => ({
-                                ...prev,
-                                image: file,
-                                imagePreview: URL.createObjectURL(file)
-                              }));
-                            }
-                          }}
-                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                        />
-                        <p className="mt-1 text-xs text-gray-500">
-                          Select a new image to change the current one
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div className="lg:col-span-2">
@@ -965,70 +1026,406 @@ const ProductManagement = () => {
                   )}
                 </div>
 
-                {/* Image Upload and Preview Section */}
-                <div className="bg-gray-50 p-6 rounded-lg">
+                {/* SEO Optimization Section */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 p-6 rounded-lg border border-green-200">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <ImageIcon className="w-5 h-5 mr-2 text-blue-600" />
-                    Product Image
+                    <Search className="w-5 h-5 mr-2 text-green-600" />
+                    SEO Optimization
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Enhanced</span>
                   </h3>
                   
-                  <div className="flex flex-col sm:flex-row gap-6 items-start">
-                    <div className="w-full sm:w-1/2">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* SEO Slug */}
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Image
+                        URL Slug
                       </label>
-                      <div className="relative w-full h-48 border-2 border-gray-300 rounded-lg overflow-hidden">
-                        {formData.imagePreview ? (
-                          <>
-                            <img
-                              src={formData.imagePreview}
-                              alt="Product preview"
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                console.error('Image preview failed to load:', formData.imagePreview);
-                                e.target.src = '/assets/no-image.png';
-                              }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setFormData(prev => ({...prev, image: null, imagePreview: null}))}
-                              className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </>
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gray-50">
-                            <ImageIcon className="w-12 h-12 text-gray-400" />
-                          </div>
+                      <input
+                        type="text"
+                        value={formData.slug}
+                        onChange={(e) => setFormData(prev => ({...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-')}))}
+                        placeholder="auto-generated-from-title"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Leave empty to auto-generate from title. Used in URL: /product/your-slug</p>
+                    </div>
+
+                    {/* Meta Title */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        SEO Meta Title
+                      </label>
+                      <input
+                        type="text"
+                        maxLength="60"
+                        value={formData.metaTitle}
+                        onChange={(e) => setFormData(prev => ({...prev, metaTitle: e.target.value}))}
+                        placeholder="Optimized title for search engines"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formData.metaTitle.length}/60 characters. Leave empty to use product title.
+                      </p>
+                    </div>
+
+                    {/* Meta Description */}
+                    <div className="lg:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        SEO Meta Description
+                      </label>
+                      <textarea
+                        rows={3}
+                        maxLength="160"
+                        value={formData.metaDescription}
+                        onChange={(e) => setFormData(prev => ({...prev, metaDescription: e.target.value}))}
+                        placeholder="Brief description that appears in search results..."
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors resize-none"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formData.metaDescription.length}/160 characters. Leave empty to auto-generate from product description.
+                      </p>
+                    </div>
+
+                    {/* Alt Text with Enhanced SEO Features */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Image Alt Text
+                        <span className="ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          SEO Critical
+                        </span>
+                      </label>
+                      <input
+                        type="text"
+                        maxLength="125"
+                        value={formData.altText}
+                        onChange={(e) => setFormData(prev => ({...prev, altText: e.target.value}))}
+                        placeholder={formData.title ? `${formData.title} - Buy online at International Tijarat` : "Descriptive text for product images"}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      />
+                      <div className="mt-2 space-y-2">
+                        <p className="text-xs text-gray-500">
+                          {formData.altText.length}/125 characters. Helps screen readers and SEO.
+                        </p>
+                        
+                        {/* Auto-generate Alt Text Button */}
+                        {formData.title && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const category = formData.category || '';
+                              const autoAltText = `${formData.title}${formData.brand ? ` by ${formData.brand}` : ''}${category ? ` - ${category}` : ''} - Buy online at International Tijarat`;
+                              setFormData(prev => ({
+                                ...prev,
+                                altText: autoAltText.substring(0, 125)
+                              }));
+                            }}
+                            className="text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Auto-generate from product details
+                          </button>
                         )}
                       </div>
                       
-                      <div className="mt-4">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onload = (e) => {
-                                setFormData(prev => ({
-                                  ...prev, 
-                                  image: file,
-                                  imagePreview: e.target.result
-                                }));
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                        />
-                        <p className="text-xs text-gray-500 mt-2">
-                          Supported formats: JPG, PNG. Max size: 5MB
-                        </p>
+                      {/* Advanced Image SEO Guidance */}
+                      <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+                        <h5 className="text-sm font-medium text-blue-900 mb-2 flex items-center">
+                          <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                          </svg>
+                          Advanced Image SEO (Admin)
+                        </h5>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-xs text-blue-800">
+                          <div>
+                            <h6 className="font-medium mb-1">✅ Best Practices:</h6>
+                            <ul className="space-y-1">
+                              <li>• Include product name + category</li>
+                              <li>• Add quality descriptors</li>
+                              <li>• Include brand if applicable</li>
+                              <li>• Use natural language</li>
+                            </ul>
+                          </div>
+                          <div>
+                            <h6 className="font-medium mb-1">🔧 System Features:</h6>
+                            <ul className="space-y-1">
+                              <li>• Auto-watermarking enabled</li>
+                              <li>• SEO-friendly filenames</li>
+                              <li>• Multiple size generation</li>
+                              <li>• Image optimization</li>
+                            </ul>
+                          </div>
+                        </div>
                       </div>
                     </div>
+
+                    {/* SEO Keywords */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        SEO Keywords
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.seoKeywords}
+                        onChange={(e) => setFormData(prev => ({...prev, seoKeywords: e.target.value}))}
+                        placeholder="keyword1, keyword2, keyword3"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Separate with commas. Focus on specific product keywords.</p>
+                    </div>
+
+                    {/* Canonical URL */}
+                    <div className="lg:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Canonical URL (Advanced)
+                      </label>
+                      <input
+                        type="url"
+                        value={formData.canonicalUrl}
+                        onChange={(e) => setFormData(prev => ({...prev, canonicalUrl: e.target.value}))}
+                        placeholder="https://internationaltijarat.com/product/your-slug"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Leave empty to auto-generate. Used to prevent duplicate content issues.</p>
+                    </div>
+                  </div>
+
+                  {/* SEO Preview */}
+                  {(formData.metaTitle || formData.title) && (
+                    <div className="mt-6 p-4 bg-white border border-gray-200 rounded-lg">
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Search Engine Preview:</h4>
+                      <div className="space-y-1">
+                        <div className="text-blue-600 text-lg hover:underline cursor-pointer">
+                          {formData.metaTitle || formData.title}
+                        </div>
+                        <div className="text-green-600 text-sm">
+                          internationaltijarat.com/product/{formData.slug || 'product-slug'}
+                        </div>
+                        <div className="text-gray-600 text-sm">
+                          {formData.metaDescription || (formData.description ? formData.description.substring(0, 160) + '...' : 'Product description will appear here...')}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Media Upload Section */}
+                <div className="bg-gray-50 p-6 rounded-lg">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <ImageIcon className="w-5 h-5 mr-2 text-blue-600" />
+                    Product Media
+                  </h3>
+                  
+                  {/* Multiple Images Upload */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Images (Multiple)
+                    </label>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Upload multiple product images. Each time you select files, they will be added to your existing images.
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files);
+                        if (files.length > 0) {
+                          const readers = files.map(file => {
+                            return new Promise((resolve) => {
+                              const reader = new FileReader();
+                              reader.onload = (e) => resolve({ file, preview: e.target.result });
+                              reader.readAsDataURL(file);
+                            });
+                          });
+                          
+                          Promise.all(readers).then(results => {
+                            setFormData(prev => ({
+                              ...prev,
+                              images: [...prev.images, ...results.map(r => r.file)],
+                              imagePreviews: [...prev.imagePreviews, ...results.map(r => r.preview)]
+                            }));
+                          });
+                        }
+                      }}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Supported formats: JPG, PNG, GIF. Max size: 5MB each. Select multiple images.
+                    </p>
+                    
+                    {/* Clear All Images Button */}
+                    {(formData.images.length > 0 || formData.imagePreviews.length > 0) && (
+                      <button
+                        type="button"
+                        onClick={() => setFormData(prev => ({
+                          ...prev,
+                          images: [],
+                          imagePreviews: []
+                        }))}
+                        className="mt-2 px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
+                      >
+                        Clear All Images
+                      </button>
+                    )}
+                    
+                    {/* Image Previews */}
+                    {(formData.imagePreviews.length > 0 || formData.existingImages?.length > 0) && (
+                      <div className="mt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {/* Existing Images */}
+                        {formData.existingImages?.map((img, index) => (
+                          <div key={`existing-${index}`} className="relative group">
+                            <img
+                              src={`${config.BASE_URL}/uploads/products/${img.replace(/^\/+/, '').replace(/^uploads\/+/, '').replace(/^products\/+/, '')}`}
+                              alt={`Existing ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border"
+                            />
+                            <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
+                              Existing
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* New Image Previews */}
+                        {formData.imagePreviews.map((preview, index) => (
+                          <div key={`new-${index}`} className="relative group">
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  images: prev.images.filter((_, i) => i !== index),
+                                  imagePreviews: prev.imagePreviews.filter((_, i) => i !== index)
+                                }));
+                              }}
+                              className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                            <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
+                              New
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Video Upload */}
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Product Video (Optional)
+                    </label>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const url = URL.createObjectURL(file);
+                          setFormData(prev => ({
+                            ...prev,
+                            video: file,
+                            videoPreview: url
+                          }));
+                        }
+                      }}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      Supported formats: MP4, WebM, OGG, AVI, MOV. Max size: 50MB.
+                    </p>
+                    
+                    {/* Video Preview */}
+                    {(formData.videoPreview || formData.existingVideo) && (
+                      <div className="mt-4">
+                        <div className="relative">
+                          <video
+                            src={formData.videoPreview || (formData.existingVideo && `${config.BASE_URL}/uploads/products/${formData.existingVideo.replace(/^\/+/, '').replace(/^uploads\/+/, '').replace(/^products\/+/, '')}`)}
+                            controls
+                            className="w-full h-48 object-cover rounded-lg border"
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                          {formData.videoPreview && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (formData.videoPreview) {
+                                  URL.revokeObjectURL(formData.videoPreview);
+                                }
+                                setFormData(prev => ({
+                                  ...prev,
+                                  video: null,
+                                  videoPreview: null
+                                }));
+                              }}
+                              className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          )}
+                          <div className="absolute top-2 left-2 bg-purple-500 text-white text-xs px-2 py-1 rounded">
+                            {formData.videoPreview ? 'New Video' : 'Existing Video'}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Primary Image Upload */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Primary Image (Main Product Image)
+                    </label>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Upload the main image that will be displayed as the primary product image. This is separate from the multiple images above.
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (e) => {
+                            setFormData(prev => ({
+                              ...prev, 
+                              image: file,
+                              imagePreview: e.target.result
+                            }));
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-orange-50 file:text-orange-700 hover:file:bg-orange-100"
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                      This will be the main image shown in product listings and at the top of product detail pages.
+                    </p>
+                    
+                    {formData.imagePreview && (
+                      <div className="mt-4 relative w-32 h-32">
+                        <img
+                          src={formData.imagePreview}
+                          alt="Primary image preview"
+                          className="w-full h-full object-cover rounded-lg border-2 border-orange-500"
+                        />
+                        <div className="absolute -top-2 -left-2 bg-orange-500 text-white text-xs px-2 py-1 rounded font-bold">
+                          PRIMARY
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({...prev, image: null, imagePreview: null}))}
+                          className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 

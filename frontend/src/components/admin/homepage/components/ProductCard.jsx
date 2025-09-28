@@ -48,7 +48,7 @@ const ProductCard = ({
             <CardMedia
                 component="img"
                 height={compact ? "100" : "140"}
-                image={getProductImage('products', product.images?.[0] || product.image)}
+                image={getProductImage('products', product.image || (product.images?.[0] || null))}
                 alt={product.name || 'Product'}
                 sx={{ 
                     objectFit: 'contain', 

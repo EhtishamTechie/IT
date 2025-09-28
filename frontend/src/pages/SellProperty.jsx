@@ -263,34 +263,40 @@ const SellProperty = () => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     
-    if (files.length > 10) {
-      alert('Maximum 10 images allowed');
+    if (files.length + images.length > 10) {
+      alert('You can upload maximum 10 images');
       return;
     }
 
-    // Clean up existing preview URLs before creating new ones
-    imagePreviews.forEach(url => {
-      if (url) URL.revokeObjectURL(url);
+    // Validate file types and sizes
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not a valid image file`);
+        return false;
+      }
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        alert(`${file.name} is too large. Maximum size is 5MB`);
+        return false;
+      }
+      return true;
     });
 
-    setImages(files);
-    
-    // Create new previews
-    const previews = files.map(file => URL.createObjectURL(file));
-    setImagePreviews(previews);
+    // Add new images to existing ones instead of replacing
+    setImages(prev => [...prev, ...validFiles]);
+
+    // Create previews for new images and add to existing previews
+    validFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreviews(prev => [...prev, e.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
   const removeImage = (index) => {
-    // Clean up the URL of the removed image
-    if (imagePreviews[index]) {
-      URL.revokeObjectURL(imagePreviews[index]);
-    }
-
-    const newImages = images.filter((_, i) => i !== index);
-    const newPreviews = imagePreviews.filter((_, i) => i !== index);
-    
-    setImages(newImages);
-    setImagePreviews(newPreviews);
+    setImages(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -332,7 +338,7 @@ const SellProperty = () => {
       // Convert areaName to area_name
       submitData.append('area_name', formData.areaName);
 
-      // Add other fields
+      // Add other fields with conditional exclusion based on property type
       const fieldsToExclude = [
         'areaValue', 
         'areaUnit', 
@@ -342,12 +348,33 @@ const SellProperty = () => {
         'areaName'
       ];
 
+      // Conditionally exclude fields based on property type
+      const propertyType = formData.propertyType;
+      
+      // Don't send bedrooms/bathrooms for non-residential properties
+      if (!['House', 'Apartment', 'Villa', 'Townhouse'].includes(propertyType)) {
+        fieldsToExclude.push('bedrooms', 'bathrooms');
+      }
+      
+      // Don't send propertyAge for plots/land
+      if (['Plot', 'Agricultural Land', 'Industrial Land'].includes(propertyType)) {
+        fieldsToExclude.push('propertyAge');
+      }
+      
+      // Don't send furnishing for non-furnishable properties
+      if (!['House', 'Apartment', 'Villa', 'Townhouse', 'Office'].includes(propertyType)) {
+        fieldsToExclude.push('furnishing');
+      }
+
       Object.keys(formData).forEach(key => {
         if (!fieldsToExclude.includes(key)) {
           if (key === 'features') {
             submitData.append('features', JSON.stringify(formData.features));
           } else {
-            submitData.append(key, formData[key]);
+            // Only append non-empty values
+            if (formData[key] !== '' && formData[key] !== null && formData[key] !== undefined) {
+              submitData.append(key, formData[key]);
+            }
           }
         }
       });
@@ -923,73 +950,85 @@ const SellProperty = () => {
                 </div>
               </div>
 
-              {/* Property Details */}
+              {/* Property Details - Optimized */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bedrooms
-                  </label>
-                  <input
-                    type="number"
-                    name="bedrooms"
-                    value={formData.bedrooms}
-                    onChange={handleInputChange}
-                    min="0"
-                    max="20"
-                    placeholder="e.g., 3"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
+                {/* Bedrooms - only show for residential properties */}
+                {['House', 'Apartment', 'Villa', 'Townhouse'].includes(formData.propertyType) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bedrooms
+                    </label>
+                    <input
+                      type="number"
+                      name="bedrooms"
+                      value={formData.bedrooms}
+                      onChange={handleInputChange}
+                      min="0"
+                      max="20"
+                      placeholder="e.g., 3"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bathrooms
-                  </label>
-                  <input
-                    type="number"
-                    name="bathrooms"
-                    value={formData.bathrooms}
-                    onChange={handleInputChange}
-                    min="0"
-                    max="20"
-                    placeholder="e.g., 2"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
+                {/* Bathrooms - only show for residential properties */}
+                {['House', 'Apartment', 'Villa', 'Townhouse'].includes(formData.propertyType) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bathrooms
+                    </label>
+                    <input
+                      type="number"
+                      name="bathrooms"
+                      value={formData.bathrooms}
+                      onChange={handleInputChange}
+                      min="0"
+                      max="20"
+                      placeholder="e.g., 2"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Property Age
-                  </label>
-                  <select
-                    name="propertyAge"
-                    value={formData.propertyAge}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="">Select Age</option>
-                    {propertyAges.map(age => (
-                      <option key={age} value={age}>{age}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Property Age - don't show for plots/land */}
+                {!['Plot', 'Agricultural Land', 'Industrial Land'].includes(formData.propertyType) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Property Age
+                    </label>
+                    <select
+                      name="propertyAge"
+                      value={formData.propertyAge}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      <option value="">Select Age</option>
+                      {propertyAges.map(age => (
+                        <option key={age} value={age}>{age}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Furnishing
-                  </label>
-                  <select
-                    name="furnishing"
-                    value={formData.furnishing}
-                    onChange={handleInputChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="">Select Furnishing</option>
-                    {furnishingOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Furnishing - only for residential and office */}
+                {['House', 'Apartment', 'Villa', 'Townhouse', 'Office'].includes(formData.propertyType) && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Furnishing
+                    </label>
+                    <select
+                      name="furnishing"
+                      value={formData.furnishing}
+                      onChange={handleInputChange}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    >
+                      <option value="">Select Furnishing</option>
+                      {furnishingOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Location Information */}
@@ -1154,7 +1193,7 @@ const SellProperty = () => {
                   className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
                 <p className="text-sm text-gray-500 mt-1">
-                  Upload high-quality images of your property. First image will be the main display image.
+                  Upload high-quality images of your property. You can select multiple images at once or add them one by one. First image will be the main display image.
                 </p>
 
                 {/* Image Previews */}

@@ -137,17 +137,38 @@ const addSupplier = async (req, res) => {
       displayOrder
     } = req.body;
 
+    // Handle profile image upload
+    let profileImage = null;
+    if (req.file) {
+      profileImage = req.file.filename;
+    }
+
+    // Handle array fields from FormData
+    const processArrayField = (field) => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        try {
+          return JSON.parse(field);
+        } catch {
+          return field.split(',').map(item => item.trim()).filter(item => item);
+        }
+      }
+      return [];
+    };
+
     const newSupplier = new WholesaleSupplier({
       categoryName: categoryName.trim(),
       categoryDescription: categoryDescription?.trim(),
       supplierName: supplierName.trim(),
+      profileImage,
       contactNumber: contactNumber.trim(),
       whatsappNumber: whatsappNumber.trim(),
       email: email?.trim(),
       address: address?.trim(),
-      specialties: specialties || [],
+      specialties: processArrayField(specialties),
       minimumOrderQuantity: minimumOrderQuantity?.trim(),
-      deliveryAreas: deliveryAreas || [],
+      deliveryAreas: processArrayField(deliveryAreas),
       businessHours: businessHours?.trim(),
       displayOrder: displayOrder || 0
     });
@@ -175,6 +196,33 @@ const updateSupplier = async (req, res) => {
   try {
     const { id } = req.params;
     const updateData = req.body;
+
+    // Handle profile image upload
+    if (req.file) {
+      updateData.profileImage = req.file.filename;
+    }
+
+    // Handle array fields from FormData
+    const processArrayField = (field) => {
+      if (!field) return [];
+      if (Array.isArray(field)) return field;
+      if (typeof field === 'string') {
+        try {
+          return JSON.parse(field);
+        } catch {
+          return field.split(',').map(item => item.trim()).filter(item => item);
+        }
+      }
+      return [];
+    };
+
+    // Process array fields
+    if (updateData.specialties !== undefined) {
+      updateData.specialties = processArrayField(updateData.specialties);
+    }
+    if (updateData.deliveryAreas !== undefined) {
+      updateData.deliveryAreas = processArrayField(updateData.deliveryAreas);
+    }
 
     // Remove empty strings and undefined values
     Object.keys(updateData).forEach(key => {

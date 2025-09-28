@@ -6,7 +6,7 @@ const getUploadUrl = (type, filename) => {
     const path = type; // First argument is the path
     
     if (!path || path === 'placeholder-image.jpg') {
-      return '/uploads/products/placeholder-image.jpg';
+      return `${baseUrl}/uploads/products/placeholder-image.jpg`;
     }
     
     return `${baseUrl}/uploads${path.startsWith('/') ? path : `/${path}`}`;
@@ -14,7 +14,7 @@ const getUploadUrl = (type, filename) => {
 
   // Handle missing or empty filename in two-parameter case
   if (!filename || filename === 'placeholder-image.jpg') {
-    return '/uploads/products/placeholder-image.jpg';
+    return `${baseUrl}/uploads/products/placeholder-image.jpg`;
   }
 
   // For product images and other typed uploads

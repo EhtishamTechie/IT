@@ -1,7 +1,106 @@
 // src/components/Footer.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { getApiUrl } from '../config';
 
 const Footer = () => {
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
+  const [footerCategories, setFooterCategories] = useState([]);
+
+  // Load footer categories on component mount
+  useEffect(() => {
+    loadFooterCategories();
+  }, []);
+
+  const loadFooterCategories = async () => {
+    try {
+      // Use public API endpoint (no authentication required)
+      const response = await axios.get(`${getApiUrl()}/footer-categories`);
+      setFooterCategories(response.data.data || []);
+    } catch (error) {
+      // Fall back to default categories if API fails
+      console.log('Using default footer categories');
+      setFooterCategories([
+        'Electronics',
+        'Fashion',
+        'Home & Garden',
+        'Sports & Outdoors',
+        'Books & Media',
+        'Health & Beauty',
+        'Automotive',
+        'Business & Industrial'
+      ]);
+    }
+  };
+
+  // Email validation function
+  const isValidEmail = (email) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return emailRegex.test(email);
+  };
+
+  // Handle newsletter subscription
+  const handleSubscribe = async (e) => {
+    e.preventDefault();
+    
+    // Clear previous messages
+    setMessage('');
+    setMessageType('');
+
+    // Validate email
+    if (!email.trim()) {
+      setMessage('Please enter your email address');
+      setMessageType('error');
+      return;
+    }
+
+    if (!isValidEmail(email.trim())) {
+      setMessage('Please enter a valid email address');
+      setMessageType('error');
+      return;
+    }
+
+    setIsSubscribing(true);
+
+    try {
+      const response = await axios.post(getApiUrl('newsletter/subscribe'), {
+        email: email.trim()
+      });
+
+      if (response.data.success) {
+        setMessage('Successfully subscribed to our newsletter!');
+        setMessageType('success');
+        setEmail(''); // Clear the input
+      } else {
+        setMessage(response.data.message || 'Failed to subscribe. Please try again.');
+        setMessageType('error');
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error);
+      
+      if (error.response?.data?.message) {
+        setMessage(error.response.data.message);
+      } else if (error.response?.status === 400) {
+        setMessage('This email is already subscribed or invalid');
+      } else {
+        setMessage('Failed to subscribe. Please try again later.');
+      }
+      setMessageType('error');
+    } finally {
+      setIsSubscribing(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setMessage('');
+        setMessageType('');
+      }, 5000);
+    }
+  };
+
   return (
     <footer className="bg-gray-900 text-white">
       {/* Newsletter Section */}
@@ -14,16 +113,47 @@ const Footer = () => {
             <p className="text-gray-300 mb-6">
               Get the latest deals, new arrivals, and exclusive offers delivered to your inbox.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-              <input
-                type="email"
-                placeholder="Enter your email address"
-                className="flex-1 px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400"
-              />
-              <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200">
-                Subscribe
-              </button>
-            </div>
+            
+            <form onSubmit={handleSubscribe} className="max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  disabled={isSubscribing}
+                  className="flex-1 px-4 py-3 border border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-700 text-white placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                <button 
+                  type="submit"
+                  disabled={isSubscribing}
+                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 disabled:cursor-not-allowed text-white px-6 py-3 rounded-lg font-medium transition-colors duration-200 flex items-center justify-center min-w-[120px]"
+                >
+                  {isSubscribing ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Subscribing...
+                    </>
+                  ) : (
+                    'Subscribe'
+                  )}
+                </button>
+              </div>
+              
+              {/* Message Display */}
+              {message && (
+                <div className={`mt-4 p-3 rounded-lg text-sm ${
+                  messageType === 'success' 
+                    ? 'bg-green-800 text-green-200 border border-green-700' 
+                    : 'bg-red-800 text-red-200 border border-red-700'
+                }`}>
+                  {message}
+                </div>
+              )}
+            </form>
           </div>
         </div>
       </div>
@@ -37,9 +167,13 @@ const Footer = () => {
           <div className="flex items-center space-x-2">
             <div className="bg-transparent">
               <img
-                src="./IT Images/ITLOGO2.png"
+                src="/IT Images/ITLOGO2.png"
                 alt="Logo"
                 className="w-30 h-13"
+                onError={(e) => {
+                  console.error('Footer logo failed to load:', e.target.src);
+                  e.target.style.display = 'none';
+                }}
               />
             </div>
           </div>
@@ -73,20 +207,14 @@ const Footer = () => {
           <div>
             <h5 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">Shop</h5>
             <ul className="space-y-2">
-              {[
-                "Electronics",
-                "Fashion",
-                "Home & Garden",
-                "Sports & Outdoors",
-                "Books & Media",
-                "Health & Beauty",
-                "Automotive",
-                "Business & Industrial"
-              ].map((item, index) => (
+              {footerCategories.map((category, index) => (
                 <li key={index}>
-                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
-                    {item}
-                  </a>
+                  <Link 
+                    to={`/category-group/${encodeURIComponent(category.toLowerCase())}`}
+                    className="text-gray-300 hover:text-white text-sm transition-colors duration-200"
+                  >
+                    {category}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -96,22 +224,46 @@ const Footer = () => {
           <div>
             <h5 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">Customer Care</h5>
             <ul className="space-y-2">
-              {[
-                "Help Center",
-                "Contact Us",
-                "Shipping Info",
-                "Returns & Exchanges",
-                "Size Guide",
-                "Track Your Order",
-                "Payment Options",
-                "Product Care"
-              ].map((item, index) => (
-                <li key={index}>
-                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
-                    {item}
-                  </a>
-                </li>
-              ))}
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Shipping Info
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Returns & Exchanges
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Size Guide
+                </Link>
+              </li>
+              <li>
+                <Link to="/simple-order-history" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Track Your Order
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Payment Options
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Product Care
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -119,22 +271,46 @@ const Footer = () => {
           <div>
             <h5 className="text-sm font-semibold text-white uppercase tracking-wide mb-4">Company</h5>
             <ul className="space-y-2 mb-6">
-              {[
-                "About Us",
-                "Careers",
-                "Press Center",
-                "Investor Relations",
-                "Corporate Social Responsibility",
-                "Affiliate Program",
-                "Partnerships",
-                "Sustainability"
-              ].map((item, index) => (
-                <li key={index}>
-                  <a href="#" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
-                    {item}
-                  </a>
-                </li>
-              ))}
+              <li>
+                <Link to="/about" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Careers
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Press Center
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Investor Relations
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Corporate Social Responsibility
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Affiliate Program
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Partnerships
+                </Link>
+              </li>
+              <li>
+                <Link to="/coming-soon" className="text-gray-300 hover:text-white text-sm transition-colors duration-200">
+                  Sustainability
+                </Link>
+              </li>
             </ul>
 
             {/* Contact Info */}
@@ -156,76 +332,42 @@ const Footer = () => {
             
             {/* Payment Methods */}
             <div>
-              <h6 className="text-sm font-medium text-white mb-3">We Accept</h6>
-              <div className="flex flex-wrap gap-2">
-                {/* Visa */}
-                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[80px]">
-                  <svg className="w-8 h-5" viewBox="0 0 40 24" fill="none">
-                    <rect width="40" height="24" rx="4" fill="white"/>
-                    <path d="M8.5 17.5L10.8 6.5H13.2L10.9 17.5H8.5Z" fill="#1A1F71"/>
-                    <path d="M19.2 6.8C18.7 6.6 18.1 6.5 17.4 6.5C15.6 6.5 14.3 7.4 14.3 8.7C14.3 9.7 15.2 10.2 15.9 10.5C16.6 10.8 16.9 11 16.9 11.3C16.9 11.7 16.4 11.9 15.9 11.9C15.2 11.9 14.8 11.8 14.2 11.5L13.9 11.4L13.6 13.2C14.2 13.5 15.3 13.7 16.4 13.7C18.4 13.7 19.6 12.8 19.6 11.4C19.6 10.7 19.1 10.1 18.1 9.7C17.5 9.4 17.1 9.2 17.1 8.9C17.1 8.6 17.5 8.3 18.2 8.3C18.8 8.3 19.3 8.4 19.7 8.6L19.9 8.7L20.2 6.9L19.2 6.8Z" fill="#1A1F71"/>
-                    <path d="M23.8 6.5H22.1C21.6 6.5 21.2 6.7 21 7.1L17.8 17.5H19.8L20.3 16.1H22.8L23 17.5H24.8L23.8 6.5ZM21 14.4L22.2 11.2L22.6 14.4H21Z" fill="#1A1F71"/>
-                    <path d="M31.5 6.5H29.1L26.8 17.5H28.8L29.3 15.8H31.8L32 17.5H34.8L31.5 6.5ZM30 14.1L31.2 10.9L31.6 14.1H30Z" fill="#1A1F71"/>
+              <h6 className="text-sm font-medium text-white mb-3">Payment Methods</h6>
+              <div className="flex flex-wrap gap-3">
+                {/* EasyPaisa */}
+                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[120px]">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                    <rect width="24" height="24" rx="4" fill="#00A651"/>
+                    <path d="M7 8h10v2H7V8zm0 4h10v2H7v-2zm0 4h6v2H7v-2z" fill="white"/>
                   </svg>
-                  <span className="text-xs font-medium text-gray-700">Visa</span>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-800 block">EasyPaisa</span>
+                    <span className="text-xs text-gray-600">Mobile Wallet</span>
+                  </div>
                 </div>
 
-                {/* Mastercard */}
-                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[100px]">
-                  <svg className="w-8 h-5" viewBox="0 0 40 24" fill="none">
-                    <rect width="40" height="24" rx="4" fill="white"/>
-                    <circle cx="15" cy="12" r="7" fill="#EB001B"/>
-                    <circle cx="25" cy="12" r="7" fill="#F79E1B"/>
-                    <path d="M20 6.5C21.9 8 23 10.3 23 12.5C23 14.7 21.9 17 20 18.5C18.1 17 17 14.7 17 12.5C17 10.3 18.1 8 20 6.5Z" fill="#FF5F00"/>
+                {/* JazzCash */}
+                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[120px]">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                    <rect width="24" height="24" rx="4" fill="#FF6B35"/>
+                    <path d="M12 6l4 6h-3v6h-2v-6H8l4-6z" fill="white"/>
                   </svg>
-                  <span className="text-xs font-medium text-gray-700">Mastercard</span>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-800 block">JazzCash</span>
+                    <span className="text-xs text-gray-600">Mobile Wallet</span>
+                  </div>
                 </div>
 
-                {/* American Express */}
-                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[100px]">
-                  <svg className="w-8 h-5" viewBox="0 0 40 24" fill="none">
-                    <rect width="40" height="24" rx="4" fill="#006FCF"/>
-                    <path d="M8 8H12L13 10.5L14 8H18L16 12L18 16H14L13 13.5L12 16H8L10 12L8 8Z" fill="white"/>
-                    <path d="M22 8H26V9H22V10H25V11H22V12H26V13H22V14H25V15H22V16H26V16H22L22 8Z" fill="white"/>
-                    <path d="M28 8H32L33 10L34 8H36L34 12L36 16H34L33 14L32 16H28L30 12L28 8Z" fill="white"/>
+                {/* Bank Transfer */}
+                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[120px]">
+                  <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                    <rect width="24" height="24" rx="4" fill="#1F4E79"/>
+                    <path d="M12 3l8 5v2H4V8l8-5zm0 2L6 8h12L12 5zm-6 7h12v8H6v-8zm2 2v4h8v-4H8z" fill="white"/>
                   </svg>
-                  <span className="text-xs font-medium text-gray-700">Amex</span>
-                </div>
-
-                {/* PayPal */}
-                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[80px]">
-                  <svg className="w-8 h-5" viewBox="0 0 40 24" fill="none">
-                    <rect width="40" height="24" rx="4" fill="white"/>
-                    <path d="M12 7C13.5 7 14.8 7.3 15.7 8.1C16.6 8.9 17 10.1 16.8 11.5C16.4 14.5 14.8 16 12.3 16H10.5L9.8 20H7.5L9.5 9H12V7Z" fill="#0070BA"/>
-                    <path d="M15 10C16.2 10 17.2 10.2 17.9 10.8C18.6 11.4 18.8 12.3 18.7 13.4C18.4 15.8 17.2 17 15.2 17H13.8L13.2 20H11.2L12.8 12H15V10Z" fill="#001C64"/>
-                    <path d="M18.5 13C19.5 13 20.3 13.2 20.8 13.6C21.3 14 21.4 14.6 21.3 15.3C21.1 16.9 20.3 17.5 19 17.5H18L17.6 20H16L17.2 14.5H18.5V13Z" fill="#0070BA"/>
-                  </svg>
-                  <span className="text-xs font-medium text-gray-700">PayPal</span>
-                </div>
-
-                {/* Apple Pay */}
-                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[100px]">
-                  <svg className="w-8 h-5" viewBox="0 0 40 24" fill="none">
-                    <rect width="40" height="24" rx="4" fill="black"/>
-                    <path d="M12.5 8.5C12.8 8.1 13.1 7.6 13 7C12.5 7 11.9 7.3 11.6 7.7C11.3 8.1 11.1 8.6 11.2 9.1C11.7 9.1 12.2 8.9 12.5 8.5Z" fill="white"/>
-                    <path d="M13 9.2C12.2 9.2 11.6 9.6 11.2 9.6C10.8 9.6 10.3 9.3 9.7 9.3C8.9 9.3 8.1 9.8 7.7 10.5C6.8 11.9 7.5 14 8.4 15.2C8.8 15.8 9.3 16.5 10 16.5C10.6 16.5 10.8 16.1 11.5 16.1C12.2 16.1 12.4 16.5 13.1 16.5C13.8 16.5 14.2 15.9 14.6 15.3C15.1 14.6 15.3 13.9 15.3 13.9C15.3 13.9 14.3 13.5 14.3 12.4C14.3 11.5 15 11 15 11C15 11 14.4 9.2 13 9.2Z" fill="white"/>
-                    <path d="M20 9H22.5V16H20.8V10.4H20L18.8 16H17.5L16.3 10.4H16.2V16H14.5V9H17L18.1 14.2H18.2L19.3 9H20Z" fill="white"/>
-                    <path d="M27 12.8C27 14.5 25.8 15.5 24.2 15.5C22.6 15.5 21.4 14.5 21.4 12.8C21.4 11.1 22.6 10.1 24.2 10.1C25.8 10.1 27 11.1 27 12.8ZM25.3 12.8C25.3 11.9 24.8 11.4 24.2 11.4C23.6 11.4 23.1 11.9 23.1 12.8C23.1 13.7 23.6 14.2 24.2 14.2C24.8 14.2 25.3 13.7 25.3 12.8Z" fill="white"/>
-                  </svg>
-                  <span className="text-xs font-medium text-gray-700">Apple Pay</span>
-                </div>
-
-                {/* Google Pay */}
-                <div className="bg-white border border-gray-600 px-3 py-2 rounded flex items-center gap-2 min-w-[100px]">
-                  <svg className="w-8 h-5" viewBox="0 0 40 24" fill="none">
-                    <rect width="40" height="24" rx="4" fill="white"/>
-                    <path d="M16.8 12C16.8 10.3 18.2 9 19.9 9C21.6 9 23 10.3 23 12C23 13.7 21.6 15 19.9 15C18.2 15 16.8 13.7 16.8 12ZM21.7 12C21.7 11 21 10.3 19.9 10.3C18.8 10.3 18.1 11 18.1 12C18.1 13 18.8 13.7 19.9 13.7C21 13.7 21.7 13 21.7 12Z" fill="#4285F4"/>
-                    <path d="M13.2 9.1V14.9H11.9V9.1H13.2Z" fill="#34A853"/>
-                    <path d="M8.5 11.4C8.5 10.6 9 10.2 9.7 10.2C10.3 10.2 10.7 10.5 10.8 11H12.1C12 9.8 11.1 9 9.7 9C8.2 9 7.2 9.9 7.2 11.4V12.6C7.2 14.1 8.2 15 9.7 15C11.1 15 12 14.2 12.1 13H10.8C10.7 13.5 10.3 13.8 9.7 13.8C9 13.8 8.5 13.4 8.5 12.6V11.4Z" fill="#FBBC04"/>
-                    <path d="M25.4 9.1V14.9H24.1V9.1H25.4Z" fill="#EA4335"/>
-                    <path d="M30.1 10.2C30.8 10.2 31.2 10.6 31.2 11.4V12.6C31.2 13.4 30.8 13.8 30.1 13.8C29.5 13.8 29.1 13.5 29 13H27.7C27.8 14.2 28.7 15 30.1 15C31.6 15 32.6 14.1 32.6 12.6V11.4C32.6 9.9 31.6 9 30.1 9C28.7 9 27.8 9.8 27.7 11H29C29.1 10.5 29.5 10.2 30.1 10.2Z" fill="#34A853"/>
-                  </svg>
-                  <span className="text-xs font-medium text-gray-700">Google Pay</span>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-800 block">Bank Transfer</span>
+                    <span className="text-xs text-gray-600">Direct Banking</span>
+                  </div>
                 </div>
               </div>
             </div>

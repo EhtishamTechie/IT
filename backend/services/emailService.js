@@ -7,7 +7,8 @@ class EmailService {
     this.isDevelopmentMode = !process.env.EMAIL_USER || 
                              process.env.EMAIL_USER === 'your-email@gmail.com' ||
                              !process.env.EMAIL_PASS ||
-                             process.env.EMAIL_PASS === 'your-app-password';
+                             process.env.EMAIL_PASS === 'your-app-password' ||
+                             process.env.EMAIL_USER === 'shami537uet@gmail.com';
 
     if (!this.isDevelopmentMode) {
       // Configure email transporter for production
@@ -322,6 +323,582 @@ class EmailService {
       // Don't throw error for welcome email failure
     }
   }
+
+  /**
+   * Send vendor application confirmation email with application ID
+   */
+  async sendVendorApplicationConfirmation(email, businessName, applicationId) {
+    // Development mode simulation
+    if (this.isDevelopmentMode) {
+      console.log('📧 [DEV MODE] Vendor application confirmation email would be sent to:', email);
+      console.log('📧 [DEV MODE] Business Name:', businessName || 'N/A');
+      console.log('📧 [DEV MODE] Application ID:', applicationId);
+      console.log('📧 [DEV MODE] Simulating successful email delivery...');
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { 
+        success: true, 
+        messageId: `dev-confirmation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        developmentMode: true 
+      };
+    }
+
+    // Production mode - real email sending
+    const mailOptions = {
+      from: {
+        name: 'International Tijarat',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: 'Vendor Application Received - International Tijarat',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+            .container { background: #f8f9fa; padding: 20px; }
+            .header { background: #28a745; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .application-id { 
+              background: #e9ecef; 
+              padding: 15px; 
+              border-radius: 6px; 
+              border-left: 4px solid #28a745; 
+              margin: 20px 0; 
+              font-weight: bold;
+              font-size: 18px;
+              color: #495057;
+            }
+            .next-steps { background: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0; }
+            .step { margin: 10px 0; padding: 10px 0; border-bottom: 1px solid #dee2e6; }
+            .step:last-child { border-bottom: none; }
+            .contact-info { background: #e3f2fd; padding: 15px; border-radius: 6px; margin: 20px 0; }
+            .footer { text-align: center; color: #6c757d; margin-top: 30px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Application Received Successfully!</h1>
+              <p>Welcome to International Tijarat Vendor Program</p>
+            </div>
+            <div class="content">
+              <p>Dear ${businessName || 'Vendor'},</p>
+              
+              <p>Thank you for submitting your vendor application to International Tijarat. We have successfully received your application and it is now under review by our team.</p>
+              
+              <div class="application-id">
+                Your Application ID: <span style="color: #28a745;">${applicationId}</span>
+              </div>
+              
+              <p><strong>Please save this Application ID for your records.</strong> You can use it to track the status of your application or contact our support team.</p>
+              
+              <div class="next-steps">
+                <h3 style="color: #495057; margin-top: 0;">What happens next?</h3>
+                <div class="step">
+                  <strong>1. Review Process (1-3 business days)</strong><br>
+                  Our team will carefully review your application, business information, and submitted documents.
+                </div>
+                <div class="step">
+                  <strong>2. Verification & Approval</strong><br>
+                  We may contact you for additional information or documentation if needed.
+                </div>
+                <div class="step">
+                  <strong>3. Account Setup</strong><br>
+                  Once approved, you'll receive login credentials and access to your vendor dashboard.
+                </div>
+                <div class="step">
+                  <strong>4. Start Selling</strong><br>
+                  Begin adding your products and start reaching thousands of customers!
+                </div>
+              </div>
+              
+              <div class="contact-info">
+                <h4 style="margin-top: 0; color: #1976d2;">Need assistance?</h4>
+                <p style="margin-bottom: 0;">
+                  <strong>Email:</strong> vendor-support@internationaltijarat.com<br>
+                  <strong>Application ID:</strong> ${applicationId}<br>
+                  <strong>Business Hours:</strong> Monday - Friday, 9:00 AM - 6:00 PM
+                </p>
+              </div>
+              
+              <p>We appreciate your interest in joining our marketplace and look forward to working with you.</p>
+              
+              <p>Best regards,<br>
+              <strong>International Tijarat Vendor Relations Team</strong></p>
+            </div>
+            <div class="footer">
+              <p>© 2025 International Tijarat. All rights reserved.</p>
+              <p>This is an automated message. Please do not reply to this email.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Vendor application confirmation email sent to:`, email);
+      console.log(`📋 Application ID: ${applicationId}`);
+    } catch (error) {
+      console.error('❌ Failed to send vendor application confirmation email:', error);
+      throw error; // Throw error for application confirmation as it's important
+    }
+  }
+
+  /**
+   * Send vendor application approval email with login credentials
+   */
+  async sendVendorApplicationApproval(email, businessName, applicationId, password) {
+    // Development mode simulation
+    if (this.isDevelopmentMode) {
+      console.log('📧 [DEV MODE] Vendor application approval email would be sent to:', email);
+      console.log('📧 [DEV MODE] Business Name:', businessName);
+      console.log('📧 [DEV MODE] Application ID:', applicationId);
+      console.log('📧 [DEV MODE] Password:', password);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { 
+        success: true, 
+        messageId: `dev-approval-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        developmentMode: true 
+      };
+    }
+
+    const mailOptions = {
+      from: {
+        name: 'International Tijarat',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: '🎉 Vendor Application Approved - Welcome to International Tijarat!',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+            .container { background: #f8f9fa; padding: 20px; }
+            .header { background: #28a745; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .credentials-box { 
+              background: #e8f5e8; 
+              padding: 20px; 
+              border-radius: 8px; 
+              border-left: 4px solid #28a745; 
+              margin: 20px 0; 
+            }
+            .next-steps { background: #f8f9fa; padding: 20px; border-radius: 6px; margin: 20px 0; }
+            .step { margin: 15px 0; padding: 15px; background: white; border-radius: 6px; border-left: 3px solid #28a745; }
+            .footer { text-align: center; color: #6c757d; margin-top: 30px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🎉 Congratulations!</h1>
+              <p>Your vendor application has been approved!</p>
+            </div>
+            <div class="content">
+              <p>Dear ${businessName},</p>
+              
+              <p>We are excited to inform you that your vendor application (ID: <strong>${applicationId}</strong>) has been <strong>approved</strong>! Welcome to the International Tijarat family!</p>
+              
+              <div class="credentials-box">
+                <h3 style="color: #28a745; margin-top: 0;">Your Login Credentials</h3>
+                <p><strong>Email:</strong> ${email}</p>
+                <p><strong>Password:</strong> <code style="background: #f8f9fa; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${password}</code></p>
+                <p style="color: #dc3545; font-size: 14px;"><strong>Important:</strong> Please change your password after first login for security.</p>
+              </div>
+              
+              <div class="next-steps">
+                <h3 style="color: #495057; margin-top: 0;">Next Steps to Get Started:</h3>
+                <div class="step">
+                  <strong>1. Login to Your Dashboard</strong><br>
+                  Visit our vendor portal and login with your credentials above.
+                </div>
+                <div class="step">
+                  <strong>2. Complete Your Profile</strong><br>
+                  Add your business logo, description, and contact information.
+                </div>
+                <div class="step">
+                  <strong>3. Add Your Products</strong><br>
+                  Start listing your products with images and descriptions.
+                </div>
+                <div class="step">
+                  <strong>4. Start Selling!</strong><br>
+                  Your products will be visible to thousands of customers.
+                </div>
+              </div>
+              
+              <p><strong>Vendor Portal:</strong> <a href="http://localhost:5173/vendor/login" style="color: #28a745;">http://localhost:5173/vendor/login</a></p>
+              
+              <p>We're here to support you every step of the way. If you have any questions, please don't hesitate to reach out.</p>
+              
+              <p>Welcome aboard!<br>
+              <strong>The International Tijarat Team</strong></p>
+            </div>
+            <div class="footer">
+              <p>© 2025 International Tijarat. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Vendor application approval email sent to: ${email}`);
+    } catch (error) {
+      console.error('❌ Failed to send vendor application approval email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send vendor application rejection email
+   */
+  async sendVendorApplicationRejection(email, businessName, applicationId, reason) {
+    // Development mode simulation
+    if (this.isDevelopmentMode) {
+      console.log('📧 [DEV MODE] Vendor application rejection email would be sent to:', email);
+      console.log('📧 [DEV MODE] Business Name:', businessName);
+      console.log('📧 [DEV MODE] Application ID:', applicationId);
+      console.log('📧 [DEV MODE] Reason:', reason);
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { 
+        success: true, 
+        messageId: `dev-rejection-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        developmentMode: true 
+      };
+    }
+
+    const mailOptions = {
+      from: {
+        name: 'International Tijarat',
+        address: process.env.EMAIL_USER
+      },
+      to: email,
+      subject: 'Vendor Application Update - International Tijarat',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+            .container { background: #f8f9fa; padding: 20px; }
+            .header { background: #dc3545; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+            .content { background: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .reason-box { 
+              background: #ffeaa7; 
+              padding: 20px; 
+              border-radius: 8px; 
+              border-left: 4px solid #fdcb6e; 
+              margin: 20px 0; 
+            }
+            .reapply-info { background: #e3f2fd; padding: 20px; border-radius: 6px; margin: 20px 0; }
+            .footer { text-align: center; color: #6c757d; margin-top: 30px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>Application Update</h1>
+              <p>Regarding your vendor application</p>
+            </div>
+            <div class="content">
+              <p>Dear ${businessName},</p>
+              
+              <p>Thank you for your interest in joining International Tijarat as a vendor. After careful review of your application (ID: <strong>${applicationId}</strong>), we regret to inform you that we cannot approve your application at this time.</p>
+              
+              ${reason ? `
+              <div class="reason-box">
+                <h3 style="color: #e17055; margin-top: 0;">Reason for Decline:</h3>
+                <p>${reason}</p>
+              </div>
+              ` : ''}
+              
+              <div class="reapply-info">
+                <h3 style="color: #1976d2; margin-top: 0;">Can I Reapply?</h3>
+                <p>Yes! You are welcome to submit a new application in the future. Please address any concerns mentioned above and ensure all requirements are met.</p>
+                <p><strong>Reapply at:</strong> <a href="http://localhost:5173/vendor/register" style="color: #1976d2;">http://localhost:5173/vendor/register</a></p>
+              </div>
+              
+              <p>If you have any questions about this decision or need clarification on the requirements, please feel free to contact our support team.</p>
+              
+              <p><strong>Contact:</strong> vendor-support@internationaltijarat.com</p>
+              
+              <p>Thank you for your understanding.</p>
+              
+              <p>Best regards,<br>
+              <strong>International Tijarat Vendor Relations Team</strong></p>
+            </div>
+            <div class="footer">
+              <p>© 2025 International Tijarat. All rights reserved.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Vendor application rejection email sent to: ${email}`);
+    } catch (error) {
+      console.error('❌ Failed to send vendor application rejection email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send order confirmation email
+   */
+  async sendOrderConfirmation(email, order) {
+    const orderData = {
+      orderNumber: order.orderNumber,
+      customerName: order.name,
+      customerEmail: order.email,
+      items: order.cart || order.items || [],
+      totalAmount: order.totalAmount,
+      paymentMethod: order.paymentMethod,
+      shippingAddress: {
+        address: order.address,
+        city: order.city
+      },
+      createdAt: order.createdAt || new Date()
+    };
+
+    // Development mode simulation
+    if (this.isDevelopmentMode) {
+      console.log('📧 [DEV MODE] Order confirmation email would be sent to:', email);
+      console.log('📧 [DEV MODE] Order Number:', orderData.orderNumber);
+      console.log('📧 [DEV MODE] Total Amount:', orderData.totalAmount);
+      console.log('📧 [DEV MODE] Simulating successful email delivery...');
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { success: true, messageId: `dev-order-${Date.now()}`, developmentMode: true };
+    }
+
+    try {
+      const mailOptions = {
+        from: {
+          name: 'International Tijarat',
+          address: process.env.EMAIL_USER || 'noreply@internationaltijarat.com'
+        },
+        to: email,
+        subject: `Order Confirmation - ${orderData.orderNumber}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+              .container { background: #f9f9f9; padding: 20px; }
+              .header { background: #ff6b35; color: white; padding: 20px; text-align: center; }
+              .content { background: white; padding: 30px; margin: 20px 0; border-radius: 8px; }
+              .order-details { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+              .item { padding: 10px 0; border-bottom: 1px solid #eee; }
+              .total { font-size: 18px; font-weight: bold; color: #ff6b35; text-align: right; padding-top: 15px; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Order Confirmed!</h1>
+                <p>Thank you for your purchase</p>
+              </div>
+              <div class="content">
+                <h2>Order Details</h2>
+                <div class="order-details">
+                  <p><strong>Order Number:</strong> ${orderData.orderNumber}</p>
+                  <p><strong>Customer:</strong> ${orderData.customerName}</p>
+                  <p><strong>Date:</strong> ${new Date(orderData.createdAt).toLocaleDateString()}</p>
+                  <p><strong>Payment Method:</strong> ${orderData.paymentMethod === 'advance_payment' ? 'Advance Payment' : orderData.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : orderData.paymentMethod}</p>
+                  ${orderData.paymentMethod === 'advance_payment' ? '<p><strong>Note:</strong> Your payment is under verification. You will be notified once verified.</p>' : ''}
+                </div>
+
+                <h3>Items Ordered:</h3>
+                ${orderData.items.map(item => `
+                  <div class="item">
+                    <strong>${item.title || item.name}</strong><br>
+                    Quantity: ${item.quantity} × ${item.price ? `Rs. ${item.price}` : 'Price TBD'} = Rs. ${item.quantity * (item.price || 0)}
+                  </div>
+                `).join('')}
+                
+                <div class="total">
+                  Total: Rs. ${orderData.totalAmount}
+                </div>
+
+                <h3>Shipping Address:</h3>
+                <p>${orderData.shippingAddress.address}<br>${orderData.shippingAddress.city}</p>
+
+                <p>We will process your order and keep you updated on its status.</p>
+                
+                ${orderData.paymentMethod === 'advance_payment' ? 
+                  '<p><strong>Next Steps:</strong> Our team will verify your payment receipt and update your order status within 24 hours.</p>' : 
+                  '<p><strong>Next Steps:</strong> We will contact you to confirm your order and arrange delivery.</p>'
+                }
+              </div>
+              <div class="footer">
+                <p>International Tijarat - Your Trusted Online Marketplace</p>
+                <p>If you have any questions, please contact our support team.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Order confirmation email sent to: ${email} for order: ${orderData.orderNumber}`);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      console.error('❌ Failed to send order confirmation email:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Send order status update email
+   */
+  async sendOrderStatusUpdate(email, order, newStatus, oldStatus) {
+    const statusMessages = {
+      'placed': 'Your order has been placed successfully',
+      'confirmed': 'Your order has been confirmed',
+      'processing': 'Your order is being processed',
+      'shipped': 'Your order has been shipped',
+      'delivered': 'Your order has been delivered',
+      'cancelled': 'Your order has been cancelled',
+      'payment_verified': 'Your payment has been verified',
+      'pending_verification': 'Your payment is pending verification'
+    };
+
+    const statusColors = {
+      'placed': '#007bff',
+      'confirmed': '#28a745',
+      'processing': '#ffc107',
+      'shipped': '#17a2b8',
+      'delivered': '#28a745',
+      'cancelled': '#dc3545',
+      'payment_verified': '#28a745',
+      'pending_verification': '#ffc107'
+    };
+
+    // Development mode simulation
+    if (this.isDevelopmentMode) {
+      console.log('📧 [DEV MODE] Order status update email would be sent to:', email);
+      console.log('📧 [DEV MODE] Order:', order.orderNumber);
+      console.log('📧 [DEV MODE] Status change:', `${oldStatus} → ${newStatus}`);
+      console.log('📧 [DEV MODE] Simulating successful email delivery...');
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return { success: true, messageId: `dev-status-${Date.now()}`, developmentMode: true };
+    }
+
+    try {
+      const mailOptions = {
+        from: {
+          name: 'International Tijarat',
+          address: process.env.EMAIL_USER || 'noreply@internationaltijarat.com'
+        },
+        to: email,
+        subject: `Order Update - ${order.orderNumber}`,
+        html: `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <style>
+              body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+              .container { background: #f9f9f9; padding: 20px; }
+              .header { background: #ff6b35; color: white; padding: 20px; text-align: center; }
+              .content { background: white; padding: 30px; margin: 20px 0; border-radius: 8px; }
+              .status-update { 
+                background: ${statusColors[newStatus] || '#007bff'}; 
+                color: white; 
+                padding: 20px; 
+                border-radius: 8px; 
+                text-align: center; 
+                margin: 20px 0; 
+              }
+              .order-summary { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+              .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <div class="header">
+                <h1>Order Status Update</h1>
+              </div>
+              <div class="content">
+                <div class="status-update">
+                  <h2>${statusMessages[newStatus] || 'Order status updated'}</h2>
+                  <p>Order #${order.orderNumber}</p>
+                </div>
+
+                <div class="order-summary">
+                  <h3>Order Summary</h3>
+                  <p><strong>Order Number:</strong> ${order.orderNumber}</p>
+                  <p><strong>Customer:</strong> ${order.name}</p>
+                  <p><strong>Total Amount:</strong> Rs. ${order.totalAmount}</p>
+                  <p><strong>Payment Method:</strong> ${order.paymentMethod === 'advance_payment' ? 'Advance Payment' : order.paymentMethod === 'cash_on_delivery' ? 'Cash on Delivery' : order.paymentMethod}</p>
+                  <p><strong>Previous Status:</strong> ${statusMessages[oldStatus] || oldStatus}</p>
+                  <p><strong>Current Status:</strong> ${statusMessages[newStatus] || newStatus}</p>
+                </div>
+
+                ${newStatus === 'payment_verified' ? `
+                  <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h4 style="color: #155724; margin: 0 0 10px 0;">Payment Verified ✅</h4>
+                    <p style="color: #155724; margin: 0;">Great news! Your payment has been verified and your order is now being processed.</p>
+                  </div>
+                ` : ''}
+
+                ${newStatus === 'shipped' ? `
+                  <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h4 style="color: #0c5460; margin: 0 0 10px 0;">Order Shipped 🚚</h4>
+                    <p style="color: #0c5460; margin: 0;">Your order is on its way! You should receive it soon.</p>
+                  </div>
+                ` : ''}
+
+                ${newStatus === 'delivered' ? `
+                  <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h4 style="color: #155724; margin: 0 0 10px 0;">Order Delivered 📦</h4>
+                    <p style="color: #155724; margin: 0;">Your order has been delivered! We hope you enjoy your purchase.</p>
+                  </div>
+                ` : ''}
+
+                ${newStatus === 'cancelled' ? `
+                  <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                    <h4 style="color: #721c24; margin: 0 0 10px 0;">Order Cancelled ❌</h4>
+                    <p style="color: #721c24; margin: 0;">Your order has been cancelled. If you have any questions, please contact our support team.</p>
+                  </div>
+                ` : ''}
+
+                <p>Thank you for shopping with International Tijarat!</p>
+              </div>
+              <div class="footer">
+                <p>International Tijarat - Your Trusted Online Marketplace</p>
+                <p>If you have any questions, please contact our support team.</p>
+              </div>
+            </div>
+          </body>
+          </html>
+        `
+      };
+
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log(`✅ Order status update email sent to: ${email} for order: ${order.orderNumber} (${oldStatus} → ${newStatus})`);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      console.error('❌ Failed to send order status update email:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance
@@ -334,6 +911,11 @@ module.exports = {
   // Add direct exports of instance methods for backward compatibility
   sendCustomerVerificationOTP: emailService.sendCustomerVerificationOTP.bind(emailService),
   sendVendorVerificationOTP: emailService.sendVendorVerificationOTP.bind(emailService),
+  sendVendorApplicationConfirmation: emailService.sendVendorApplicationConfirmation.bind(emailService),
+  sendVendorApplicationApproval: emailService.sendVendorApplicationApproval.bind(emailService),
+  sendVendorApplicationRejection: emailService.sendVendorApplicationRejection.bind(emailService),
+  sendOrderConfirmation: emailService.sendOrderConfirmation.bind(emailService),
+  sendOrderStatusUpdate: emailService.sendOrderStatusUpdate.bind(emailService),
   generateOTP: emailService.generateOTP.bind(emailService),
   transporter: emailService.transporter,
   // Make the instance the default export for backward compatibility

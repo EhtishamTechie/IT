@@ -44,7 +44,7 @@ const cartReducer = (state, action) => {
       _id: action.payload._id,
       title: action.payload.title,
       price: action.payload.price,
-      image: action.payload.images?.[0] || action.payload.image, // Try array first, then fallback
+      image: action.payload.image || (action.payload.images?.[0] || null), // Primary image first, then fallback
       stock: action.payload.stock || 100,
       quantity: action.payload.quantity || 1
     };

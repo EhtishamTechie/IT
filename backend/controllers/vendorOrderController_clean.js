@@ -331,6 +331,18 @@ const handleVendorOrderAction = async (req, res) => {
 
     console.log(`✅ Order ${orderId} status updated from ${oldStatus} to ${newStatus} by vendor ${vendorId}`);
 
+    // Send email notification for vendor order status change
+    if (oldStatus !== newStatus && order.email) {
+      try {
+        const { emailService } = require('../services/emailService');
+        await emailService.sendOrderStatusUpdate(order.email, order, newStatus, oldStatus);
+        console.log(`📧 [EMAIL] Vendor order status update email sent for ${order.orderNumber}: ${oldStatus} → ${newStatus}`);
+      } catch (emailError) {
+        console.error('❌ [EMAIL] Failed to send vendor order status update email:', emailError);
+        // Don't fail the operation if email fails
+      }
+    }
+
     res.json({
       success: true,
       message: `Order ${action} successfully`,

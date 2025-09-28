@@ -92,7 +92,7 @@ const ApplicationStatusPage = () => {
       'draft': 'Your application is saved as a draft. Complete and submit it to begin the review process.',
       'submitted': 'Your application has been submitted and is waiting for review.',
       'under_review': 'Your application is currently being reviewed by our team.',
-      'approved': 'Congratulations! Your application has been approved. You can now log in to your vendor account.',
+      'approved': 'Congratulations! Your application has been approved and your vendor account has been created. You can now log in using the credentials provided below.',
       'rejected': 'Unfortunately, your application has been rejected. Please contact support for more information.',
       'more_info_required': 'We need additional information to complete your application review.'
     };
@@ -255,6 +255,90 @@ const ApplicationStatusPage = () => {
                 )}
               </div>
             </div>
+
+            {/* Login Credentials Section - Only show for approved applications */}
+            {applicationData.status === 'approved' && applicationData.loginCredentials && (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="border-l-4 border-green-400 bg-green-50 p-4 rounded-lg">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <svg className="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3 flex-1">
+                      <h3 className="text-sm font-medium text-green-800">
+                        Your Vendor Account Is Ready!
+                      </h3>
+                      <div className="mt-2 text-sm text-green-700">
+                        <p className="mb-3">Your vendor application has been approved and your account has been created. Use the credentials below to log in:</p>
+                        
+                        <div className="bg-white border border-green-200 rounded-md p-4 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-semibold text-green-800 uppercase tracking-wide mb-1">
+                                Email Address
+                              </label>
+                              <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                                <span className="text-sm text-gray-900 font-mono">
+                                  {applicationData.loginCredentials.email}
+                                </span>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(applicationData.loginCredentials.email)}
+                                  className="text-green-600 hover:text-green-800 ml-2"
+                                  title="Copy email"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs font-semibold text-green-800 uppercase tracking-wide mb-1">
+                                Password
+                              </label>
+                              <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                                <span className="text-sm text-gray-900 font-mono">
+                                  {applicationData.loginCredentials.password}
+                                </span>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(applicationData.loginCredentials.password)}
+                                  className="text-green-600 hover:text-green-800 ml-2"
+                                  title="Copy password"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="border-t border-green-200 pt-3">
+                            <p className="text-xs text-green-600 mb-2">
+                              <strong>Important:</strong> Please change your password after your first login for security.
+                            </p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-green-600">Login URL:</span>
+                              <a 
+                                href={applicationData.loginCredentials.loginUrl}
+                                className="text-xs text-green-700 hover:text-green-900 underline font-mono"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {applicationData.loginCredentials.loginUrl}
+                              </a>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Action Buttons */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

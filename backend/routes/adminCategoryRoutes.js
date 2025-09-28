@@ -6,6 +6,10 @@ const adminCategoryController = require('../controllers/adminCategoryController'
 // Apply admin authentication middleware to all routes
 router.use(authenticateAdmin);
 
+// Footer Categories Management (must be before parameterized routes)
+router.get('/footer-categories', adminCategoryController.getFooterCategories);
+router.post('/footer-categories', adminCategoryController.updateFooterCategories);
+
 // Admin Category Routes
 router.get('/', adminCategoryController.getAdminCategories);
 router.get('/main', adminCategoryController.getAdminMainCategories);

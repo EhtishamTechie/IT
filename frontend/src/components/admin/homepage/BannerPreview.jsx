@@ -38,7 +38,7 @@ const getProductImage = (product) => {
         
         // If product has images array
         if (Array.isArray(product.images) && product.images.length > 0) {
-            return product.images[0];
+            return product.image || product.images[0];
         }
 
         // Log product data for debugging
@@ -59,8 +59,9 @@ const getProductImage = (product) => {
 
         // If product is an object, check for images array
         if (Array.isArray(product.images) && product.images.length > 0) {
-            const imageUrl = getImageUrl('products', product.images[0]);
-            console.log('📸 Using first image from array:', { image: product.images[0], generatedUrl: imageUrl });
+            const primaryImage = product.image || product.images[0];
+            const imageUrl = getImageUrl('products', primaryImage);
+            console.log('📸 Using primary image:', { image: primaryImage, generatedUrl: imageUrl });
             return imageUrl;
         }
 
@@ -175,6 +176,7 @@ const BannerPreview = ({ slides = [], onBackClick }) => {
                 rawImagePath: product.imagePath,
                 hasImages: Array.isArray(product.images),
                 imagesLength: product.images?.length,
+                primaryImage: product.image,
                 firstImageFromArray: product.images?.[0],
                 allFields: Object.keys(product)
             }

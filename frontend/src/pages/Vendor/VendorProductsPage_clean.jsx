@@ -239,13 +239,13 @@ const VendorProductsPage = () => {
             alt={product.title}
             className="h-12 w-12 rounded-lg object-cover"
             onLoad={(e) => {
-              console.log(`✅ Image loaded successfully: ${e.target.src}`);
+              console.log(`  Image loaded successfully: ${e.target.src}`);
             }}
             onError={(e) => {
               // Prevent infinite loop by checking if we're already using a placeholder
               if (!e.target.src.includes('data:image')) {
-                console.log(`❌ Image failed to load: ${e.target.src}`);
-                console.log('🔄 Switching to placeholder...');
+                console.log(`  Image failed to load: ${e.target.src}`);
+                console.log('  Switching to placeholder...');
                 // Use a simple data URI placeholder to prevent infinite loops
                 e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNiAxNkMyMC40MTgzIDE2IDI0IDE5LjU4MTcgMjQgMjRDMjQgMjguNDE4MyAyMC40MTgzIDMyIDE2IDMyQzExLjU4MTcgMzIgOCAyOC40MTgzIDggMjRDOCAxOS41ODE3IDExLjU4MTcgMTYgMTYgMTZaIiBmaWxsPSIjOUNBM0FGIi8+CjxwYXRoIGQ9Ik0zMiAzMkgxNkwyNCAxNkwzMiAzMloiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cg==';
               }
@@ -258,7 +258,7 @@ const VendorProductsPage = () => {
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-sm font-medium text-gray-900">${product.price}</div>
+        <div className="text-sm font-medium text-gray-900">PKR {product.price}</div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStockStatusColor(product.stock || 0)}`}>

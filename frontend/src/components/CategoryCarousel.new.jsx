@@ -287,30 +287,32 @@ const CategoryCarousel = () => {
       </section>
 
       {/* Custom CSS for Infinite Scroll Animation */}
-      <style jsx>{`
-        @keyframes infinite-scroll {
-          0% {
-            transform: translateX(0);
+      <style>
+        {`
+          @keyframes infinite-scroll {
+            0% {
+              transform: translateX(0);
+            }
+            100% {
+              transform: translateX(-${categories.length * 250}px);
+            }
           }
-          100% {
-            transform: translateX(-${categories.length * 250}px);
+          
+          .animate-infinite-scroll {
+            animation: infinite-scroll 40s linear infinite;
           }
-        }
-        
-        .animate-infinite-scroll {
-          animation: infinite-scroll 40s linear infinite;
-        }
-        
-        /* Pause animation when hovering over the carousel container */
-        .carousel-container:hover .animate-infinite-scroll {
-          animation-play-state: paused;
-        }
-        
-        /* Override the paused state when isPaused is true */
-        .animate-infinite-scroll.paused {
-          animation-play-state: paused;
-        }
-      `}</style>
+          
+          /* Pause animation when hovering over the carousel container */
+          .carousel-container:hover .animate-infinite-scroll {
+            animation-play-state: paused;
+          }
+          
+          /* Override the paused state when isPaused is true */
+          .animate-infinite-scroll.paused {
+            animation-play-state: paused;
+          }
+        `}
+      </style>
     </>
   );
 };

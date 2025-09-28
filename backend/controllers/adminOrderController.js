@@ -13,8 +13,8 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL_USER || 'internationaltijarat.com@gmail.com',
+    pass: process.env.EMAIL_PASS || 'ehzq rwnf qjdd rfbs'
   }
 });
 
@@ -449,7 +449,7 @@ const forwardOrderToVendors = async (req, res) => {
     await vendorOrder.save();
 
     // 2. Update vendor sub-order status to 'processing'
-    await Order.findByIdAndUpdate(orderId, {
+    const updatedOrder = await Order.findByIdAndUpdate(orderId, {
       status: 'processing',
       orderStatus: 'processing',
       forwardedAt: new Date(),
@@ -457,7 +457,19 @@ const forwardOrderToVendors = async (req, res) => {
       commissionAmount,
       adminNotes,
       vendorOrderId: vendorOrder._id // Link to VendorOrder document
-    });
+    }, { new: true });
+
+    // Send email notification for admin forwarding order to processing
+    if (updatedOrder && updatedOrder.email) {
+      try {
+        const { emailService } = require('../services/emailService');
+        await emailService.sendOrderStatusUpdate(updatedOrder.email, updatedOrder, 'processing', vendorSubOrder.status);
+        console.log(`📧 [EMAIL] Admin forwarded order status update email sent for ${updatedOrder.orderNumber}: ${vendorSubOrder.status} → processing`);
+      } catch (emailError) {
+        console.error('❌ [EMAIL] Failed to send admin forwarded order status update email:', emailError);
+        // Don't fail the operation if email fails
+      }
+    }
 
     // 3. Update commission tracking
     console.log(`💰 COMMISSION TRACKING - Adding commission for forwarded order`);
@@ -509,11 +521,13 @@ const forwardOrderToVendors = async (req, res) => {
         </div>
       `;
 
-      await sendEmail(
-        vendor.email,
-        `New Order Forwarded - ${vendorOrder.orderNumber}`,
-        emailTemplate
-      );
+      const { emailService } = require('../services/emailService');
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to: vendor.email,
+        subject: `New Order Forwarded - ${vendorOrder.orderNumber}`,
+        html: emailTemplate
+      });
     } catch (emailError) {
       console.error('Email notification error:', emailError);
     }
@@ -681,6 +695,19 @@ async function updateParentOrderStatus(parentOrderId) {
       });
       
       console.log(`✅ Parent order ${parentOrderId} status updated: ${oldParentStatus} → ${newParentStatus}`);
+
+      // Send email notification for parent order status change
+      if (parentOrder.email) {
+        try {
+          const { emailService } = require('../services/emailService');
+          const updatedParentOrder = await Order.findById(parentOrderId); // Get updated order
+          await emailService.sendOrderStatusUpdate(parentOrder.email, updatedParentOrder, newParentStatus, oldParentStatus);
+          console.log(`📧 [EMAIL] Parent order status update email sent for ${parentOrder.orderNumber}: ${oldParentStatus} → ${newParentStatus}`);
+        } catch (emailError) {
+          console.error('❌ [EMAIL] Failed to send parent order status update email:', emailError);
+          // Don't fail the operation if email fails
+        }
+      }
     } else {
       console.log(`ℹ️ Parent order ${parentOrderId} status unchanged: ${newParentStatus}`);
     }
@@ -776,7 +803,7 @@ async function sendCustomerNotification(order, action, notes) {
     `;
     
     await transporter.sendMail({
-      from: process.env.EMAIL_USER || 'shami537uet@gmail.com',
+      from: process.env.EMAIL_USER || 'internationaltijarat.com@gmail.com',
       to: order.email,
       subject: subject,
       html: html
@@ -818,7 +845,7 @@ async function sendVendorNotification(vendor, vendorOrder, mainOrder) {
     `;
     
     await transporter.sendMail({
-      from: process.env.EMAIL_USER || 'shami537uet@gmail.com',
+      from: process.env.EMAIL_USER || 'internationaltijarat.com@gmail.com',
       to: vendor.email,
       subject: `New Order Forwarded - ${vendorOrder.orderNumber}`,
       html: html
@@ -1124,20 +1151,34 @@ const getAdminOrders = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
 
-    // Build query for admin orders - ADMIN ORDERS: Show ONLY admin orders
-    const query = {
+    // Build query for admin orders - Show correct orders without duplicates
+    let query;
+    
+    // First, get all admin sub-orders (parts of mixed orders) to find their parent IDs
+    const adminSubOrders = await Order.find({
+      partialOrderType: 'admin_part'
+    }).select('parentOrderId').lean();
+    
+    const parentIdsWithAdminParts = adminSubOrders.map(sub => sub.parentOrderId);
+    
+    query = {
       $or: [
-        { orderType: 'admin_only' },
-        { partialOrderType: 'admin_part' },
+        // Admin parts of mixed orders (show these with -A suffix)
+        { 
+          partialOrderType: 'admin_part'
+        },
+        // Main admin-only orders that DON'T have admin sub-orders (avoid duplicates)
+        { 
+          orderType: 'admin_only',
+          parentOrderId: { $exists: false },
+          _id: { $nin: parentIdsWithAdminParts } // Exclude parents that have admin parts
+        },
         // Include legacy orders that have NO vendor items (admin-only)
         { 
           orderType: { $in: ['legacy', null] },
-          $nor: [{ 'cart.vendor': { $exists: true, $ne: null } }]
-        },
-        // Include legacy orders where ALL cart items have null/missing vendor
-        { 
-          orderType: { $in: ['legacy', null] },
-          'cart': { $not: { $elemMatch: { vendor: { $exists: true, $ne: null } } } }
+          parentOrderId: { $exists: false },
+          'cart': { $not: { $elemMatch: { vendor: { $exists: true, $ne: null } } } },
+          _id: { $nin: parentIdsWithAdminParts } // Exclude parents that have admin parts
         }
       ]
     };
@@ -1205,6 +1246,8 @@ const getAdminOrders = async (req, res) => {
         type: order.partialOrderType === 'admin_part' ? 'Mixed Order Part' : 'Admin Only',
         createdAt: order.createdAt,
         updatedAt: order.updatedAt,
+        paymentMethod: order.paymentMethod,
+        paymentReceipt: order.paymentReceipt,
         // Include cart for revenue calculation compatibility
         cart: order.cart,
         items: order.cart.map(item => ({

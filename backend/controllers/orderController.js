@@ -13,15 +13,15 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER || 'shami537uet@gmail.com',
-    pass: process.env.EMAIL_PASS || 'vjlk swal olbh bopt'
+    user: process.env.EMAIL_USER || 'internationaltijarat.com@gmail.com',
+    pass: process.env.EMAIL_PASS || 'ehzq rwnf qjdd rfbs'
   }
 });
 
 const sendEmail = async (to, subject, text) => {
   try {
     await transporter.sendMail({
-      from: process.env.EMAIL_USER || 'shami537uet@gmail.com',
+      from: process.env.EMAIL_USER || 'internationaltijarat.com@gmail.com',
       to,
       subject,
       text
@@ -46,18 +46,34 @@ const createOrder = async (req, res) => {
   }, 55000); // 55 seconds to be under Vercel's 60s limit
 
   try {
+    // Handle FormData for advance payments with receipts
+    let orderData;
+    if (req.body.orderData) {
+      // Parse JSON orderData from FormData
+      orderData = JSON.parse(req.body.orderData);
+    } else {
+      // Use req.body directly for regular orders
+      orderData = req.body;
+    }
+
     const {
       userId,
       customerInfo,
       items,
       shippingAddress,
+      shippingInfo,
+      paymentInfo,
       paymentMethod,
       totalAmount,
+      totals,
       discountAmount = 0,
       taxAmount = 0,
       shippingCost = 0,
-      notes
-    } = req.body;
+      notes,
+      // Advance Payment Fields
+      selectedPaymentAccount,
+      advancePaymentAmount
+    } = orderData;
 
     // Validate required fields
     if (!items || items.length === 0) {
@@ -110,8 +126,8 @@ const createOrder = async (req, res) => {
         itemTotal: itemTotal,
         total: itemTotal,
         image: product.image,
-        mainCategory: product.mainCategory,
-        subCategory: product.subCategory,
+        mainCategory: Array.isArray(product.mainCategory) ? product.mainCategory[0] : product.mainCategory,
+        subCategory: Array.isArray(product.subCategory) ? (product.subCategory[0] || '') : product.subCategory,
         status: 'placed', // Changed from 'pending' to match enum
         commissionAmount: 0 // Commission will be calculated when admin forwards to vendors
       });
@@ -136,23 +152,35 @@ const createOrder = async (req, res) => {
     // Create order with enhanced item tracking
     const enhancedOrderItems = OrderStatusCalculator.initializeItemStatuses(orderItems);
     
+    // Extract payment method from paymentInfo or direct field
+    const finalPaymentMethod = paymentInfo?.method || paymentMethod;
+    const finalShippingInfo = shippingInfo || shippingAddress;
+    const finalTotals = totals || { total: totalAmount };
+
     const order = new Order({
       orderNumber: generateOrderNumber(),
       // Customer info fields (matching Order model)
       name: customerInfo.name,
       email: customerInfo.email,
       phone: customerInfo.phone,
-      address: shippingAddress?.address || customerInfo.address,
-      city: shippingAddress?.city || customerInfo.city,
+      address: finalShippingInfo?.street || finalShippingInfo?.address || customerInfo.address,
+      city: finalShippingInfo?.city || customerInfo.city,
       cart: enhancedOrderItems, // Use enhanced items with status tracking
-      paymentMethod,
+      paymentMethod: finalPaymentMethod,
       status: 'placed', // Changed from 'Pending' to match new status system
       orderStatus: 'placed', // New optimized status field
-      paymentProof: req.file ? req.file.path : undefined,
+      paymentProof: req.file && finalPaymentMethod !== 'advance_payment' ? req.file.path : undefined,
+      
+      // Advance Payment Fields
+      selectedPaymentAccount: paymentInfo?.selectedPaymentAccount || selectedPaymentAccount || null,
+      paymentReceipt: (finalPaymentMethod === 'advance_payment' && req.file) ? req.file.path : null,
+      advancePaymentAmount: paymentInfo?.advancePaymentAmount || advancePaymentAmount || 0,
+      paymentVerified: paymentInfo?.paymentVerified || false,
+      
       // NEW MULTI-VENDOR FIELDS
       orderType: orderType,
-      totalAmount: calculatedTotal + taxAmount + shippingCost - discountAmount,
-      paymentStatus: 'pending',
+      totalAmount: finalTotals.total || (calculatedTotal + taxAmount + shippingCost - discountAmount),
+      paymentStatus: finalPaymentMethod === 'advance_payment' ? 'pending_verification' : 'pending',
       adminNotes: notes,
       completionDetails: {
         adminCompleted: adminItems.length === 0, // Auto-complete if no admin items
@@ -162,6 +190,15 @@ const createOrder = async (req, res) => {
     });
 
     await order.save();
+
+    // Send order confirmation email
+    try {
+      const { emailService } = require('../services/emailService');
+      await emailService.sendOrderConfirmation(order.email, order);
+    } catch (emailError) {
+      console.error('Failed to send order confirmation email:', emailError);
+      // Don't fail the order creation if email fails
+    }
 
     // RESERVE STOCK using StockManager
     const stockReservation = await StockManager.reserveStock(items, order._id);
@@ -339,7 +376,7 @@ International Tijarat Team`
       totalAmount: populatedOrder.totalAmount,
       itemCount: populatedOrder.cart.length,
       hasSubOrders: populatedOrder.hasSubOrders,
-      splitOrdersCreated: legacySubOrdersCreated.length,
+      splitOrdersCreated: subOrdersCreated.length,
       commissionAmount: populatedOrder.totalCommission
     });
 
@@ -467,7 +504,7 @@ const addOrder = async (req, res) => {
 
     // Map payment method to backend format
     let mappedPaymentMethod = paymentMethod;
-    if (paymentMethod === 'cash') mappedPaymentMethod = 'COD';
+    if (paymentMethod === 'cash') mappedPaymentMethod = 'cash_on_delivery';
     else if (paymentMethod === 'bank') mappedPaymentMethod = 'Bank Transfer';
     else if (paymentMethod === 'jazzcash') mappedPaymentMethod = 'JazzCash';
     else if (paymentMethod === 'easypaisa') mappedPaymentMethod = 'EasyPaisa';
@@ -788,7 +825,8 @@ const addOrder = async (req, res) => {
     
     // Send confirmation email
     try {
-      await sendEmail(email, 'Order Confirmation', `Dear ${name}, your order has been received and is being processed.`);
+      const { emailService } = require('../services/emailService');
+      await emailService.sendOrderConfirmation(email, savedOrder);
       console.log('📧 Confirmation email sent');
     } catch (emailError) {
       console.log('⚠️ Email sending failed:', emailError.message);
@@ -1690,6 +1728,7 @@ const getOrderDetails = async (req, res) => {
       // Payment information
       paymentMethod: order.paymentMethod,
       paymentStatus: order.paymentStatus || 'pending',
+      paymentReceipt: order.paymentReceipt, // Add payment receipt path
       
       // Order items with detailed status
       items: (order.cart || []).map(item => {

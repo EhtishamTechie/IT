@@ -1,22 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Eye, Star, ArrowRight, Zap, Award, TrendingUp } from 'lucide-react';
 import axios from 'axios';
 import ProductService from '../services/productService';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl, getImageUrl } from '../config';
+import EnhancedProductCard from './EnhancedProductCard';
 
 const PremiumProductDisplay = () => {
+  const navigate = useNavigate();
   const { addToCart, removeFromCart, cartItems } = useCart();
+  const { user } = useAuth();
+  const [addingToCart, setAddingToCart] = useState({});
+  const [errorMessages, setErrorMessages] = useState({});
   const tabs = [
     { id: 'featured', label: 'Premium', icon: Award },
     { id: 'trending', label: 'New Arrivals', icon: Zap },
     { id: 'newArrivals', label: 'Featured', icon: TrendingUp }
   ];
   const [activeTab, setActiveTab] = useState('featured');
-  const [hoveredProduct, setHoveredProduct] = useState(null);
-  const [favorites, setFavorites] = useState(new Set());
-  const [addingToCart, setAddingToCart] = useState(null); // Track which product is being added
   const [products, setProducts] = useState({
     featured: [],
     trending: [],
@@ -59,7 +62,7 @@ const PremiumProductDisplay = () => {
         console.error('❌ Error loading products:', err);
         setError('Unable to load products. Please try again later.');
         // Fallback to static products in development environment
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.DEV) {
           setProducts(staticProducts);
         }
       } finally {
@@ -260,217 +263,97 @@ const PremiumProductDisplay = () => {
     ]
   };
 
-
-
-  const toggleFavorite = (productId) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(productId)) {
-        newFavorites.delete(productId);
+  // Cart functionality
+  const handleAddToCart = async (product) => {
+    setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+    
+    try {
+      setAddingToCart(prev => ({ ...prev, [product._id]: true }));
+      
+      const result = await addToCart(product);
+      
+      if (result && result.success) {
+        console.log(`${product.title || product.name} added to cart successfully`);
       } else {
-        newFavorites.add(productId);
+        console.error('Cart operation failed:', result?.error || 'Failed to add to cart');
       }
-      return newFavorites;
-    });
+      
+    } catch (error) {
+      console.error('Cart add error:', error);
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [product._id]: false }));
+    }
   };
 
-  const handleAddToCart = async (product) => {
+  // Handle buy now with authentication check
+  const handleBuyNow = async (product) => {
     try {
-      setAddingToCart(product._id);
-      // Format the product data properly before adding to cart
-      const formattedProduct = {
-        ...product,
+      // Check if user is authenticated first
+      if (!user) {
+        // Redirect to login if not authenticated
+        navigate('/login');
+        return;
+      }
+
+      // Store product in localStorage for buy now checkout
+      const buyNowItem = {
         _id: product._id,
         title: product.title,
         price: product.price,
-        // Keep both images array and single image
-        images: product.images || [],
-        image: product.image,
+        image: product.image || (product.images?.[0] || null),
         stock: product.stock || 100,
         quantity: 1
       };
       
-      // Log the product data for debugging
-      console.log('Adding to cart with image data:', {
-        images: formattedProduct.images,
-        image: formattedProduct.image
-      });
+      localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
       
-      await addToCart(formattedProduct, 1);
+      // Navigate directly to checkout, skipping cart page
+      navigate('/checkout');
     } catch (error) {
-      console.error('Failed to add to cart:', error);
-    } finally {
-      setAddingToCart(null);
+      console.error('Buy now error:', error);
     }
   };
 
-  const getBadgeColor = (badge) => {
-    const colors = {
-      'Best Seller': 'bg-gradient-to-r from-yellow-400 to-orange-500',
-      'New Arrival': 'bg-gradient-to-r from-green-400 to-blue-500',
-      'Pro Choice': 'bg-gradient-to-r from-purple-400 to-pink-500',
-      'Editor\'s Pick': 'bg-gradient-to-r from-red-400 to-pink-500',
-      'Hot Deal': 'bg-gradient-to-r from-orange-400 to-red-500',
-      'Eco-Friendly': 'bg-gradient-to-r from-green-400 to-emerald-500',
-      'Just Launched': 'bg-gradient-to-r from-blue-400 to-indigo-500',
-      'Limited Edition': 'bg-gradient-to-r from-purple-400 to-violet-500'
-    };
-    return colors[badge] || 'bg-gradient-to-r from-gray-400 to-gray-500';
+  // Helper function to check if product is in cart and get quantity
+  const getCartItemQuantity = (productId) => {
+    if (!cartItems || !Array.isArray(cartItems)) {
+      return 0;
+    }
+    
+    const cartItem = cartItems.find(item => 
+      item._id === productId || 
+      item.productData?._id === productId ||
+      item.productId === productId
+    );
+    
+    return cartItem ? (cartItem.quantity || 0) : 0;
   };
 
-  const ProductCard = ({ product }) => {
-    // Use MongoDB _id as primary ID
-    const productId = product._id;
-    const productName = product.title;
-    const productPrice = product.price;
-    const productImage = getImageUrl('products', product.images?.[0] || product.image);
-    const productRating = product.rating || 4.5;
-    const productBadge = product.badge || (product.stock < 50 ? 'Limited Stock' : 'New');
-    const productDiscount = product.discount || 0;
-    const productOriginalPrice = product.originalPrice;
-    const productStock = product.stock || 0;
-
-    return (
-      <div 
-        className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden border border-gray-100 hover:border-gray-200"
-        onMouseEnter={() => setHoveredProduct(productId)}
-        onMouseLeave={() => setHoveredProduct(null)}
-      >
-        {/* Product Badge */}
-        <div className={`absolute top-3 left-3 z-20 ${getBadgeColor(productBadge)} text-white px-3 py-1 rounded-full text-xs font-bold shadow-lg`}>
-          {productBadge}
-        </div>
-
-        {/* Discount Badge */}
-        {productDiscount > 0 && (
-          <div className="absolute top-3 right-3 z-20 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-            -{productDiscount}%
-          </div>
-        )}
-
-        {/* Favorite Button */}
-        <button
-          onClick={() => toggleFavorite(productId)}
-          className={`absolute top-12 right-3 z-20 p-2 rounded-full transition-all duration-300 ${
-            favorites.has(productId) 
-              ? 'bg-red-500 text-white scale-110' 
-              : 'bg-white/90 text-gray-600 hover:bg-red-500 hover:text-white'
-          } backdrop-blur-sm shadow-lg`}
-        >
-          <Heart className={`w-4 h-4 ${favorites.has(productId) ? 'fill-current' : ''}`} />
-        </button>
-
-        {/* Product Image */}
-        <div className="relative h-56 overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
-          <img 
-            src={productImage}
-            alt={productName}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            onError={(e) => {
-              console.error('Image failed to load:', productImage);
-              e.target.src = '/assets/no-image.png';
-            }}
-          />
-          
-          {/* Overlay on Hover */}
-          <div className={`absolute inset-0 bg-black transition-opacity duration-300 ${
-            hoveredProduct === productId ? 'opacity-20' : 'opacity-0'
-          }`} />
-          
-          {/* Quick Action Buttons */}
-          <div className={`absolute inset-0 flex items-center justify-center gap-3 transition-all duration-500 ${
-            hoveredProduct === productId ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-          }`}>
-            <Link to={`/product/${productId}`} className="bg-white text-gray-900 p-3 rounded-full hover:bg-gray-100 transition-colors duration-200 shadow-xl">
-              <Eye className="w-5 h-5" />
-            </Link>
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                handleAddToCart(product);
-              }}
-              disabled={addingToCart === productId}
-              className={`${addingToCart === productId ? 'bg-gray-400' : 'bg-orange-500 hover:bg-orange-600'} 
-                text-white p-3 rounded-full transition-colors duration-200 shadow-xl`}>
-              <ShoppingCart className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Product Info */}
-        <div className="p-5">
-          {/* Name */}
-          <Link to={`/product/${productId}`}>
-            <h3 className="text-lg font-bold text-gray-900 mb-3 line-clamp-2 group-hover:text-orange-600 transition-colors duration-200">
-              {productName}
-            </h3>
-          </Link>
-
-          {/* Rating */}
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex items-center">
-              {[...Array(5)].map((_, i) => (
-                <Star 
-                  key={i} 
-                  className={`w-4 h-4 ${
-                    i < Math.floor(productRating) 
-                      ? 'text-yellow-400 fill-current' 
-                      : 'text-gray-300'
-                  }`} 
-                />
-              ))}
-            </div>
-            <span className="text-sm font-semibold text-gray-700">{productRating}</span>
-          </div>
-
-          {/* Price */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-gray-900">${productPrice}</span>
-              {productOriginalPrice && (
-                <span className="text-sm text-gray-400 line-through">${productOriginalPrice}</span>
-              )}
-            </div>
-            <button 
-              onClick={() => handleAddToCart(product)}
-              disabled={addingToCart === productId}
-              className={`${addingToCart === productId ? 'bg-gray-400' : 'bg-gradient-to-r from-orange-500 to-pink-500'} 
-                text-white px-4 py-2 rounded-full font-semibold hover:shadow-lg transform hover:scale-105 
-                transition-all duration-200 text-sm flex items-center gap-2`}>
-              {addingToCart === productId ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                  Adding...
-                </>
-              ) : (
-                'Add to Cart'
-              )}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  // Helper function to check if product is in cart
+  const isProductInCart = (productId) => {
+    const quantity = getCartItemQuantity(productId);
+    return quantity > 0;
   };
 
   return (
-    <section className="py-20 bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
+    <section className="py-8 bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-pink-200/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
       
       <div className="container mx-auto px-4 lg:px-8 relative">
         {/* Section Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-100 to-pink-100 text-orange-600 px-6 py-3 rounded-full text-sm font-bold mb-6 shadow-lg">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-100 to-pink-100 text-orange-600 px-6 py-3 rounded-full text-sm font-bold mb-4 shadow-lg">
             <Zap className="w-4 h-4" />
             <span>Premium Collection</span>
           </div>
-          <h2 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
             Discover
             <span className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 bg-clip-text text-transparent"> Exceptional</span>
             <br />Products
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-sm text-gray-600 max-w-3xl mx-auto leading-relaxed">
             Curated collection of premium products from world-class brands, 
             designed to elevate your lifestyle with unmatched quality and innovation.
           </p>
@@ -524,7 +407,17 @@ const PremiumProductDisplay = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {(products[activeTab] && products[activeTab].length > 0) ? (
               products[activeTab].map((product) => (
-                <ProductCard key={product._id || product.id} product={product} />
+                <EnhancedProductCard 
+                  key={product._id || product.id} 
+                  product={product}
+                  onAddToCart={handleAddToCart}
+                  onBuyNow={handleBuyNow}
+                  cartQuantity={getCartItemQuantity(product._id || product.id)}
+                  isInCart={isProductInCart(product._id || product.id)}
+                  isAddingToCart={addingToCart[product._id || product.id] || false}
+                  errorMessage={errorMessages[product._id || product.id]}
+                  showBuyNow={true}
+                />
               ))
             ) : (
               <div className="col-span-full text-center py-16">

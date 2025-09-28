@@ -1,12 +1,17 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from 'react-helmet-async';
 import ProductService from "../services/productService";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
+import EnhancedProductCard from "../components/EnhancedProductCard";
+import { generateCategorySEO, getCanonicalUrl, generateBreadcrumbs } from "../utils/seoHelpers";
+import { getCategorySchema, getBreadcrumbSchema } from "../utils/schemaGenerator";
 
 const ProductPage = () => {
   // Get category name from URL parameters
   const { categoryName } = useParams();
+  const navigate = useNavigate();
   
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -18,7 +23,7 @@ const ProductPage = () => {
   
   // Use cart and auth contexts - UPDATED TO MATCH AllProductsPage
   const { addToCart: addToCartContext, cartItems, loading: cartLoading, error: cartError } = useCart();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const displayCategory = useMemo(() => 
     categoryName.replace(/-/g, " "), [categoryName]
@@ -170,21 +175,33 @@ const ProductPage = () => {
   };
 
   const buyNow = useCallback(async (product) => {
-    if (!isAuthenticated) {
-      alert('Please login to purchase items');
-      return;
-    }
-
     try {
+      // Check if user is authenticated first
+      if (!user) {
+        // Redirect to login if not authenticated
+        navigate('/login');
+        return;
+      }
+
+      // Store product in localStorage for buy now checkout
       const quantity = quantities[product._id] || 1;
-      await addToCartContext(product, quantity);
-      // In real app: navigate("/checkout");
-      window.location.href = "/checkout";
+      const buyNowItem = {
+        _id: product._id,
+        title: product.title,
+        price: product.price,
+        image: product.image || (product.images?.[0] || null),
+        stock: product.stock || 100,
+        quantity: quantity
+      };
+      
+      localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+      
+      // Navigate directly to checkout, skipping cart page
+      navigate('/checkout');
     } catch (error) {
-      console.error('Error in buy now:', error);
-      alert('Failed to add item to cart');
+      console.error('Buy now error:', error);
     }
-  }, [quantities, addToCartContext, isAuthenticated]);
+  }, [quantities, user, navigate]);
 
   const formatPrice = useCallback((price, currency = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -221,276 +238,6 @@ const ProductPage = () => {
       </button>
     </div>
   );
-
-  const ProductCard = ({ 
-    product,
-    isAddingToCart = false,
-    errorMessage = null,
-    cartQuantity = 0,
-    isInCart = false 
-  }) => {
-    const [imageLoaded, setImageLoaded] = useState(false);
-    const [imageError, setImageError] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
-    
-    const currentQuantity = quantities[product._id] || 1;
-    const totalPrice = product.price * currentQuantity;
-    const originalPrice = (product.discount || 0) > 0 
-      ? (product.price / (1 - (product.discount || 0) / 100)).toFixed(2)
-      : null;
-
-    // Determine button state with proper priority - CART STATE DRIVEN
-    const getButtonState = () => {
-      if (isAddingToCart) return 'loading';
-      if (errorMessage) return 'error';
-      if (isInCart && cartQuantity > 0) return 'inCart';  // Direct cart state check
-      if (!product.inStock) return 'outOfStock';
-      return 'addToCart';
-    };
-
-    const buttonState = getButtonState();
-
-    // Button styling based on state
-    const getButtonStyles = () => {
-      switch (buttonState) {
-        case 'loading':
-          return 'bg-orange-400 text-white cursor-not-allowed';
-        case 'error':
-          return 'bg-red-500 hover:bg-red-600 text-white';
-        case 'inCart':
-          return 'bg-blue-500 hover:bg-blue-600 text-white';
-        case 'addToCart':
-          return 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800';
-        case 'outOfStock':
-          return 'bg-gray-300 text-gray-500 cursor-not-allowed';
-        default:
-          return 'bg-gradient-to-r from-emerald-600 to-emerald-700 text-white hover:from-emerald-700 hover:to-emerald-800';
-      }
-    };
-
-    // Button content based on state
-    const getButtonContent = () => {
-      switch (buttonState) {
-        case 'loading':
-          return (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
-              Adding...
-            </>
-          );
-        case 'error':
-          return (
-            <>
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              Try Again
-            </>
-          );
-        case 'inCart':
-          return (
-            <>
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 3M7 13l2.5 3m9.5-3v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-              </svg>
-              In Cart ({cartQuantity})
-            </>
-          );
-        case 'addToCart':
-          return (
-            <>
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 3M7 13l2.5 3m9.5-3v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-              </svg>
-              Add to Cart
-            </>
-          );
-        case 'outOfStock':
-          return 'Out of Stock';
-        default:
-          return (
-            <>
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-2.5 3M7 13l2.5 3m9.5-3v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
-              </svg>
-              Add to Cart
-            </>
-          );
-      }
-    };
-
-    return (
-      <div 
-        className="group bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden transition-all duration-500 hover:shadow-2xl transform hover:-translate-y-2"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {/* Image Container */}
-        <div className="relative overflow-hidden">
-          <div className={`aspect-square bg-gradient-to-br from-slate-100 to-slate-200 ${!imageLoaded && !imageError ? 'animate-pulse' : ''}`}>
-            {!imageError ? (
-              <img
-                src={product.image}
-                alt={product.title}
-                className={`w-full h-full object-cover transition-all duration-700 ${imageLoaded ? 'opacity-100' : 'opacity-0'} ${isHovered ? 'scale-110' : 'scale-100'}`}
-                onLoad={() => setImageLoaded(true)}
-                onError={() => setImageError(true)}
-                loading="lazy"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <svg className="w-16 h-16 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-              </div>
-            )}
-          </div>
-
-          {/* Badges */}
-          <div className="absolute top-4 left-4 flex flex-col gap-2">
-            {(product.discount || 0) > 0 && (
-              <span className="bg-gradient-to-r from-red-500 to-red-600 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-                -{product.discount}%
-              </span>
-            )}
-            {!(product.inStock !== false) && (
-              <span className="bg-slate-800 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
-                OUT OF STOCK
-              </span>
-            )}
-          </div>
-
-          {/* Quick Actions */}
-          <div className={`absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-4 group-hover:translate-x-0`}>
-            <button className="p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-white transition-all duration-200">
-              <svg className="w-5 h-5 text-slate-600 hover:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        {/* Product Info */}
-        <div className="p-6">
-          <div className="mb-3">
-            <h3 className="text-lg font-bold text-slate-900 group-hover:text-emerald-600 transition-colors leading-tight mb-2">
-              {product.title}
-            </h3>
-            <p className="text-sm text-slate-600">
-              {product.mainCategory} → {product.subCategory}
-            </p>
-            {/* Vendor/Admin Information */}
-            {product.vendor && typeof product.vendor === 'object' && product.vendor.businessName ? (
-              <div className="flex items-center mt-2">
-                <span className="text-xs text-slate-500">Sold by:</span>
-                <span className="text-xs font-semibold text-emerald-600 ml-1 bg-emerald-50 px-2 py-0.5 rounded-full">
-                  {product.vendor.businessName}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center mt-2">
-                <span className="text-xs text-slate-500">Sold by:</span>
-                <div className="flex items-center ml-1">
-                  <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                    International Tijarat
-                  </span>
-                  <span 
-                    className="ml-1 text-blue-600 cursor-help" 
-                    title="Directly owned by International Tijarat"
-                  >
-                    ✓
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Rating */}
-          <div className="flex items-center mb-4">
-            <div className="flex items-center mr-2">
-              {[...Array(5)].map((_, i) => (
-                <svg key={i} className={`w-4 h-4 ${i < Math.floor(product.rating || 4.5) ? 'text-yellow-400 fill-current' : 'text-slate-200'}`} viewBox="0 0 20 20">
-                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                </svg>
-              ))}
-            </div>
-            <span className="text-sm font-semibold text-slate-700">{product.rating || '4.5'}</span>
-            <span className="text-xs text-slate-500 ml-1">({(product.reviews || 150).toLocaleString()})</span>
-          </div>
-
-          {/* Quantity Selector */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-semibold text-slate-700">Quantity:</label>
-              <select
-                className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none transition-all"
-                value={currentQuantity}
-                onChange={(e) => handleQuantityChange(product._id, e.target.value)}
-              >
-                {[...Array(10).keys()].map((i) => (
-                  <option key={i + 1} value={i + 1}>{i + 1}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Price */}
-          <div className="mb-4">
-            <div className="flex items-center space-x-2">
-              <span className="text-2xl font-bold text-emerald-600">{formatPrice(totalPrice, product.currency)}</span>
-              {originalPrice && (
-                <span className="text-sm text-slate-500 line-through">${originalPrice}</span>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-3">
-            <button
-              onClick={() => addToCart(product)}
-              disabled={isAddingToCart || buttonState === 'outOfStock'}
-              className={`w-full py-3 font-semibold rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center ${getButtonStyles()}`}
-              title={errorMessage || ''}
-            >
-              {getButtonContent()}
-            </button>
-
-            {/* Error Message Display */}
-            {errorMessage && (
-              <div className="mt-2 text-xs text-red-600 text-center bg-red-50 py-1 px-2 rounded">
-                {errorMessage}
-              </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => buyNow(product)}
-                disabled={product.inStock === false}
-                className="py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-sm flex items-center justify-center"
-              >
-                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                Buy Now
-              </button>
-              
-              <a
-                href={`https://wa.me/923269475516?text=${encodeURIComponent(`Hello, I'm interested in: ${product.title} (Category: ${displayCategory}, Product ID: ${product._id})`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-300 text-center text-sm flex items-center justify-center"
-              >
-                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 16 16">
-                  <path d="M13.601 2.326A7.854 7.854 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.933 7.933 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.898 7.898 0 0 0 13.6 2.326zM7.994 14.521a6.573 6.573 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.557 6.557 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592zm3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.729.729 0 0 0-.529.247c-.182.198-.691.677-.691 1.654 0 .977.71 1.916.81 2.049.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943s-.099-.133-.197-.232z"/>
-                </svg>
-                WhatsApp
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   const FilterControls = () => (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 mb-8">
@@ -548,18 +295,74 @@ const ProductPage = () => {
     );
   }
 
+  // Generate SEO data
+  const seoData = useMemo(() => 
+    generateCategorySEO(displayCategory, products, categoryName), 
+    [displayCategory, products, categoryName]
+  );
+
+  const breadcrumbs = useMemo(() => 
+    generateBreadcrumbs(window.location.pathname, { categoryName: displayCategory }), 
+    [displayCategory]
+  );
+
+  const categorySchema = useMemo(() => 
+    getCategorySchema(displayCategory, products), 
+    [displayCategory, products]
+  );
+
+  const breadcrumbSchema = useMemo(() => 
+    getBreadcrumbSchema(breadcrumbs), 
+    [breadcrumbs]
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-emerald-50/30">
-      {/* SEO Schema.org structured data */}
-      <script type="application/ld+json">
-        {JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "CollectionPage",
-          "name": `${displayCategory.charAt(0).toUpperCase() + displayCategory.slice(1)} Products`,
-          "description": `Browse our ${displayCategory} collection with ${products.length} premium products`,
-          "numberOfItems": products.length
-        })}
-      </script>
+      {/* SEO Head Tags */}
+      <Helmet>
+        {/* Basic Meta Tags */}
+        <title>{seoData.title}</title>
+        <meta name="description" content={seoData.description} />
+        <meta name="keywords" content={seoData.keywords.join(', ')} />
+        <link rel="canonical" href={seoData.canonicalUrl} />
+        
+        {/* Open Graph Meta Tags */}
+        <meta property="og:title" content={seoData.openGraph.title} />
+        <meta property="og:description" content={seoData.openGraph.description} />
+        <meta property="og:type" content={seoData.openGraph.type} />
+        <meta property="og:url" content={seoData.openGraph.url} />
+        <meta property="og:site_name" content="International Tijarat" />
+        {seoData.openGraph.images.length > 0 && (
+          <>
+            <meta property="og:image" content={seoData.openGraph.images[0].url} />
+            <meta property="og:image:width" content={seoData.openGraph.images[0].width} />
+            <meta property="og:image:height" content={seoData.openGraph.images[0].height} />
+            <meta property="og:image:alt" content={seoData.openGraph.images[0].alt} />
+          </>
+        )}
+        
+        {/* Twitter Card Meta Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoData.twitter.title} />
+        <meta name="twitter:description" content={seoData.twitter.description} />
+        {seoData.twitter.images.length > 0 && (
+          <meta name="twitter:image" content={seoData.twitter.images[0]} />
+        )}
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="author" content="International Tijarat" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        
+        {/* Schema.org Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(categorySchema)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
+      </Helmet>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
@@ -588,13 +391,16 @@ const ProductPage = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
           {sortedProducts.map((product) => (
-            <ProductCard 
+            <EnhancedProductCard 
               key={product._id} 
               product={product}
-              isAddingToCart={addingToCart[product._id]}
-              errorMessage={errorMessages[product._id]}
+              onAddToCart={addToCart}
+              onBuyNow={buyNow}
               cartQuantity={getCartItemQuantity(product._id)}
               isInCart={isProductInCart(product._id)}
+              isAddingToCart={addingToCart[product._id] || false}
+              errorMessage={errorMessages[product._id]}
+              showBuyNow={true}
             />
           ))}
         </div>

@@ -7,7 +7,7 @@ import axios from 'axios';
 import { getApiUrl } from '../../../config';
 import { toast } from 'react-toastify';
 
-const CategorySelector = ({ onCategoryChange }) => {
+const CategorySelector = ({ onCategoryChange, returnFullObject = false }) => {
     const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState('');
     const [loading, setLoading] = useState(true);
@@ -32,7 +32,8 @@ const CategorySelector = ({ onCategoryChange }) => {
         const categoryId = event.target.value;
         const selectedCat = categories.find(cat => cat._id === categoryId);
         setSelectedCategory(categoryId);
-        onCategoryChange(selectedCat);
+        // Pass either the full category object or just the ID based on the prop
+        onCategoryChange(returnFullObject ? selectedCat : categoryId);
     };
 
     if (loading) {

@@ -315,11 +315,11 @@ const VendorMarketplacePage = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <span className="text-lg font-bold text-gray-900">
-                        ${product.price?.toFixed(2) || '0.00'}
+                        PKR {product.price?.toFixed(2) || '0.00'}
                       </span>
                       {product.discount && product.discount > 0 && (
                         <span className="ml-2 text-sm text-gray-500 line-through">
-                          ${(product.price / (1 - product.discount / 100)).toFixed(2)}
+                          PKR {(product.price / (1 - product.discount / 100)).toFixed(2)}
                         </span>
                       )}
                     </div>

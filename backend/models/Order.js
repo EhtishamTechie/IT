@@ -8,7 +8,7 @@
 //   city: { type: String, required: true },
 //   paymentMethod: {
 //     type: String,
-//     enum: ["COD", "Bank Transfer", "JazzCash"],
+//     enum: ["cash_on_delivery", "Bank Transfer", "JazzCash"],
 //     required: true,
 //   },
 //   paymentProof: { type: String },
@@ -80,10 +80,38 @@ const orderSchema = new mongoose.Schema({
   city: { type: String, required: true },
   paymentMethod: {
     type: String,
-    enum: ["COD", "Bank Transfer", "JazzCash", "EasyPaisa", "cash", "credit", "bank", "jazzcash", "easypaisa"],
+    enum: ["cash_on_delivery", "Bank Transfer", "JazzCash", "EasyPaisa", "cash", "credit", "bank", "jazzcash", "easypaisa", "advance_payment"],
     required: true,
   },
   paymentProof: { type: String },
+  
+  // Advance Payment Fields
+  selectedPaymentAccount: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PaymentAccount',
+    default: null
+  },
+  paymentReceipt: { 
+    type: String, // Path to uploaded payment receipt
+    default: null
+  },
+  advancePaymentAmount: {
+    type: Number,
+    default: 0
+  },
+  paymentVerified: {
+    type: Boolean,
+    default: false
+  },
+  paymentVerifiedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
+  paymentVerifiedAt: {
+    type: Date,
+    default: null
+  },
   cart: [orderItemSchema], // Using enhanced schema
   
   // Modern unified status field - single source of truth
@@ -103,7 +131,7 @@ const orderSchema = new mongoose.Schema({
   totalAmount: { type: Number, default: 0 },
   paymentStatus: { 
     type: String, 
-    enum: ['pending', 'completed', 'failed'],
+    enum: ['pending', 'completed', 'failed', 'pending_verification', 'verified'],
     default: 'pending'
   },
   adminNotes: { type: String },

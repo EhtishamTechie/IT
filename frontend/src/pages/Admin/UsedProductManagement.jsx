@@ -63,7 +63,7 @@ const UsedProductManagement = () => {
       if (data.products?.length > 0) {
         console.log('🖼️ First product image fields:', {
           images: data.products[0].images,
-          firstImage: data.products[0].images?.[0],
+          firstImage: data.products[0].image || data.products[0].images?.[0],
           rawImages: JSON.stringify(data.products[0].images),
           productId: data.products[0]._id
         });
@@ -335,7 +335,7 @@ const UsedProductManagement = () => {
                       <div className="flex items-center">
                         <div className="flex-shrink-0 h-12 w-12">
                           {(() => {
-                            const firstImage = product.images?.[0];
+                            const firstImage = product.image || product.images?.[0];
                             
                             if (!firstImage) {
                               return (

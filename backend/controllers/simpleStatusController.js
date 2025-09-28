@@ -187,6 +187,30 @@ const updateOrderStatus = async (req, res) => {
       isSubOrder: !!updatedOrder.parentOrderId
     }, null, 2)}`);
 
+    // Send email notification for status updates
+    if (currentStatus !== status) {
+      // Determine customer email based on order type
+      let customerEmail = null;
+      if (isVendorOrder && updatedOrder.customer && updatedOrder.customer.email) {
+        customerEmail = updatedOrder.customer.email;
+      } else if (!isVendorOrder && updatedOrder.email) {
+        customerEmail = updatedOrder.email;
+      }
+      
+      if (customerEmail) {
+        try {
+          const { emailService } = require('../services/emailService');
+          await emailService.sendOrderStatusUpdate(customerEmail, updatedOrder, status, currentStatus);
+          console.log(`📧 [EMAIL] Order status update email sent for ${updatedOrder.orderNumber}: ${currentStatus} → ${status}`);
+        } catch (emailError) {
+          console.error('❌ [EMAIL] Failed to send order status update email:', emailError);
+          // Don't fail the operation if email fails
+        }
+      } else {
+        console.log(`⚠️ [EMAIL] No customer email found for ${isVendorOrder ? 'VendorOrder' : 'Order'} ${updatedOrder.orderNumber}`);
+      }
+    }
+
     // If this is a sub-order (has parentOrderId), recalculate parent order status
     if (updatedOrder.parentOrderId) {
       console.log(`🔄 Recalculating parent order status for parent: ${updatedOrder.parentOrderId}`);
@@ -196,6 +220,16 @@ const updateOrderStatus = async (req, res) => {
         console.error(`❌ Failed to recalculate parent order status:`, parentError);
         // Don't fail the main operation, just log the error
       }
+    }
+
+    // Invalidate order caches to ensure fresh data in order history
+    try {
+      const cacheInvalidator = require('../utils/cacheInvalidator');
+      await cacheInvalidator.invalidateOrders();
+      console.log('🔄 Order caches invalidated after status update');
+    } catch (cacheError) {
+      console.error('❌ Failed to invalidate order caches:', cacheError);
+      // Don't fail the operation, just log the error
     }
 
     res.json({

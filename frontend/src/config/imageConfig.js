@@ -1,13 +1,14 @@
 // Image URL configuration
 const CONFIG = {
-    API_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000',
+    API_URL: import.meta.env.VITE_API_URL || 'http://localhost:5000',
     UPLOADS_BASE_PATH: '/uploads',
     IMAGE_PATHS: {
         products: 'products',
         properties: 'properties',
         usedProducts: 'used-products',
         vendorLogos: 'vendor-logos',
-        profiles: 'profiles'
+        profiles: 'profiles',
+        wholesaleSuppliers: 'wholesale-suppliers'
     }
 };
 

@@ -1,4 +1,5 @@
 const Category = require('../models/Category');
+const FooterCategories = require('../models/FooterCategories');
 const mongoose = require('mongoose');
 
 // Get all ADMIN categories (exclude vendor categories)
@@ -281,6 +282,63 @@ const getAdminSubcategories = async (req, res) => {
   }
 };
 
+// Get footer categories configuration
+const getFooterCategories = async (req, res) => {
+  try {
+    console.log('📂 Getting footer categories configuration');
+    
+    const config = await FooterCategories.getConfiguration();
+    
+    res.json({
+      success: true,
+      data: config.categories,
+      lastUpdated: config.lastUpdated,
+      updatedBy: config.updatedBy
+    });
+  } catch (error) {
+    console.error('Error fetching footer categories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch footer categories',
+      error: error.message
+    });
+  }
+};
+
+// Update footer categories configuration
+const updateFooterCategories = async (req, res) => {
+  try {
+    console.log('📝 Updating footer categories configuration');
+    
+    const { categories } = req.body;
+    
+    if (!Array.isArray(categories)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Categories must be an array'
+      });
+    }
+    
+    const adminId = req.admin?.id || req.admin?._id || 'unknown';
+    const config = await FooterCategories.updateConfiguration(categories, adminId);
+    
+    console.log(`✅ Footer categories updated: ${categories.length} categories`);
+    
+    res.json({
+      success: true,
+      message: 'Footer categories updated successfully',
+      data: config.categories
+    });
+  } catch (error) {
+    console.error('Error updating footer categories:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update footer categories',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAdminCategories,
   getAdminCategoryById,
@@ -288,5 +346,7 @@ module.exports = {
   updateAdminCategory,
   deleteAdminCategory,
   getAdminMainCategories,
-  getAdminSubcategories
+  getAdminSubcategories,
+  getFooterCategories,
+  updateFooterCategories
 };

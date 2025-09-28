@@ -281,6 +281,7 @@ const BannerManagement = () => {
 
     // Event handlers
     const handleCategorySelect = (category) => {
+        console.log('🏷️ [BANNER NEW] Category selected:', category);
         setSelectedCategory(category);
         setSelectedPrimaryProduct(null);
         setSelectedSecondaryProducts([]);
@@ -314,25 +315,37 @@ const BannerManagement = () => {
     };
 
     const handleSaveSlide = async () => {
+        console.log('🚀 Save slide button clicked!');
+        console.log('📋 Current form data:', {
+            title,
+            selectedCategory,
+            selectedPrimaryProduct,
+            selectedSecondaryProducts: selectedSecondaryProducts.length,
+            saving
+        });
+        
         const validationErrors = [];
         
         if (!title?.trim()) validationErrors.push('Slide title is required');
-        if (!selectedCategory?._id) validationErrors.push('Please select a category');
+        if (!selectedCategory) validationErrors.push('Please select a category');
         if (!selectedPrimaryProduct?._id) validationErrors.push('Please select a primary product');
         if (selectedSecondaryProducts.length !== 3) validationErrors.push('Please select exactly 3 secondary products');
 
         if (validationErrors.length > 0) {
+            console.log('❌ Validation failed:', validationErrors);
             toast.error(validationErrors.join('\n'));
             return;
         }
 
+        console.log('✅ Validation passed, starting save process...');
         const prevSlides = [...slides];
         setSaving(true);
+        console.log('🔄 Setting saving state to true - animation should show now');
         
         try {
             // Prepare current slide data with proper image from primary product
             const slideImage = selectedPrimaryProduct.image || 
-                              (selectedPrimaryProduct.images && selectedPrimaryProduct.images[0]) || 
+                              selectedPrimaryProduct.image || (selectedPrimaryProduct.images && selectedPrimaryProduct.images[0]) || 
                               selectedPrimaryProduct.imagePath || 
                               'placeholder.jpg';
 
@@ -391,12 +404,13 @@ const BannerManagement = () => {
                 };
             });
 
-            console.log('Sending slide data:', {
+            console.log('📤 Sending slide data:', {
                 currentSlide,
                 slideData: currentSlideData,
                 allSlides: formattedSlides
             });
 
+            console.log('🌐 Making API call to /banner...');
             // Send to backend
             const response = await API.put('/banner', { 
                 slides: formattedSlides 
@@ -405,6 +419,8 @@ const BannerManagement = () => {
                     'Content-Type': 'application/json'
                 }
             });
+            
+            console.log('📥 API response received:', response.data);
             
             // Update local state with the response
             if (response.data && Array.isArray(response.data)) {
@@ -534,6 +550,7 @@ const BannerManagement = () => {
                             <CategorySelector
                                 selectedCategory={selectedCategory}
                                 onCategoryChange={handleCategorySelect}
+                                returnFullObject={true}
                             />
                         </Box>
 
@@ -617,7 +634,16 @@ const BannerManagement = () => {
                             </Button>
                             <Button
                                 variant="contained"
-                                onClick={handleSaveSlide}
+                                onClick={() => {
+                                    console.log('🔘 Save button clicked - disabled state check:', {
+                                        saving,
+                                        hasCategory: !!selectedCategory,
+                                        hasPrimaryProduct: !!selectedPrimaryProduct,
+                                        secondaryProductsCount: selectedSecondaryProducts.length,
+                                        isDisabled: saving || !selectedCategory || !selectedPrimaryProduct || selectedSecondaryProducts.length !== 3
+                                    });
+                                    handleSaveSlide();
+                                }}
                                 disabled={saving || !selectedCategory || !selectedPrimaryProduct || selectedSecondaryProducts.length !== 3}
                             >
                                 {saving ? 'Saving...' : `Save Slide ${currentSlide + 1}`}

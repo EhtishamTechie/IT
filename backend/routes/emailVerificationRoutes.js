@@ -53,7 +53,7 @@ router.post('/send-customer-otp', async (req, res) => {
 
     // Generate and send OTP
     const otp = otpService.generateOTP(email, 'customer');
-    await emailService.sendCustomerVerificationOTP(email, otp, name);
+    await sendCustomerVerificationOTP(email, otp, name);
 
     res.json({
       success: true,
@@ -82,6 +82,13 @@ router.post('/send-vendor-otp', async (req, res) => {
       return res.status(400).json({
         success: false,
         message: 'Email is required'
+      });
+    }
+
+    if (!businessName) {
+      return res.status(400).json({
+        success: false,
+        message: 'Business name is required'
       });
     }
 
@@ -115,7 +122,7 @@ router.post('/send-vendor-otp', async (req, res) => {
 
     // Generate and send OTP
     const otp = otpService.generateOTP(email, 'vendor');
-    await emailService.sendVendorVerificationOTP(email, otp, businessName);
+    await sendVendorVerificationOTP(email, otp, businessName);
 
     res.json({
       success: true,

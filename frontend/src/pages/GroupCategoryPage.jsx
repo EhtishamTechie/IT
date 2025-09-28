@@ -1,9 +1,13 @@
 import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from 'react-helmet-async';
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import ProductService from "../services/productService";
 import { getUploadUrl, getImageUrl } from "../config";
+import EnhancedProductCard from "../components/EnhancedProductCard";
+import { generateCategorySEO, getCanonicalUrl, generateBreadcrumbs } from "../utils/seoHelpers";
+import { getCategorySchema, getBreadcrumbSchema } from "../utils/schemaGenerator";
 
 // Category mapping for navigation - UPDATED to handle both admin and vendor categories
 const categoryMap = {
@@ -38,6 +42,7 @@ const getCategoryNameFromUrl = (groupName) => {
 const GroupCategoryPage = () => {
   // Get the actual groupName from URL parameters
   const { groupName } = useParams();
+  const navigate = useNavigate();
   
   // State for products with pagination
   const [products, setProducts] = useState([]);
@@ -75,6 +80,27 @@ const GroupCategoryPage = () => {
   // Convert group name to display format
   const displayGroup = useMemo(() => 
     getCategoryNameFromUrl(groupName), [groupName]
+  );
+
+  // Generate SEO data - moved here to comply with Rules of Hooks
+  const seoData = useMemo(() => 
+    generateCategorySEO(displayGroup, products, groupName), 
+    [displayGroup, products, groupName]
+  );
+
+  const breadcrumbs = useMemo(() => 
+    generateBreadcrumbs(window.location.pathname, { categoryName: displayGroup }), 
+    [displayGroup]
+  );
+
+  const categorySchema = useMemo(() => 
+    getCategorySchema(displayGroup, products), 
+    [displayGroup, products]
+  );
+
+  const breadcrumbSchema = useMemo(() => 
+    getBreadcrumbSchema(breadcrumbs), 
+    [breadcrumbs]
   );
 
   // Load products with server-side category filtering and pagination
@@ -223,6 +249,41 @@ const GroupCategoryPage = () => {
     }
   }, [quantities, addToCartContext]);
 
+  const handleBuyNow = useCallback(async (product) => {
+    try {
+      // Clear any previous error messages for this product
+      setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+      setAddingToCart(prev => ({ ...prev, [product._id]: true }));
+      
+      // Add to cart first
+      const quantityToAdd = quantities[product._id] || 1;
+      const result = await addToCartContext(product, quantityToAdd);
+      
+      if (result && result.success) {
+        // Navigate to checkout after successful cart addition
+        navigate('/checkout');
+      } else {
+        const errorMsg = result?.error || 'Failed to process order';
+        setErrorMessages(prev => ({ ...prev, [product._id]: errorMsg }));
+        
+        setTimeout(() => {
+          setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+        }, 4000);
+      }
+    } catch (error) {
+      const errorMsg = 'Something went wrong. Please try again.';
+      setErrorMessages(prev => ({ ...prev, [product._id]: errorMsg }));
+      
+      setTimeout(() => {
+        setErrorMessages(prev => ({ ...prev, [product._id]: null }));
+      }, 4000);
+      
+      console.error('Error with buy now:', error);
+    } finally {
+      setAddingToCart(prev => ({ ...prev, [product._id]: false }));
+    }
+  }, [quantities, addToCartContext, navigate]);
+
   // Helper function to check if product is in cart and get quantity
   const getCartItemQuantity = (productId) => {
     // Safety check: ensure cartItems exists and is an array
@@ -281,16 +342,89 @@ const GroupCategoryPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* SEO Head Tags */}
+      <Helmet>
+        {/* Basic Meta Tags */}
+        <title>{seoData.title}</title>
+        <meta name="description" content={seoData.description} />
+        <meta name="keywords" content={seoData.keywords.join(', ')} />
+        <link rel="canonical" href={seoData.canonicalUrl} />
+        
+        {/* Open Graph Meta Tags */}
+        <meta property="og:title" content={seoData.openGraph.title} />
+        <meta property="og:description" content={seoData.openGraph.description} />
+        <meta property="og:type" content={seoData.openGraph.type} />
+        <meta property="og:url" content={seoData.openGraph.url} />
+        <meta property="og:site_name" content="International Tijarat" />
+        {seoData.openGraph.images.length > 0 && (
+          <>
+            <meta property="og:image" content={seoData.openGraph.images[0].url} />
+            <meta property="og:image:width" content={seoData.openGraph.images[0].width} />
+            <meta property="og:image:height" content={seoData.openGraph.images[0].height} />
+            <meta property="og:image:alt" content={seoData.openGraph.images[0].alt} />
+          </>
+        )}
+        
+        {/* Twitter Card Meta Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={seoData.twitter.title} />
+        <meta name="twitter:description" content={seoData.twitter.description} />
+        {seoData.twitter.images.length > 0 && (
+          <meta name="twitter:image" content={seoData.twitter.images[0]} />
+        )}
+        
+        {/* Additional SEO Meta Tags */}
+        <meta name="robots" content="index, follow, max-image-preview:large" />
+        <meta name="googlebot" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1" />
+        <meta name="author" content="International Tijarat" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        
+        {/* Schema.org Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(categorySchema)}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify(breadcrumbSchema)}
+        </script>
+      </Helmet>
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center space-x-2 text-sm mb-4" aria-label="Breadcrumb">
+            {breadcrumbs.map((crumb, index) => (
+              <div key={index} className="flex items-center">
+                {index > 0 && (
+                  <svg className="w-4 h-4 text-gray-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
+                {index === breadcrumbs.length - 1 ? (
+                  <span className="text-gray-900 font-medium">{crumb.name}</span>
+                ) : (
+                  <a 
+                    href={crumb.url} 
+                    className="text-blue-600 hover:text-blue-800 transition-colors"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigate(crumb.url);
+                    }}
+                  >
+                    {crumb.name}
+                  </a>
+                )}
+              </div>
+            ))}
+          </nav>
+
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 capitalize">
                 {displayGroup} Products
               </h1>
               <p className="text-gray-600 mt-2">
-                {products.length} products found
+                {products.length} products found {totalProducts > products.length && `of ${totalProducts} total`}
               </p>
             </div>
             
@@ -339,15 +473,15 @@ const GroupCategoryPage = () => {
                 key={product._id}
                 ref={index === sortedProducts.length - 1 ? lastProductElementRef : null}
               >
-                <ProductCard
+                <EnhancedProductCard
                   product={product}
-                  quantity={quantities[product._id] || 1}
-                  onQuantityChange={(value) => handleQuantityChange(product._id, value)}
                   onAddToCart={() => addToCart(product)}
+                  onBuyNow={() => handleBuyNow(product)}
+                  showBuyNow={true}
                   isAddingToCart={addingToCart[product._id]}
-                  errorMessage={errorMessages[product._id]}
                   cartQuantity={getCartItemQuantity(product._id)}
                   isInCart={isProductInCart(product._id)}
+                  errorMessage={errorMessages[product._id]}
                 />
               </div>
             ))}
@@ -380,195 +514,6 @@ const GroupCategoryPage = () => {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-};
-
-// Product Card Component
-const ProductCard = ({ 
-  product, 
-  quantity, 
-  onQuantityChange, 
-  onAddToCart, 
-  isAddingToCart = false,
-  errorMessage = null,
-  cartQuantity = 0,
-  isInCart = false 
-}) => {
-  const navigate = useNavigate();
-  const [imageError, setImageError] = useState(false);
-
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  // Navigate to product detail page
-  const handleProductClick = () => {
-    console.log('🔗 Navigating to product from GroupCategoryPage:', {
-      productId: product._id,
-      title: product.title,
-      fullProduct: product
-    });
-    if (!product._id) {
-      console.error('❌ Product ID is missing!', product);
-      return;
-    }
-    navigate(`/product/${product._id}`);
-  };
-
-  // Determine button state with proper priority - CART STATE DRIVEN
-  const getButtonState = () => {
-    if (isAddingToCart) return 'loading';
-    if (errorMessage) return 'error';
-    if (isInCart && cartQuantity > 0) return 'inCart';  // Direct cart state check
-    if (!product.stock || product.stock === 0) return 'outOfStock';
-    return 'addToCart';
-  };
-
-  const buttonState = getButtonState();
-
-  // Button styling based on state
-  const getButtonStyles = () => {
-    switch (buttonState) {
-      case 'loading':
-        return 'bg-orange-400 text-white cursor-not-allowed';
-      case 'error':
-        return 'bg-red-500 hover:bg-red-600 text-white';
-      case 'inCart':
-        return 'bg-blue-500 hover:bg-blue-600 text-white';
-      case 'addToCart':
-        return 'bg-orange-500 text-white hover:bg-orange-600';
-      case 'outOfStock':
-        return 'bg-gray-300 text-gray-500 cursor-not-allowed';
-      default:
-        return 'bg-orange-500 text-white hover:bg-orange-600';
-    }
-  };
-
-  // Button content based on state
-  const getButtonContent = () => {
-    switch (buttonState) {
-      case 'loading':
-        return 'Adding...';
-      case 'error':
-        return 'Try Again';
-      case 'inCart':
-        return `In Cart (${cartQuantity})`;
-      case 'addToCart':
-        return 'Add to Cart';
-      case 'outOfStock':
-        return 'Out of Stock';
-      default:
-        return 'Add to Cart';
-    }
-  };
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
-      {/* Image - Clickable */}
-      <div 
-        className="relative aspect-square overflow-hidden cursor-pointer"
-        onClick={handleProductClick}
-      >
-        {!imageError ? (
-          <img
-            src={getImageUrl('products', product.image)}
-            alt={product.title || product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-            onError={handleImageError}
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
-        )}
-
-        {/* Discount Badge */}
-        {product.discount > 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-            -{product.discount}%
-          </div>
-        )}
-      </div>
-
-      {/* Details */}
-      <div className="p-4">
-        <h3 
-          className="font-medium text-gray-900 mb-2 line-clamp-2 cursor-pointer hover:text-orange-600 transition-colors"
-          onClick={handleProductClick}
-        >
-          {product.title || product.name}
-        </h3>
-        
-        {/* Vendor Information */}
-        {product.vendor && (
-          <div className="mb-2">
-            <p className="text-xs text-gray-500">
-              Sold by: <span className="text-orange-600 font-medium">
-                {typeof product.vendor === 'object' ? product.vendor.businessName : product.vendor}
-              </span>
-            </p>
-          </div>
-        )}
-        
-        {/* Price */}
-        <div className="text-lg font-bold text-gray-900 mb-3">
-          ${product.price}
-        </div>
-
-        {/* Stock Status - Hide counts from customers */}
-        <div className="mb-3">
-          {product.stock !== undefined ? (
-            product.stock > 0 ? (
-              <div className="text-sm">
-                <span className="text-green-600">
-                  In Stock
-                </span>
-              </div>
-            ) : (
-              <div className="text-sm text-red-600 font-medium">
-                Out of Stock
-              </div>
-            )
-          ) : (
-            <div className="text-sm text-gray-500">
-              Stock info unavailable
-            </div>
-          )}
-        </div>
-
-        {/* Quantity and Actions */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-sm text-gray-600">Qty:</label>
-            <input
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => onQuantityChange(e.target.value)}
-              className="w-16 px-2 py-1 border border-gray-300 rounded text-center text-sm"
-            />
-          </div>
-          
-          <button
-            onClick={onAddToCart}
-            disabled={isAddingToCart || buttonState === 'outOfStock'}
-            className={`w-full py-2 rounded-lg font-medium transition-colors text-sm ${getButtonStyles()}`}
-            title={errorMessage || ''}
-          >
-            {getButtonContent()}
-          </button>
-
-          {/* Error Message Display */}
-          {errorMessage && (
-            <div className="mt-2 text-xs text-red-600 text-center bg-red-50 py-1 px-2 rounded">
-              {errorMessage}
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

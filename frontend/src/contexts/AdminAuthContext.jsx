@@ -154,6 +154,18 @@ export const AdminAuthProvider = ({ children }) => {
     deleteFeedback: (id) => adminAxios.delete(`/admin/contacts/${id}`),
     markFeedbackAsRead: (id) => adminAxios.put(`/admin/contacts/${id}/mark-read`),
     markFeedbackAsResolved: (id) => adminAxios.put(`/admin/contacts/${id}/resolve`),
+
+    // Newsletter Management
+    getNewsletterStats: () => adminAxios.get('/admin/newsletter/stats'),
+    getNewsletterSubscriptions: (params = {}) => adminAxios.get('/admin/newsletter/subscriptions', { params }),
+    deleteNewsletterSubscription: (id) => adminAxios.delete(`/admin/newsletter/subscriptions/${id}`),
+    exportNewsletterSubscriptions: (params = {}) => adminAxios.get('/admin/newsletter/export', { params, responseType: 'blob' }),
+    
+    // Payment Accounts Management
+    get: (endpoint) => adminAxios.get(endpoint),
+    post: (endpoint, data, config) => adminAxios.post(endpoint, data, config),
+    put: (endpoint, data, config) => adminAxios.put(endpoint, data, config),
+    delete: (endpoint) => adminAxios.delete(endpoint),
   };
 
   const value = {

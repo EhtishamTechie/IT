@@ -1,15 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const cacheService = require('../services/cacheService');
 const cacheInvalidator = require('../utils/cacheInvalidator');
 const { authenticateToken, authenticateAdmin } = require('../middleware/auth');
+const { uploadProductMedia, handleUploadError } = require('../middleware/uploadMiddleware');
 const {
   addProduct,
   getAllProducts,
   getProductById,
+  getProduct,
   getProductsByCategory,
   updateProduct,
   deleteProduct,
@@ -31,41 +30,14 @@ const PRODUCT_LIST_CACHE = 300; // 5 minutes
 const PRODUCT_DETAIL_CACHE = 1800; // 30 minutes
 const CATEGORY_CACHE = 3600; // 1 hour
 
-// Multer config for image uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    // Use temp directory in production (Vercel), upload directory in development
-    let destPath;
-    if (process.env.NODE_ENV === 'production') {
-      // Use system temp directory and ensure it exists
-      const os = require('os');
-      destPath = path.join(os.tmpdir());
-    } else {
-      // Use local uploads/products directory
-      destPath = path.join(__dirname, '../uploads/products');
-    }
-    
-    // Create directory if it doesn't exist
-    if (!fs.existsSync(destPath)) {
-      fs.mkdirSync(destPath, { recursive: true });
-      console.log('📁 Created products upload directory:', destPath);
-    }
-    
-    cb(null, destPath);
-  },
-  filename: (req, file, cb) => cb(null, Date.now() + path.extname(file.originalname)),
-});
-
-const upload = multer({ storage });
-
 // Product routes
 
 // Admin-only routes (require admin authentication with cache invalidation)
-router.post('/add', authenticateAdmin, upload.single('image'), async (req, res, next) => {
+router.post('/add', authenticateAdmin, uploadProductMedia, handleUploadError, async (req, res, next) => {
   await cacheInvalidator.invalidateProducts();
   next();
 }, addProduct);
-router.put('/:id', authenticateAdmin, upload.single('image'), async (req, res, next) => {
+router.put('/:id', authenticateAdmin, uploadProductMedia, handleUploadError, async (req, res, next) => {
   await cacheInvalidator.invalidateProducts();
   next();
 }, updateProduct);
@@ -94,6 +66,9 @@ router.get('/categories', cacheService.middleware(CATEGORY_CACHE), getCategories
 router.get('/main-category/:categoryName', cacheService.middleware(PRODUCT_LIST_CACHE), getProductsByMainCategory);
 router.get('/sub-category/:categoryName', cacheService.middleware(PRODUCT_LIST_CACHE), getProductsBySubCategory);
 router.get('/category/:categoryName', cacheService.middleware(PRODUCT_LIST_CACHE), getProductsByCategory);
-router.get('/:id', cacheService.middleware(PRODUCT_DETAIL_CACHE), getProductById);
+// Legacy ID-based endpoint for backward compatibility
+router.get('/id/:id', cacheService.middleware(PRODUCT_DETAIL_CACHE), getProductById);
+// New unified endpoint supporting both slugs and IDs
+router.get('/:identifier', cacheService.middleware(PRODUCT_DETAIL_CACHE), getProduct);
 
 module.exports = router;

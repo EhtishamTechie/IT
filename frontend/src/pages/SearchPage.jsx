@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import ProductService from '../services/productService';
 import { getImageUrl, getApiUrl } from '../config';
+import EnhancedProductCard from '../components/EnhancedProductCard';
 
 // Icons
 const ShoppingCartIcon = (props) => (
@@ -27,6 +29,7 @@ const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { addToCart, cartItems } = useCart();
+  const { user } = useAuth();
   
   // Search state
   const [products, setProducts] = useState([]);
@@ -255,6 +258,35 @@ const SearchPage = () => {
     }
   };
 
+  // Handle buy now with authentication check
+  const handleBuyNow = async (product) => {
+    try {
+      // Check if user is authenticated first
+      if (!user) {
+        // Redirect to login if not authenticated
+        navigate('/login');
+        return;
+      }
+
+      // Store product in localStorage for buy now checkout
+      const buyNowItem = {
+        _id: product._id,
+        title: product.title,
+        price: product.price,
+        image: product.image || (product.images?.[0] || null),
+        stock: product.stock || 100,
+        quantity: 1
+      };
+      
+      localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+      
+      // Navigate directly to checkout, skipping cart page
+      navigate('/checkout');
+    } catch (error) {
+      console.error('Buy now error:', error);
+    }
+  };
+
   // Get cart quantity for a product
   const getCartQuantity = (productId) => {
     const cartItem = cartItems.find(item => {
@@ -449,15 +481,16 @@ const SearchPage = () => {
                 {/* Products Grid with Infinite Scroll */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {products.map((product, index) => (
-                    <ProductCard
+                    <EnhancedProductCard
                       key={product._id}
                       product={product}
-                      onAddToCart={() => handleAddToCart(product)}
-                      isAddingToCart={addingToCart[product._id]}
-                      errorMessage={cartErrors[product._id]}
+                      ref={products.length === index + 1 ? lastProductElementRef : null}
+                      onAddToCart={handleAddToCart}
+                      onBuyNow={handleBuyNow}
                       cartQuantity={getCartQuantity(product._id)}
                       isInCart={isProductInCart(product._id)}
-                      ref={products.length === index + 1 ? lastProductElementRef : null}
+                      isAddingToCart={addingToCart[product._id] || false}
+                      showBuyNow={true}
                     />
                   ))}
                 </div>
@@ -484,217 +517,5 @@ const SearchPage = () => {
     </div>
   );
 };
-
-// Reusable ProductCard Component (matching AllProductsPage design)
-const ProductCard = React.forwardRef(({ 
-  product, 
-  onAddToCart, 
-  isAddingToCart = false, 
-  errorMessage = null,
-  cartQuantity = 0,
-  isInCart = false 
-}, ref) => {
-  const navigate = useNavigate();
-  const [imageError, setImageError] = useState(false);
-
-  const handleImageError = () => {
-    setImageError(true);
-  };
-
-  // Navigate to product detail page
-  const handleProductClick = () => {
-    if (!product._id) {
-      console.error('❌ Product ID is missing!', product);
-      return;
-    }
-    navigate(`/product/${product._id}`);
-  };
-
-  // Determine button state
-  const getButtonState = () => {
-    if (isAddingToCart) return 'loading';
-    if (errorMessage) return 'error';
-    if (isInCart && cartQuantity > 0) return 'inCart';
-    if (!product.stock || product.stock === 0) return 'outOfStock';
-    return 'addToCart';
-  };
-
-  const buttonState = getButtonState();
-
-  // Button styling based on state
-  const getButtonStyles = () => {
-    switch (buttonState) {
-      case 'loading':
-        return 'bg-orange-400 text-white cursor-not-allowed';
-      case 'error':
-        return 'bg-red-500 hover:bg-red-600 text-white';
-      case 'inCart':
-        return 'bg-blue-500 hover:bg-blue-600 text-white';
-      case 'addToCart':
-        return 'bg-orange-500 hover:bg-orange-600 text-white';
-      case 'outOfStock':
-        return 'bg-gray-300 text-gray-500 cursor-not-allowed';
-      default:
-        return 'bg-orange-500 hover:bg-orange-600 text-white';
-    }
-  };
-
-  // Button content based on state
-  const getButtonContent = () => {
-    switch (buttonState) {
-      case 'loading':
-        return (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-            Adding...
-          </>
-        );
-      case 'error':
-        return (
-          <>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            Try Again
-          </>
-        );
-      case 'inCart':
-        return (
-          <>
-            <ShoppingCartIcon className="w-4 h-4" />
-            In Cart ({cartQuantity})
-          </>
-        );
-      case 'addToCart':
-        return (
-          <>
-            <ShoppingCartIcon className="w-4 h-4" />
-            Add to Cart
-          </>
-        );
-      case 'outOfStock':
-        return 'Out of Stock';
-      default:
-        return 'Add to Cart';
-    }
-  };
-
-  return (
-    <div ref={ref} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden group">
-      {/* Product Image */}
-      <div 
-        className="relative aspect-square overflow-hidden cursor-pointer group"
-        onClick={handleProductClick}
-      >
-        {!imageError ? (
-          <img
-            src={getImageUrl('products', product.image)}
-            alt={product.title || product.name}
-            className="w-full h-full object-cover transition-all duration-300 group-hover:scale-110"
-            onError={handleImageError}
-          />
-        ) : (
-          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <div className="text-center text-gray-500">
-              <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              <span className="text-sm">No Image</span>
-            </div>
-          </div>
-        )}
-
-        {/* Discount Badge */}
-        {product.discount && product.discount > 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-            -{typeof product.discount === 'number' ? Math.round(product.discount) : product.discount}%
-          </div>
-        )}
-      </div>
-
-      {/* Product Info */}
-      <div className="p-4">
-        {/* Category/Brand */}
-        {(product.brand || product.category || product.mainCategory) && (
-          <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">
-            {product.brand || 
-             (product.category && typeof product.category === 'object' ? product.category.name : product.category) || 
-             (product.mainCategory && typeof product.mainCategory === 'object' ? product.mainCategory.name : product.mainCategory)}
-          </p>
-        )}
-
-        {/* Product Name */}
-        <h3 
-          className="font-medium text-gray-900 mb-2 line-clamp-2 text-sm cursor-pointer hover:text-orange-600 transition-colors"
-          onClick={handleProductClick}
-        >
-          {product.title || product.name}
-        </h3>
-
-        {/* Vendor Information */}
-        {product.vendor && typeof product.vendor === 'object' && product.vendor.businessName ? (
-          <div className="mb-2 flex items-center text-xs text-gray-600">
-            <svg className="w-3 h-3 mr-1 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H3m2 0h4M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-            <span className="text-emerald-600 font-medium">
-              {product.vendor.businessName}
-            </span>
-          </div>
-        ) : (
-          <div className="mb-2 flex items-center text-xs text-gray-600">
-            <div className="flex items-center">
-              <svg className="w-3 h-3 text-blue-600 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-blue-600 font-medium">International Tijarat</span>
-            </div>
-          </div>
-        )}
-
-        {/* Price */}
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-lg font-bold text-gray-900">
-            ${typeof product.price === 'number' ? product.price.toFixed(2) : product.price}
-          </span>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <span className="text-sm text-gray-500 line-through">
-              ${typeof product.originalPrice === 'number' ? product.originalPrice.toFixed(2) : product.originalPrice}
-            </span>
-          )}
-        </div>
-
-        {/* Stock Information */}
-        <div className="mb-3">
-          {product.stock === 0 ? (
-            <span className="text-sm text-red-600 font-medium">Out of Stock</span>
-          ) : (
-            <span className="text-sm text-green-600">In Stock</span>
-          )}
-        </div>
-
-        {/* Add to Cart Button */}
-        <button
-          onClick={onAddToCart}
-          disabled={isAddingToCart || buttonState === 'outOfStock'}
-          className={`w-full py-2 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${getButtonStyles()}`}
-          title={errorMessage || ''}
-        >
-          {getButtonContent()}
-        </button>
-
-        {/* Error Message Display */}
-        {errorMessage && (
-          <div className="mt-2 text-xs text-red-600 text-center bg-red-50 py-1 px-2 rounded">
-            {errorMessage}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-});
-
-// Add display name for debugging
-ProductCard.displayName = 'ProductCard';
 
 export default SearchPage;

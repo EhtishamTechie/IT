@@ -435,21 +435,21 @@ const PropertyDetail = () => {
               <div className="flex items-center space-x-3">
                 <User className="w-5 h-5 text-gray-400" />
                 <div>
-                  <p className="font-medium text-gray-900">{property.sellerName}</p>
+                  <p className="font-medium text-gray-900">{property.sellerContact?.name || 'N/A'}</p>
                   <p className="text-sm text-gray-600">Property Owner</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <Phone className="w-5 h-5 text-gray-400" />
                 <div>
-                  <p className="font-medium text-gray-900">{property.sellerPhone}</p>
+                  <p className="font-medium text-gray-900">{property.sellerContact?.phone || 'N/A'}</p>
                   <p className="text-sm text-gray-600">Contact Number</p>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-gray-400" />
                 <div>
-                  <p className="font-medium text-gray-900">{property.sellerEmail}</p>
+                  <p className="font-medium text-gray-900">{property.sellerContact?.email || 'N/A'}</p>
                   <p className="text-sm text-gray-600">Email Address</p>
                 </div>
               </div>
@@ -457,8 +457,20 @@ const PropertyDetail = () => {
 
             <div className="mt-6 pt-6 border-t">
               <button
-                onClick={() => window.open(`https://wa.me/${property.sellerPhone.replace(/\D/g, '')}?text=Hi, I'm from International Tijarat admin team regarding your property listing: ${property.title}`, '_blank')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors"
+                onClick={() => {
+                  const phone = property.sellerContact?.phone?.replace(/\D/g, '');
+                  if (phone) {
+                    window.open(`https://wa.me/${phone}?text=Hi, I'm from International Tijarat admin team regarding your property listing: ${property.title}`, '_blank');
+                  } else {
+                    alert('No contact number available');
+                  }
+                }}
+                disabled={!property.sellerContact?.phone}
+                className={`w-full py-2 px-4 rounded-lg font-medium flex items-center justify-center space-x-2 transition-colors ${
+                  property.sellerContact?.phone 
+                    ? 'bg-green-500 hover:bg-green-600 text-white' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
               >
                 <Phone className="w-4 h-4" />
                 <span>Contact Seller</span>

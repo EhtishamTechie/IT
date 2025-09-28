@@ -59,7 +59,7 @@
             }));
 
             // Extract image from primary product
-            const slideImage = selectedPrimaryProduct?.images?.[0] || selectedPrimaryProduct?.image || 'default-banner.jpg';
+            const slideImage = selectedPrimaryProduct?.image || selectedPrimaryProduct?.images?.[0] || 'default-banner.jpg';
 
             // Validate all required fields
             if (!formattedTitle || !formattedCategory || !formattedPrimaryProduct || formattedSecondaryProducts.length !== 3) {

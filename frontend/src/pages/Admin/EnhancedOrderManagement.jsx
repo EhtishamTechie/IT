@@ -61,9 +61,13 @@ const EnhancedOrderManagement = () => {
     loadOrders();
   }, [currentPage]);
 
-  const loadOrders = async (forceRefresh = false) => {
+  const loadOrders = async (forceRefresh = false, backgroundRefresh = false) => {
     try {
-      setLoading(true);
+      // Only show loading state if it's not a background refresh
+      if (!backgroundRefresh) {
+        setLoading(true);
+      }
+      
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
@@ -109,17 +113,23 @@ const EnhancedOrderManagement = () => {
         console.log('🔍 [VENDOR ORDERS] Pagination:', paginationData);
       } else {
         console.log('Unexpected response format:', response.data);
+        if (!backgroundRefresh) {
+          setOrders([]);
+          setTotalPages(1);
+          setTotalOrders(0);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      if (!backgroundRefresh) {
         setOrders([]);
         setTotalPages(1);
         setTotalOrders(0);
       }
-    } catch (error) {
-      console.error('Error loading orders:', error);
-      setOrders([]);
-      setTotalPages(1);
-      setTotalOrders(0);
     } finally {
-      setLoading(false);
+      if (!backgroundRefresh) {
+        setLoading(false);
+      }
     }
   };
 
@@ -262,16 +272,27 @@ const EnhancedOrderManagement = () => {
         message += `📦 Order ID: ${forwardOrderId}\n`;
         message += `👥 Vendors: ${selectedVendors.length}\n`;
         if (adminNotes) {
-          message += `� Notes: ${adminNotes}\n`;
+          message += `📝 Notes: ${adminNotes}\n`;
         }
 
         alert(message);
+        
+        // Update the specific order in state instead of reloading all orders
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === forwardOrderId 
+              ? { ...order, status: 'forwarded', forwardedAt: new Date().toISOString() }
+              : order
+          )
+        );
         
         setShowForwardModal(false);
         setForwardOrderId(null);
         setSelectedVendors([]);
         setAdminNotes('');
-        loadOrders(true); // Force refresh to get updated order status
+        
+        // Optional: Refresh in background without showing loading state
+        setTimeout(() => loadOrders(true, true), 1000);
       }
     } catch (error) {
       console.error('❌ Error forwarding order:', error);
@@ -393,8 +414,20 @@ const EnhancedOrderManagement = () => {
       
       if (response.data.success) {
         console.log(`✅ Order rejected successfully:`, response.data.data);
-        loadOrders(true); // Force refresh to get updated order status
+        
+        // Update the specific order in state instead of reloading all orders
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order._id === orderId 
+              ? { ...order, status: 'cancelled', rejectedAt: new Date().toISOString() }
+              : order
+          )
+        );
+        
         alert(`✅ Order rejected and status updated to Cancelled!`);
+        
+        // Optional: Refresh in background without showing loading state
+        setTimeout(() => loadOrders(true, true), 1000);
       } else {
         alert(`Failed to reject order: ${response.data.message}`);
       }

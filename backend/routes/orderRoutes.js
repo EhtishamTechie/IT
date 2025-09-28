@@ -23,18 +23,41 @@ const {
   getUserOrders
 } = require('../controllers/orderController');
 
-// Multer config for payment proof uploads
+// Multer config for payment proof and payment receipt uploads
+const fs = require('fs');
+
+// Ensure payment receipts upload directory exists
+const paymentReceiptsDir = path.join(__dirname, '..', 'uploads', 'payment-receipts');
+if (!fs.existsSync(paymentReceiptsDir)) {
+  fs.mkdirSync(paymentReceiptsDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Use temp directory in production (Vercel), upload directory in development
-    const destPath = process.env.NODE_ENV === 'production' ? '/tmp' : './uploads/';
-    cb(null, destPath);
+    // Always use the payment receipts directory
+    cb(null, paymentReceiptsDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const prefix = req.body.paymentMethod === 'advance_payment' ? 'receipt-' : 'payment-';
+    cb(null, prefix + uniqueSuffix + path.extname(file.originalname));
   },
 });
-const upload = multer({ storage });
+
+const upload = multer({ 
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, WebP images and PDF files are allowed.'), false);
+    }
+  }
+});
 
 // Order routes
 
@@ -53,6 +76,83 @@ router.post('/create', upload.single('paymentProof'), async (req, res, next) => 
   await cacheInvalidator.invalidateOrders();
   next();
 }, createOrder); // New comprehensive endpoint
+router.post('/with-receipt', upload.single('paymentReceipt'), async (req, res, next) => {
+  await cacheInvalidator.invalidateOrders();
+  next();
+}, createOrder); // Order creation with payment receipt for advance payments
+router.post('/:orderId/verify-payment', authenticateAdmin, async (req, res, next) => {
+  await cacheInvalidator.invalidateOrders();
+  next();
+}, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findById(orderId);
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    if (order.paymentMethod !== 'advance_payment') {
+      return res.status(400).json({
+        success: false,
+        message: 'This order does not use advance payment method'
+      });
+    }
+
+    if (order.paymentVerified) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment already verified for this order'
+      });
+    }
+
+    // Update payment verification status
+    await Order.findByIdAndUpdate(orderId, {
+      paymentVerified: true,
+      paymentStatus: 'verified',
+      status: 'confirmed',
+      lastStatusUpdate: new Date(),
+      $push: {
+        statusHistory: {
+          status: 'payment_verified',
+          updatedBy: req.admin?.name || 'Admin',
+          reason: 'Payment verified by admin',
+          timestamp: new Date(),
+          userRole: 'admin'
+        }
+      }
+    });
+
+    // Send email notification about payment verification
+    try {
+      const { emailService } = require('../services/emailService');
+      await emailService.sendOrderStatusUpdate(order.email, order, 'payment_verified', 'pending_verification');
+      console.log(`📧 Payment verification email sent for order: ${order.orderNumber}`);
+    } catch (emailError) {
+      console.error('Failed to send payment verification email:', emailError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Payment verified successfully',
+      order: {
+        orderNumber: order.orderNumber,
+        paymentVerified: true,
+        status: 'confirmed'
+      }
+    });
+  } catch (error) {
+    console.error('Error verifying payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to verify payment',
+      error: error.message
+    });
+  }
+}); // Payment verification endpoint
 router.get('/confirmation/:id', cacheService.middleware(ORDER_DETAIL_CACHE), getOrderById); // Public order confirmation - no auth required
 
 // Admin routes (require admin authentication)

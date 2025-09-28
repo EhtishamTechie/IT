@@ -386,6 +386,75 @@ const getProductById = async (req, res) => {
   }
 };
 
+// Get product by slug or ID (SEO-friendly unified endpoint)
+const getProduct = async (req, res) => {
+  try {
+    const identifier = req.params.identifier;
+    let product = null;
+    
+    console.log('🔍 [PRODUCT FETCH] Looking for product:', identifier);
+    
+    // Check if identifier is a valid MongoDB ObjectId format (24 character hex string)
+    const mongoose = require('mongoose');
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(identifier) && identifier.length === 24;
+    
+    if (isValidObjectId) {
+      // Try by ID first for backward compatibility
+      product = await Product.findById(identifier)
+        .populate('vendor', 'businessName email contactPhone rating')
+        .populate('mainCategory', 'name slug')
+        .populate('subCategory', 'name slug')
+        .populate('category', 'name slug');
+      
+      console.log('📋 [PRODUCT FETCH] Found by ID:', !!product);
+    } else {
+      // Try by slug for SEO URLs
+      product = await Product.findOne({ slug: identifier })
+        .populate('vendor', 'businessName email contactPhone rating')
+        .populate('mainCategory', 'name slug')
+        .populate('subCategory', 'name slug')
+        .populate('category', 'name slug');
+      
+      console.log('🔗 [PRODUCT FETCH] Found by slug:', !!product);
+    }
+    
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: `Product '${identifier}' not found. Please check the product URL and try again.`
+      });
+    }
+
+    // Increment view count
+    await Product.findByIdAndUpdate(product._id, { $inc: { views: 1 } });
+
+    // Transform image URLs
+    const transformedProduct = transformProductImages(product.toObject());
+
+    // Add SEO data to response
+    const seoData = {
+      title: product.metaTitle || product.title,
+      description: product.metaDescription || transformedProduct.description,
+      keywords: product.seoKeywords || product.keywords || [],
+      canonicalUrl: product.canonicalUrl || `/product/${product.slug || product._id}`,
+      slug: product.slug,
+      altText: product.altText
+    };
+
+    res.json({
+      success: true,
+      product: { ...transformedProduct, seo: seoData }
+    });
+  } catch (error) {
+    console.error('Error fetching product:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch product',
+      error: error.message
+    });
+  }
+};
+
 // Add new product
 const addProduct = async (req, res) => {
   try {
@@ -526,9 +595,41 @@ const addProduct = async (req, res) => {
       console.log(`✅ Product will be created as admin product (no vendor)`);
     }
 
-    // Handle image upload
-    if (req.file) {
-      productData.image = req.file.filename;
+    // Handle file uploads
+    console.log('🔍 [DEBUG] Raw req.files received:', JSON.stringify(req.files, null, 2));
+    console.log('🔍 [DEBUG] req.files?.image:', req.files?.image);
+    console.log('🔍 [DEBUG] req.files?.images:', req.files?.images);
+    
+    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : [];
+    const video = req.files?.video ? `products/${req.files.video[0].filename}` : null;
+    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : null;
+
+    console.log('📸 [PRODUCT CREATE] Image processing:', {
+      primaryImage,
+      multipleImagesCount: images.length,
+      videoFile: !!video,
+      imagesArray: images
+    });
+
+    // Set image fields with correct priority: Primary image takes precedence
+    if (primaryImage) {
+      // Use the dedicated primary image
+      productData.image = primaryImage;
+      console.log('✅ [PRODUCT CREATE] Using dedicated primary image:', primaryImage);
+    } else if (images.length > 0) {
+      // Fallback to first multiple image if no primary image provided
+      productData.image = images[0];
+      console.log('⚠️ [PRODUCT CREATE] No primary image provided, using first multiple image:', images[0]);
+    }
+    
+    // Always set the multiple images array
+    if (images.length > 0) {
+      productData.images = images;
+      console.log('✅ [PRODUCT CREATE] Set multiple images:', images.length);
+    }
+    
+    if (video) {
+      productData.video = video;
     }
 
     const product = new Product(productData);
@@ -687,25 +788,92 @@ const updateProduct = async (req, res) => {
       updates.stock = parseInt(updates.stock);
     }
 
-    // Handle image upload
-    if (req.file) {
-      updates.image = req.file.filename;
-      console.log('📸 [UPDATE] New image filename:', req.file.filename);
-      
-      // Delete old image if it exists
+    // Handle file uploads
+    console.log('🔍 [DEBUG UPDATE] Raw req.files received:', JSON.stringify(req.files, null, 2));
+    console.log('🔍 [DEBUG UPDATE] req.files?.image:', req.files?.image);
+    console.log('🔍 [DEBUG UPDATE] req.files?.images:', req.files?.images);
+    
+    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : undefined;
+    const video = req.files?.video ? `products/${req.files.video[0].filename}` : undefined;
+    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : undefined;
+
+    console.log('📸 [PRODUCT UPDATE] Image processing:', {
+      primaryImage,
+      multipleImagesCount: images?.length || 0,
+      videoFile: !!video,
+      imagesArray: images
+    });
+
+    // Update image fields if new files were uploaded with correct priority
+    if (primaryImage) {
+      // Use the dedicated primary image
+      updates.image = primaryImage;
+      console.log('✅ [PRODUCT UPDATE] Using dedicated primary image:', primaryImage);
+    } else if (images && images.length > 0) {
+      // Fallback to first multiple image if no primary image provided
+      updates.image = images[0];
+      console.log('⚠️ [PRODUCT UPDATE] No primary image provided, using first multiple image:', images[0]);
+    }
+    
+    // Update multiple images array if provided
+    if (images && images.length > 0) {
+      updates.images = images;
+      console.log('✅ [PRODUCT UPDATE] Set multiple images:', images.length);
+    }
+
+    console.log('📸 [UPDATE] Final image updates:', { primary: updates.image, all: updates.images });
+    
+    // Delete old images if they exist
+    if (primaryImage || (images && images.length > 0)) {
       const oldProduct = await Product.findById(productId);
-      if (oldProduct && oldProduct.image) {
-        const oldImagePath = path.join(__dirname, '../uploads/products', oldProduct.image);
-        console.log('🗑️ [UPDATE] Attempting to delete old image:', oldImagePath);
+      if (oldProduct) {
+        // Delete old primary image
+        if (oldProduct.image) {
+          const oldImagePath = path.join(__dirname, '../uploads', oldProduct.image);
+          try {
+            if (fs.existsSync(oldImagePath)) {
+              fs.unlinkSync(oldImagePath);
+              console.log('✅ [UPDATE] Successfully deleted old primary image');
+            }
+          } catch (error) {
+            console.error('❌ [UPDATE] Error deleting old primary image:', error);
+          }
+        }
+        
+        // Delete old additional images
+        if (oldProduct.images && Array.isArray(oldProduct.images)) {
+          for (const oldImg of oldProduct.images) {
+            if (oldImg && oldImg !== updates.image) { // Don't delete if it's the new primary
+              const oldImgPath = path.join(__dirname, '../uploads', oldImg);
+              try {
+                if (fs.existsSync(oldImgPath)) {
+                  fs.unlinkSync(oldImgPath);
+                  console.log('✅ [UPDATE] Successfully deleted old additional image');
+                }
+              } catch (error) {
+                console.error('❌ [UPDATE] Error deleting old additional image:', error);
+              }
+            }
+          }
+        }
+      }
+    }
+    
+    if (video !== undefined) {
+      updates.video = video;
+      console.log('🎥 [UPDATE] New video:', video);
+      
+      // Delete old video if it exists
+      const oldProduct = await Product.findById(productId);
+      if (oldProduct && oldProduct.video) {
+        const oldVideoPath = path.join(__dirname, '../uploads', oldProduct.video);
         try {
-          if (fs.existsSync(oldImagePath)) {
-            fs.unlinkSync(oldImagePath);
-            console.log('✅ [UPDATE] Successfully deleted old image');
-          } else {
-            console.log('ℹ️ [UPDATE] Old image not found at path');
+          if (fs.existsSync(oldVideoPath)) {
+            fs.unlinkSync(oldVideoPath);
+            console.log('✅ [UPDATE] Successfully deleted old video');
           }
         } catch (error) {
-          console.error('❌ [UPDATE] Error deleting old image:', error);
+          console.error('❌ [UPDATE] Error deleting old video:', error);
         }
       }
     }
@@ -1196,6 +1364,7 @@ const getPremiumProducts = async (req, res) => {
 module.exports = {
   getAllProducts,
   getProductById,
+  getProduct, // New SEO-friendly endpoint
   addProduct,
   updateProduct,
   deleteProduct,

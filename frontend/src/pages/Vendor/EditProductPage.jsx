@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import VendorLayout from '../../components/Vendor/VendorLayout';
 import { vendorService } from '../../services/vendorService';
-import { getUploadUrl } from '../../config';
+import { getImageUrl } from '../../config';
 
 const EditProductPage = () => {
   const { id } = useParams();
@@ -13,8 +13,14 @@ const EditProductPage = () => {
   const [success, setSuccess] = useState('');
   const [categories, setCategories] = useState([]);
   const [imageFile, setImageFile] = useState(null);
+  const [imageFiles, setImageFiles] = useState([]);
+  const [videoFile, setVideoFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [videoPreview, setVideoPreview] = useState(null);
   const [existingImage, setExistingImage] = useState('');
+  const [existingImages, setExistingImages] = useState([]);
+  const [existingVideo, setExistingVideo] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -139,6 +145,14 @@ const EditProductPage = () => {
         if (product.image) {
           setExistingImage(product.image);
         }
+        
+        if (product.images && Array.isArray(product.images)) {
+          setExistingImages(product.images);
+        }
+        
+        if (product.video) {
+          setExistingVideo(product.video);
+        }
       } else {
         setError('Product not found');
       }
@@ -168,9 +182,56 @@ const EditProductPage = () => {
     }
   };
 
+  const handleMultipleImagesChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      // Accumulate images instead of replacing them
+      setImageFiles(prev => [...prev, ...files]);
+      
+      const readers = files.map(file => {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      Promise.all(readers).then(newPreviews => {
+        setImagePreviews(prev => [...prev, ...newPreviews]);
+      });
+    }
+  };
+
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setVideoFile(file);
+      const url = URL.createObjectURL(file);
+      setVideoPreview(url);
+    }
+  };
+
   const removeImage = () => {
     setImageFile(null);
     setImagePreview(null);
+  };
+
+  const removeMultipleImages = () => {
+    setImageFiles([]);
+    setImagePreviews([]);
+  };
+
+  const removeImageAt = (index) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeVideo = () => {
+    if (videoPreview) {
+      URL.revokeObjectURL(videoPreview);
+    }
+    setVideoFile(null);
+    setVideoPreview(null);
   };
 
   const handleSubmit = async (e) => {
@@ -206,9 +267,24 @@ const EditProductPage = () => {
       submitData.append('mainCategory', JSON.stringify(mainCategory));
       submitData.append('subCategory', JSON.stringify(subCategory));
       
+      // Handle multiple images
+      if (imageFiles && imageFiles.length > 0) {
+        imageFiles.forEach((file) => {
+          submitData.append('images', file);
+        });
+        console.log('📷 EDIT FORM - Adding multiple image files to FormData');
+      }
+      
+      // Handle video
+      if (videoFile) {
+        submitData.append('video', videoFile);
+        console.log('🎥 EDIT FORM - Adding video file to FormData');
+      }
+      
+      // Handle legacy single image for backward compatibility
       if (imageFile) {
         submitData.append('image', imageFile);
-        console.log('📷 EDIT FORM - Adding image file to FormData');
+        console.log('📷 EDIT FORM - Adding legacy image file to FormData');
       }
       
       // Debug FormData contents
@@ -491,54 +567,211 @@ const EditProductPage = () => {
               </div>
             </div>
 
-            {/* Product Image Section */}
+            {/* Product Media Section */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
               <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900 flex items-center">
                   <svg className="w-5 h-5 mr-2 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  Product Image
+                  Product Media
                 </h3>
               </div>
-              <div className="p-6">
-                
-                {/* Current Image Display */}
-                {(existingImage || imagePreview) && (
-                  <div className="mb-4">
-                    <p className="text-sm font-medium text-gray-700 mb-2">
-                      {imagePreview ? 'New Image Preview (Watermark will be applied):' : 'Current Image:'}
-                    </p>
-                    <div className="relative inline-block">
-                      <img
-                        src={imagePreview || existingImage}
-                        alt="Product"
-                        className="w-32 h-32 rounded-lg border border-gray-300"
-                      />
-                      {imagePreview && (
+              
+              <div className="p-6 space-y-6">
+                {/* Multiple Images Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product Images (Multiple) - Recommended
+                  </label>
+                  
+                  {/* Existing Images Display */}
+                  {existingImages.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Current Images:</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                        {existingImages.map((img, index) => (
+                          <div key={`existing-${index}`} className="relative">
+                            <img
+                              src={getImageUrl('products', img)}
+                              alt={`Existing ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border"
+                            />
+                            <div className="absolute top-1 left-1 bg-blue-500 text-white text-xs px-1 rounded">
+                              Current
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* New Images Preview */}
+                  {imagePreviews.length > 0 && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">New Images:</p>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
+                        {imagePreviews.map((preview, index) => (
+                          <div key={`new-${index}`} className="relative group">
+                            <img
+                              src={preview}
+                              alt={`Preview ${index + 1}`}
+                              className="w-full h-24 object-cover rounded-lg border"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeImageAt(index)}
+                              className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-6 h-6 flex items-center justify-center transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                            <div className="absolute top-1 left-1 bg-green-500 text-white text-xs px-1 rounded">
+                              New
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Upload New Images */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-500 transition-colors bg-gray-50 hover:bg-orange-50">
+                    <svg className="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-gray-600 mb-2 font-medium">Add more product images</p>
+                    <p className="text-sm text-gray-500 mb-4">PNG, JPG up to 5MB each. Select multiple images.</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleMultipleImagesChange}
+                      className="hidden"
+                      id="multipleImageUpload"
+                    />
+                    <label
+                      htmlFor="multipleImageUpload"
+                      className="inline-block bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg cursor-pointer transition-colors font-medium shadow-sm text-sm"
+                    >
+                      Choose Images
+                    </label>
+                    {imagePreviews.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={removeMultipleImages}
+                        className="ml-2 inline-block bg-red-500 hover:bg-red-600 text-white px-6 py-2 rounded-lg transition-colors font-medium text-sm"
+                      >
+                        Remove All New
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Video Upload */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product Video (Optional)
+                  </label>
+                  
+                  {/* Existing Video Display */}
+                  {existingVideo && !videoPreview && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">Current Video:</p>
+                      <video
+                        src={getImageUrl('products', existingVideo)}
+                        controls
+                        className="w-full max-w-md h-48 rounded-lg border border-gray-200 shadow-sm"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
+                    </div>
+                  )}
+                  
+                  {/* New Video Preview */}
+                  {videoPreview && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">New Video:</p>
+                      <div className="relative inline-block">
+                        <video
+                          src={videoPreview}
+                          controls
+                          className="w-full max-w-md h-48 rounded-lg border border-gray-200 shadow-sm"
+                        >
+                          Your browser does not support the video tag.
+                        </video>
                         <button
                           type="button"
-                          onClick={removeImage}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors z-20"
+                          onClick={removeVideo}
+                          className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center transition-colors shadow-lg"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
-                      )}
-                      <div className="absolute bottom-1 left-1 bg-orange-100 text-orange-800 px-1 py-0.5 rounded text-xs">
-                        🛡️ Protected
                       </div>
                     </div>
+                  )}
+                  
+                  {/* Upload New Video */}
+                  <div className="border-2 border-dashed border-purple-300 rounded-lg p-6 text-center hover:border-purple-500 transition-colors bg-purple-50 hover:bg-purple-100">
+                    <svg className="w-12 h-12 mx-auto text-purple-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    <p className="text-purple-600 mb-2 font-medium">{existingVideo ? 'Replace video' : 'Upload product video'}</p>
+                    <p className="text-sm text-purple-500 mb-4">MP4, WebM up to 50MB</p>
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={handleVideoChange}
+                      className="hidden"
+                      id="videoUpload"
+                    />
+                    <label
+                      htmlFor="videoUpload"
+                      className="inline-block bg-purple-500 hover:bg-purple-600 text-white px-6 py-2 rounded-lg cursor-pointer transition-colors font-medium shadow-sm text-sm"
+                    >
+                      Choose Video
+                    </label>
                   </div>
-                )}
+                </div>
 
-                {/* Image Upload */}
+                {/* Legacy Single Image Upload */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    {existingImage && !imagePreview ? 'Upload New Image (Optional)' : 'Product Image'}
+                    Single Image (Legacy - Use multiple images above instead)
                   </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-500 transition-colors">
+                  
+                  {/* Current/New Image Display */}
+                  {(existingImage || imagePreview) && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-gray-700 mb-2">
+                        {imagePreview ? 'New Image Preview:' : 'Current Image:'}
+                      </p>
+                      <div className="relative inline-block">
+                        <img
+                          src={imagePreview || getImageUrl('products', existingImage)}
+                          alt="Product"
+                          className="w-32 h-32 rounded-lg border border-gray-300"
+                        />
+                        {imagePreview && (
+                          <button
+                            type="button"
+                            onClick={removeImage}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors z-20"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload Single Image */}
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-gray-400 transition-colors">
                     <input
                       type="file"
                       onChange={handleImageChange}
@@ -547,13 +780,13 @@ const EditProductPage = () => {
                       id="imageUpload"
                     />
                     <label htmlFor="imageUpload" className="cursor-pointer">
-                      <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-8 h-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                       </svg>
                       <p className="text-sm text-gray-600">
-                        <span className="text-orange-500 font-medium">Click to upload</span> or drag and drop
+                        {existingImage && !imagePreview ? 'Replace image' : 'Upload single image'}
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 10MB</p>
+                      <p className="text-xs text-gray-500 mt-1">Legacy mode - prefer multiple images</p>
                     </label>
                   </div>
                 </div>
