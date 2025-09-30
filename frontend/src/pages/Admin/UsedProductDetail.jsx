@@ -18,7 +18,8 @@ import {
   MessageCircle,
   Star,
   Eye,
-  Edit3
+  Edit3,
+  Trash2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { getApiUrl, getImageUrl } from '../../config';
@@ -146,6 +147,42 @@ const UsedProductDetail = () => {
     }
   };
 
+  // Handle delete
+  const handleDelete = async () => {
+    if (!confirm('Are you sure you want to delete this product? This action cannot be undone and will remove the product from the website listing.')) {
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      console.log('Attempting to delete product:', productId);
+      const response = await fetch(`${getApiUrl()}/admin/used-products/${productId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        }
+      });
+
+      console.log('Delete response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Delete error response:', errorData);
+        throw new Error(`Failed to delete product: ${response.status} ${errorData}`);
+      }
+
+      const result = await response.json();
+      console.log('Delete success result:', result);
+      toast.success('Product deleted successfully');
+      navigate('/admin/used-products');
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(`Failed to delete product: ${error.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (productId) {
       fetchProduct();
@@ -256,26 +293,36 @@ const UsedProductDetail = () => {
         </div>
 
         {/* Action Buttons */}
-        {product.status === 'pending' && (
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={() => setShowRejectionModal(true)}
-              disabled={actionLoading}
-              className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-            >
-              <XCircle className="w-4 h-4 mr-2" />
-              Reject
-            </button>
-            <button
-              onClick={handleApprove}
-              disabled={actionLoading}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              {actionLoading ? 'Processing...' : 'Approve'}
-            </button>
-          </div>
-        )}
+        <div className="flex items-center space-x-3">
+          {product.status === 'pending' && (
+            <>
+              <button
+                onClick={() => setShowRejectionModal(true)}
+                disabled={actionLoading}
+                className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Reject
+              </button>
+              <button
+                onClick={handleApprove}
+                disabled={actionLoading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                {actionLoading ? 'Processing...' : 'Approve'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={handleDelete}
+            disabled={actionLoading}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            Delete
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

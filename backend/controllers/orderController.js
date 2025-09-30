@@ -1950,7 +1950,20 @@ const cancelVendorPart = async (req, res) => {
     }
     
     if (shouldHaveCommission > 0) {
-      console.log(`✅ Commission should be reversed: $${shouldHaveCommission} - proceeding with reversal`);
+      // Check if commission should be reversed based on order status
+      // Commission should only be reversed if order has progressed beyond 'placed' status
+      const currentStatus = vendorOrder.status?.toLowerCase() || 'placed';
+      const statusesWithCommission = ['processing', 'accepted', 'shipped', 'delivered'];
+      
+      if (statusesWithCommission.includes(currentStatus)) {
+        console.log(`✅ Commission should be reversed: $${shouldHaveCommission} (status: ${currentStatus}) - proceeding with reversal`);
+      } else {
+        console.log(`ℹ️ Order status '${currentStatus}' - commission not yet paid, skipping reversal`);
+        shouldHaveCommission = 0; // Don't reverse commission for orders in 'placed' status
+      }
+    }
+    
+    if (shouldHaveCommission > 0) {
       
       const MonthlyCommission = require('../models/MonthlyCommission');
       const orderDate = new Date(vendorOrder.createdAt);
@@ -2078,11 +2091,18 @@ const cancelVendorPart = async (req, res) => {
       cancelledAt: vendorOrder.cancelledAt
     });
 
-    // Parent order status update disabled during cleanup
-    // if (vendorOrder.parentOrderId) {
-    //   const { updateParentOrderStatus } = require('./mixedOrderController');
-    //   await updateParentOrderStatus(vendorOrder.parentOrderId);
-    // }
+    // Update parent order status after vendor part cancellation
+    if (vendorOrder.parentOrderId) {
+      console.log(`🔄 Updating parent order status after vendor part cancellation`);
+      try {
+        const { recalculateParentOrderStatus } = require('./simpleStatusController');
+        await recalculateParentOrderStatus(vendorOrder.parentOrderId);
+        console.log(`✅ Parent order status recalculated after vendor part cancellation`);
+      } catch (parentStatusError) {
+        console.error(`❌ Failed to update parent order status:`, parentStatusError);
+        // Don't fail the operation, just log the error
+      }
+    }
 
     // Send confirmation email
     if (parentOrder.email) {
@@ -2095,6 +2115,18 @@ const cancelVendorPart = async (req, res) => {
     }
 
     console.log(`✅ CANCEL VENDOR PART COMPLETED successfully for order ${vendorOrderId}`);
+    
+    // Invalidate order caches to ensure fresh data in order history (asynchronous)
+    setImmediate(async () => {
+      try {
+        const cacheInvalidator = require('../utils/cacheInvalidator');
+        await cacheInvalidator.invalidateOrders();
+        console.log('🔄 Order caches invalidated after vendor part cancellation');
+      } catch (cacheError) {
+        console.error('❌ Failed to invalidate order caches after vendor part cancellation:', cacheError);
+        // Don't fail the operation, just log the error
+      }
+    });
     
     res.json({
       success: true,

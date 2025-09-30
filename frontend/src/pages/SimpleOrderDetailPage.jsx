@@ -449,7 +449,7 @@ const SimpleOrderDetailPage = () => {
       const result = await response.json();
       
       if (result.success) {
-        showSuccess('Order cancelled successfully! Commission has been reversed.');
+        showSuccess(result.message || 'Order cancelled successfully!');
         await loadOrderDetails(); // Refresh to show new status
       } else {
         showError(result.message || 'Failed to cancel order');
@@ -1012,7 +1012,7 @@ const SimpleOrderDetailPage = () => {
               <div className="mt-6 border-t border-gray-200 pt-4">
                 <div className="flex items-center justify-between text-lg font-medium text-gray-900">
                   <span>Total Amount</span>
-                  <span>${orderDetails.totalAmount}</span>
+                  <span>PKR{orderDetails.totalAmount}</span>
                 </div>
               </div>
             </div>

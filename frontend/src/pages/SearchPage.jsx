@@ -339,17 +339,7 @@ const SearchPage = () => {
             </button>
           </div>
 
-          {/* Search results info */}
-          {hasSearched && (
-            <div className="mt-4">
-              <p className="text-gray-600">
-                {isLoading ? 'Searching...' : 
-                  error ? 'Search failed' :
-                  `Found ${totalResults} result${totalResults !== 1 ? 's' : ''} for "${searchParams.get('q')}"`
-                }
-              </p>
-            </div>
-          )}
+
         </div>
       </div>
 
@@ -466,20 +456,10 @@ const SearchPage = () => {
               </div>
             ) : (
               <>
-                {/* Search Results Info */}
-                <div className="mb-6">
-                  <p className="text-gray-600">
-                    Found {totalResults} result{totalResults !== 1 ? 's' : ''} for "{searchParams.get('q')}"
-                    {products.length < totalResults && (
-                      <span className="text-sm text-gray-500 ml-2">
-                        (Showing {products.length} of {totalResults})
-                      </span>
-                    )}
-                  </p>
-                </div>
+
 
                 {/* Products Grid with Infinite Scroll */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {products.map((product, index) => (
                     <EnhancedProductCard
                       key={product._id}

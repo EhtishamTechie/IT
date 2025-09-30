@@ -280,22 +280,10 @@ const Properties = () => {
 
           {/* Properties Grid */}
           <div className="lg:w-3/4">
-            {/* Results Header */}
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900">
-                {loading && properties.length === 0 ? 'Loading...' : 
-                 properties.length === 0 ? 'Properties' :
-                 `${totalProperties} Properties Found`}
-              </h2>
-              {properties.length > 0 && (
-                <div className="text-sm text-gray-600">
-                  Showing {properties.length} of {totalProperties} properties
-                </div>
-              )}
-            </div>
+
 
             {loading && properties.length === 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {[...Array(6)].map((_, index) => (
                   <div key={index} className="bg-white rounded-lg shadow-sm border overflow-hidden animate-pulse">
                     <div className="aspect-video bg-gray-300"></div>
@@ -325,7 +313,7 @@ const Properties = () => {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {(properties || []).map((property, index) => (
                     <Link
                       key={property._id}

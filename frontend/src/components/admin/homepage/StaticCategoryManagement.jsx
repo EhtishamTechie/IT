@@ -27,11 +27,16 @@ const StaticCategoryManagement = () => {
       setLoading(true);
       const [staticResponse, allResponse] = await Promise.all([
         API.get(getApiUrl('homepage/static-categories')),
-        API.get(getApiUrl('categories'))
+        API.get(getApiUrl('categories'))  // Same as CategorySelector - gets ALL categories
       ]);
 
+      // Backend now automatically filters out null categories
       setStaticCategories(staticResponse.data.categories);
-      setAllCategories(allResponse.data);
+      setAllCategories(allResponse.data);  // Direct response data like CategorySelector
+      
+      console.log('Static categories fetched:', staticResponse.data.categories);
+      console.log('All categories fetched (same as banner management):', allResponse.data);
+      
       setError(null);
     } catch (err) {
       console.error('Error fetching categories:', err);
@@ -68,7 +73,7 @@ const StaticCategoryManagement = () => {
       
       // Debug image URLs
       products.forEach(product => {
-        console.log(`Product ${product.name} image:`, {
+        console.log(`Product ${product.title || product.name || 'Unknown'} image:`, {
           imageField: product.image,
           fullUrl: getImageUrl('products', product.image)
         });
@@ -112,7 +117,14 @@ const StaticCategoryManagement = () => {
   // Add or update a static category
   const handleCategorySelect = async (category) => {
     try {
-      const existingCategory = staticCategories.find(sc => sc.category._id === category._id);
+      // Add null check like the working CategorySelector does
+      if (!category || !category._id) {
+        console.error('Invalid category provided:', category);
+        toast.error('Invalid category selected');
+        return;
+      }
+
+      const existingCategory = staticCategories.find(sc => sc.category && sc.category._id === category._id);
       
       if (existingCategory) {
         // First set the selected products to prevent them from being filtered out
@@ -120,6 +132,7 @@ const StaticCategoryManagement = () => {
         // Then set the selected category which will trigger fetchCategoryProducts
         setSelectedCategory(existingCategory);
       } else {
+        // Backend now handles all validation (duplicates, max count, null checks)
         const response = await API.post(getApiUrl('homepage/static-categories'), {
           categoryId: category._id,
           displayOrder: staticCategories.length + 1
@@ -132,7 +145,11 @@ const StaticCategoryManagement = () => {
       }
     } catch (err) {
       console.error('Error managing category:', err);
-      toast.error('Failed to manage category');
+      if (err.response?.status === 400) {
+        toast.error(err.response.data?.message || 'Invalid request - check if category limit reached');
+      } else {
+        toast.error('Failed to manage category');
+      }
     }
   };
 
@@ -182,7 +199,10 @@ const StaticCategoryManagement = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Static Categories</h2>
+        <h2 className="text-lg font-medium text-gray-900 mb-4">Homepage Static Categories</h2>
+        <p className="text-sm text-gray-600 mb-6">
+          Select up to 4 existing categories to display on the homepage. Each category can showcase up to 8 products.
+        </p>
 
         {/* Display Static Categories */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -191,7 +211,7 @@ const StaticCategoryManagement = () => {
             
             return (
               <div key={index} className="border rounded-lg p-4">
-                {staticCategory ? (
+                {staticCategory && staticCategory.category && staticCategory.category._id ? (
                   <>
                     <h3 className="font-medium">{staticCategory.category.name}</h3>
                     <p className="text-sm text-gray-500 mt-1">
@@ -233,10 +253,12 @@ const StaticCategoryManagement = () => {
                       value=""
                     >
                       <option value="">Select a category</option>
-                      {allCategories.map(category => (
-                        <option key={category._id} value={category._id}>
-                          {category.name}
-                        </option>
+                      {allCategories
+                        .filter(category => !staticCategories.some(sc => sc.category?._id === category._id))
+                        .map(category => (
+                          <option key={category._id} value={category._id}>
+                            {category.name}
+                          </option>
                       ))}
                     </select>
                   </div>
@@ -296,8 +318,11 @@ const StaticCategoryManagement = () => {
                         alt={product.name}
                         className="w-full h-32 object-cover rounded"
                         onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/placeholder-product.jpg';
+                          // Prevent infinite retry by checking if already using fallback
+                          if (e.target.src !== '/placeholder-product.jpg') {
+                            e.target.onerror = null; // Prevent infinite loop
+                            e.target.src = '/placeholder-product.jpg';
+                          }
                         }}
                       />
                       <div className="mt-2">

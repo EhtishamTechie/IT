@@ -63,27 +63,37 @@ async function resolveMixedOrderStatus(order) {
       partialOrderType: 'admin_part'
     });
     
-    // Get vendor parts (forwarded orders)
+    // Get vendor parts (forwarded orders) - check both VendorOrder and legacy Order collections
     const vendorParts = await VendorOrder.find({
       parentOrderId: order._id
       // Remove splitFromMixedOrder filter to find all vendor parts for this parent order
     });
     
-    // console.log('🔍 [MIXED ORDER STATUS] Vendor parts found:', vendorParts.length);
-    vendorParts.forEach((vp, index) => {
+    // Also check for legacy vendor orders in Order collection
+    const legacyVendorParts = await Order.find({
+      parentOrderId: order._id,
+      orderType: { $in: ['vendor_only', 'vendor_part'] }
+    });
+    
+    // Combine both types of vendor parts
+    const allVendorParts = [...vendorParts, ...legacyVendorParts];
+    
+    console.log(`🔍 [MIXED ORDER STATUS] Vendor parts found: ${vendorParts.length} in VendorOrder, ${legacyVendorParts.length} legacy in Order`);
+    allVendorParts.forEach((vp, index) => {
       console.log(`🔍 [MIXED ORDER STATUS] Vendor part ${index + 1}:`, {
         id: vp._id,
         orderNumber: vp.orderNumber,
         status: vp.status,
-        vendorName: vp.vendorName,
+        vendorName: vp.vendorName || vp.vendor,
+        isLegacy: !vp.vendorName, // VendorOrder has vendorName, Order doesn't
         splitFromMixedOrder: vp.splitFromMixedOrder
       });
     });
     
     console.log('🔍 [MIXED ORDER STATUS] Mixed order parts summary:', {
       adminPart: adminPart ? `${adminPart.orderNumber} (${adminPart.status})` : 'none',
-      vendorParts: vendorParts.length,
-      vendorPartStatuses: vendorParts.map(vp => `${vp.orderNumber} (${vp.status})`)
+      vendorParts: allVendorParts.length,
+      vendorPartStatuses: allVendorParts.map(vp => `${vp.orderNumber} (${vp.status})`)
     });
     
     // 🚨 AUTO-FIX: Check for inconsistent state in mixed orders too
@@ -91,7 +101,7 @@ async function resolveMixedOrderStatus(order) {
                                order.cancelled_by_customer === true || 
                                order.cancelled_by_user === true ||
                                order.isCancelled === true;
-    const hasNonCancelledVendorParts = vendorParts.some(vp => 
+    const hasNonCancelledVendorParts = allVendorParts.some(vp => 
       !['cancelled', 'cancelled_by_customer', 'cancelled_by_user'].includes(vp.status)
     );
     
@@ -110,7 +120,7 @@ async function resolveMixedOrderStatus(order) {
       console.log(`🔧 [MIXED ORDER STATUS] Auto-fixing vendor part statuses...`);
       
       // Fix the inconsistent vendor parts
-      for (const vendorPart of vendorParts) {
+      for (const vendorPart of allVendorParts) {
         if (!['cancelled', 'cancelled_by_customer', 'cancelled_by_user'].includes(vendorPart.status)) {
           console.log(`🔧 [MIXED ORDER STATUS] Updating vendor part ${vendorPart.orderNumber} from ${vendorPart.status} to cancelled_by_customer`);
           
@@ -207,7 +217,7 @@ async function resolveMixedOrderStatus(order) {
     }
     
     // Determine if order has been split
-    const actuallyHasParts = adminPart || vendorParts.length > 0;
+    const actuallyHasParts = adminPart || allVendorParts.length > 0;
     console.log('🔍 [MIXED ORDER STATUS] Actually has parts:', actuallyHasParts);
     
     if (!actuallyHasParts) {
@@ -234,8 +244,8 @@ async function resolveMixedOrderStatus(order) {
     }
     
     // Add vendor part statuses if they exist
-    if (vendorParts && vendorParts.length > 0) {
-      vendorParts.forEach((vp, index) => {
+    if (allVendorParts && allVendorParts.length > 0) {
+      allVendorParts.forEach((vp, index) => {
         if (vp.status) {
           allStatuses.push(vp.status);
           console.log(`📋 [MIXED ORDER STATUS] Added vendor part ${index + 1} status:`, vp.status);
@@ -244,31 +254,33 @@ async function resolveMixedOrderStatus(order) {
     }
     
     // Always check for vendor items that haven't been matched to any vendor part
-    if (order.cart && order.cart.length > 0) {
+    // BUT ONLY if there are NO vendor parts for this order at all
+    // If vendor parts exist, they should represent all vendor items, so we don't double-count
+    if (order.cart && order.cart.length > 0 && allVendorParts.length === 0) {
+      console.log(`🔍 [MIXED ORDER STATUS] No vendor parts found, checking for unmatched vendor items in main cart`);
       const unmatchedVendorItems = order.cart.filter(item => {
         if (!item.vendor && !item.assignedVendor) {
           return false; // Not a vendor item
         }
-        
-        // Check if this vendor item has a corresponding vendor part
-        const hasMatchingVendorPart = vendorParts.some(vp => {
-          // Simple matching logic - could be improved
-          return vp.items && vp.items.some(vpItem => 
-            vpItem.price === item.price && vpItem.quantity === item.quantity
-          );
-        });
-        
-        return !hasMatchingVendorPart; // Return items that don't have matching vendor parts
+        console.log(`🔍 [MIXED ORDER STATUS] Found vendor item in main cart: "${item.title}" - vendor: ${item.vendor}`);
+        return true; // This is a vendor item that should be included since no vendor parts exist
       });
       
       if (unmatchedVendorItems.length > 0) {
-        // Add status for each unmatched vendor item (typically 'placed')
+        console.log(`⚠️ [MIXED ORDER STATUS] Found ${unmatchedVendorItems.length} vendor items in main cart (no vendor parts exist)`);
+        // Add status for each vendor item from main cart
         unmatchedVendorItems.forEach(item => {
           const itemStatus = item.status || 'placed';
           allStatuses.push(itemStatus);
-          console.log(`📋 [MIXED ORDER STATUS] Added unmatched vendor item "${item.title || item.productId?.title}" status:`, itemStatus);
+          console.log(`📋 [MIXED ORDER STATUS] Added vendor item from main cart "${item.title || item.productId?.title}" status:`, itemStatus);
         });
+      } else {
+        console.log(`✅ [MIXED ORDER STATUS] No vendor items found in main cart`);
       }
+    } else if (allVendorParts.length > 0) {
+      console.log(`✅ [MIXED ORDER STATUS] Vendor parts exist (${allVendorParts.length}), ignoring vendor items from main cart to avoid double-counting`);
+    } else {
+      console.log(`✅ [MIXED ORDER STATUS] No cart items to check`);
     }
     
     console.log('🔍 [MIXED ORDER STATUS] All collected statuses:', allStatuses);
@@ -296,8 +308,8 @@ async function resolveMixedOrderStatus(order) {
         statusDisplay: cancellationStatus,
         unifiedStatus: cancellationStatus,
         statusSource: 'all-parts-cancelled',
-        subOrderCount: (adminPart ? 1 : 0) + vendorParts.length,
-        vendorOrderCount: vendorParts.length,
+        subOrderCount: (adminPart ? 1 : 0) + allVendorParts.length,
+        vendorOrderCount: allVendorParts.length,
         allSubStatuses: allStatuses,
         canCustomerCancel: false,
         canAdminChange: cancellationStatus !== 'cancelled_by_customer'
@@ -380,7 +392,7 @@ async function resolveMixedOrderStatus(order) {
       statusSource: 'mixed-order-calculated',
       allSubStatuses: allStatuses,
       activeSubStatuses: activeStatuses,
-      subOrderCount: (adminPart ? 1 : 0) + vendorParts.length
+      subOrderCount: (adminPart ? 1 : 0) + allVendorParts.length
     });
 
     const result = {
@@ -390,8 +402,8 @@ async function resolveMixedOrderStatus(order) {
       statusDisplay: calculatedStatus,        // For frontend
       unifiedStatus: calculatedStatus,        // For mixed orders
       statusSource: 'mixed-order-calculated',
-      subOrderCount: (adminPart ? 1 : 0) + vendorParts.length,
-      vendorOrderCount: vendorParts.length,
+      subOrderCount: (adminPart ? 1 : 0) + allVendorParts.length,
+      vendorOrderCount: allVendorParts.length,
       allSubStatuses: allStatuses,
       // Add cancel permissions for frontend
       canCustomerCancel: !['delivered', 'cancelled', 'cancelled_by_customer'].includes(calculatedStatus),

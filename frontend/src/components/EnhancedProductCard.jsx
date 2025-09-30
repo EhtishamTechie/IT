@@ -107,11 +107,11 @@ const EnhancedProductCard = ({
   };
 
   const heightClasses = {
-    small: 'h-[300px]',
-    normal: 'h-[350px]',
-    large: 'h-[400px]',
-    wide: 'h-[300px]',
-    tall: 'h-[450px]'
+    small: 'h-[240px] sm:h-[300px]',
+    normal: 'h-[260px] sm:h-[350px]',
+    large: 'h-[280px] sm:h-[400px]',
+    wide: 'h-[240px] sm:h-[300px]',
+    tall: 'h-[320px] sm:h-[450px]'
   };
 
   return (
@@ -233,13 +233,13 @@ const EnhancedProductCard = ({
         </div>
 
         {/* Price Section */}
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-2 sm:mb-3">
           <div className="flex flex-col">
-            <span className="text-lg font-bold text-gray-900">
+            <span className="text-xs sm:text-lg font-bold text-gray-900">
                PKR {product.price || '0.00'}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-sm text-gray-500 line-through">
+              <span className="text-xs sm:text-sm text-gray-500 line-through">
                 PKR {product.originalPrice}
               </span>
             )}

@@ -444,23 +444,20 @@ const AllProductsPage = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
                 All Products
               </h1>
-              <p className="text-gray-600 text-lg">
-                Discover {products.length} amazing products {totalProducts > products.length && `of ${totalProducts} total`}
-              </p>
             </div>
 
             {/* Sort and Filter Controls */}
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-hidden">
               {/* Category Filter */}
-              <div className="min-w-[200px]">
+              <div className="w-full sm:min-w-[200px] sm:flex-1 relative">
                 <select 
                   value={filters.category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                  className="w-full max-w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors truncate"
                 >
                   <option value="">All Categories</option>
                   {categories.map((category, index) => (
-                    <option key={`category-${index}`} value={category}>
+                    <option key={`category-${index}`} value={category} className="truncate">
                       {category}
                     </option>
                   ))}
@@ -468,11 +465,11 @@ const AllProductsPage = () => {
               </div>
 
               {/* Sort Dropdown */}
-              <div className="min-w-[200px]">
+              <div className="w-full sm:min-w-[200px] sm:flex-1 relative">
                 <select 
                   value={filters.sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors"
+                  className="w-full max-w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors truncate"
                 >
                   <option value="relevance">Sort by Relevance</option>
                   <option value="price-low">Price: Low to High</option>
@@ -487,17 +484,7 @@ const AllProductsPage = () => {
 
       {/* Products Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Products Count */}
-        {totalProducts > 0 && (
-          <div className="mb-6">
-            <p className="text-gray-600">
-              Showing {products.length} of {totalProducts} products
-              {filters.category && filters.category !== '' && ` in "${filters.category}"`}
-            </p>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredAndSortedProducts.map((product, index) => (
             <div
               key={product._id}

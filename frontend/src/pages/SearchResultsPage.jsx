@@ -167,11 +167,6 @@ const SearchResultsPage = () => {
               <h1 className="text-2xl font-bold text-gray-900">
                 Search Results for "{searchQuery}"
               </h1>
-              {!loading && (
-                <p className="text-gray-600">
-                  {products.length} {products.length === 1 ? 'product' : 'products'} found
-                </p>
-              )}
             </div>
             
             {/* View Toggle */}
@@ -286,17 +281,12 @@ const SearchResultsPage = () => {
               </div>
             ) : (
               <>
-                {/* Results Header */}
-                <div className="flex items-center justify-between mb-6">
-                  <div className="text-sm text-gray-600">
-                    Showing {((currentPage - 1) * resultsPerPage) + 1}-{Math.min(currentPage * resultsPerPage, totalResults)} of {totalResults} results for "{searchQuery}"
-                  </div>
-                </div>
+
                 
                 {/* Products Grid */}
                 <div className={
                   viewMode === 'grid' 
-                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8"
+                    ? "grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8"
                     : "space-y-4 mb-8"
                 }>
                   {products.map((product) => (

@@ -55,7 +55,7 @@ const UserProfile = () => {
       console.log('🔍 Loading user details for ID:', userId);
       console.log('🔑 Using token:', token ? token.substring(0, 20) + '...' : 'No token');
       
-      const response = await axios.get(`${getApiUrl()}/admin/users/${userId}`, { headers });
+      const response = await axios.get(`${getApiUrl()}/admin/users/users/${userId}`, { headers });
       
       console.log('📊 Response received:', response.status, response.data);
       
@@ -80,7 +80,7 @@ const UserProfile = () => {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
-      const response = await axios.get(`${getApiUrl()}/admin/users/${userId}/orders?page=${page}&limit=${ordersPerPage}`, { headers });
+      const response = await axios.get(`${getApiUrl()}/admin/users/users/${userId}/orders?page=${page}&limit=${ordersPerPage}`, { headers });
       
       if (response.data.success && Array.isArray(response.data.orders)) {
         setOrders(response.data.orders);

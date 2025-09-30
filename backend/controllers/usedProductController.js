@@ -921,6 +921,56 @@ const getAllUsedProductsAdmin = async (req, res) => {
   }
 };
 
+// Delete used product (Admin only)
+const deleteUsedProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🗑️ Admin delete request for used product:', id);
+
+    // Find the product first to get image filenames for cleanup
+    const product = await UsedProduct.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'Used product not found'
+      });
+    }
+
+    // Delete images from filesystem
+    if (product.images && product.images.length > 0) {
+      const uploadPath = path.join(__dirname, '../uploads/used-products');
+      for (const imageName of product.images) {
+        try {
+          const imagePath = path.join(uploadPath, imageName);
+          await fs.unlink(imagePath);
+          console.log('🗑️ Deleted image file:', imageName);
+        } catch (imageError) {
+          console.warn('⚠️ Could not delete image file:', imageName, imageError.message);
+        }
+      }
+    }
+
+    // Delete the product from database
+    await UsedProduct.findByIdAndDelete(id);
+
+    console.log('✅ Used product deleted successfully:', id);
+
+    res.json({
+      success: true,
+      message: 'Used product deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('❌ Delete used product error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting used product',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   upload,
   submitUsedProduct,
@@ -931,6 +981,7 @@ module.exports = {
   getPendingRequests,
   approveUsedProduct,
   rejectUsedProduct,
+  deleteUsedProduct,
   getAllUsedProductsAdmin,
   getUsedProductsForAdmin,
   getUsedProductByIdForAdmin,

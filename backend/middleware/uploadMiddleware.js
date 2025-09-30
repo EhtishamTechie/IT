@@ -46,12 +46,12 @@ const vendorLogoStorage = multer.diskStorage({
 // File filter for images
 const imageFileFilter = (req, file, cb) => {
   // Check file type
-  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+  const allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only JPEG, PNG and GIF image files are allowed!'), false);
+    cb(new Error('Only JPEG, PNG, GIF and WEBP image files are allowed!'), false);
   }
 };
 
@@ -69,13 +69,13 @@ const videoFileFilter = (req, file, cb) => {
 
 // Combined file filter for images and videos
 const mediaFileFilter = (req, file, cb) => {
-  const allowedImageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+  const allowedImageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
   const allowedVideoMimes = ['video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov'];
   
   if (allowedImageMimes.includes(file.mimetype) || allowedVideoMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files (JPEG, PNG, GIF) and video files (MP4, WebM, OGG, AVI, MOV) are allowed!'), false);
+    cb(new Error('Only image files (JPEG, PNG, GIF, WEBP) and video files (MP4, WebM, OGG, AVI, MOV) are allowed!'), false);
   }
 };
 
@@ -154,11 +154,11 @@ const uploadProductMedia = multer({
       }
     } else {
       // Image file filter for other fields
-      const allowedImageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      const allowedImageMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
       if (allowedImageMimes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Only JPEG, PNG and GIF image files are allowed!'), false);
+        cb(new Error('Only JPEG, PNG, GIF and WEBP image files are allowed!'), false);
       }
     }
   },

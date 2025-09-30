@@ -4,7 +4,8 @@ const {
   getUsedProductsForAdmin,
   getUsedProductByIdForAdmin,
   approveUsedProduct,
-  rejectUsedProduct
+  rejectUsedProduct,
+  deleteUsedProduct
 } = require('../controllers/usedProductController');
 const { protect, adminOnly } = require('../middleware/authMiddleware');
 
@@ -23,5 +24,8 @@ router.post('/:id/approve', approveUsedProduct);
 
 // Reject used product
 router.post('/:id/reject', rejectUsedProduct);
+
+// Delete used product
+router.delete('/:id', deleteUsedProduct);
 
 module.exports = router;

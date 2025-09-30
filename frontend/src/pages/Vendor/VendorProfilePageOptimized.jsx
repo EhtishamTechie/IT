@@ -346,9 +346,9 @@ const VendorProfilePageOptimized = () => {
     const file = e.target.files[0];
     if (file) {
       // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
       if (!allowedTypes.includes(file.type)) {
-        setError('Please select a valid image file (JPEG, PNG, GIF)');
+        setError('Please select a valid image file (JPEG, PNG, GIF, WEBP)');
         return;
       }
 

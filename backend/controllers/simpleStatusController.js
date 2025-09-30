@@ -90,9 +90,27 @@ const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Handle commission reversal for customer cancellations
+    // Handle commission reversal for customer cancellations (only for orders with vendor items and appropriate status)
     if (status === 'cancelled_by_customer' && currentStatus !== 'cancelled_by_customer') {
-      await reverseCommissions(orderId, order);
+      // Check if this order has vendor items before reversing commissions
+      const hasVendorItems = isVendorOrder || 
+        (order.cart && order.cart.some(item => item.vendor)) ||
+        (order.items && order.items.some(item => item.vendor));
+      
+      if (hasVendorItems) {
+        // Commission should only be reversed if order has progressed beyond 'placed' status
+        // At 'placed' status, no commission has been paid yet
+        const statusesWithCommission = ['processing', 'shipped', 'delivered'];
+        
+        if (statusesWithCommission.includes(currentStatus)) {
+          console.log(`💰 [COMMISSION] Order ${orderId} has vendor items and status '${currentStatus}', processing commission reversal`);
+          await reverseCommissions(orderId, order);
+        } else {
+          console.log(`ℹ️ [COMMISSION] Order ${orderId} has vendor items but status '${currentStatus}' - no commission to reverse (commission not yet paid)`);
+        }
+      } else {
+        console.log(`ℹ️ [COMMISSION] Order ${orderId} is admin-only (no vendor items), skipping commission reversal`);
+      }
     }
 
     // STOCK REVERSAL - Handle stock reversal for admin/vendor cancellations (status = 'cancelled')
@@ -187,50 +205,56 @@ const updateOrderStatus = async (req, res) => {
       isSubOrder: !!updatedOrder.parentOrderId
     }, null, 2)}`);
 
-    // Send email notification for status updates
+    // Send email notification for status updates (asynchronous)
     if (currentStatus !== status) {
-      // Determine customer email based on order type
-      let customerEmail = null;
-      if (isVendorOrder && updatedOrder.customer && updatedOrder.customer.email) {
-        customerEmail = updatedOrder.customer.email;
-      } else if (!isVendorOrder && updatedOrder.email) {
-        customerEmail = updatedOrder.email;
-      }
-      
-      if (customerEmail) {
-        try {
-          const { emailService } = require('../services/emailService');
-          await emailService.sendOrderStatusUpdate(customerEmail, updatedOrder, status, currentStatus);
-          console.log(`📧 [EMAIL] Order status update email sent for ${updatedOrder.orderNumber}: ${currentStatus} → ${status}`);
-        } catch (emailError) {
-          console.error('❌ [EMAIL] Failed to send order status update email:', emailError);
-          // Don't fail the operation if email fails
+      setImmediate(async () => {
+        // Determine customer email based on order type
+        let customerEmail = null;
+        if (isVendorOrder && updatedOrder.customer && updatedOrder.customer.email) {
+          customerEmail = updatedOrder.customer.email;
+        } else if (!isVendorOrder && updatedOrder.email) {
+          customerEmail = updatedOrder.email;
         }
-      } else {
-        console.log(`⚠️ [EMAIL] No customer email found for ${isVendorOrder ? 'VendorOrder' : 'Order'} ${updatedOrder.orderNumber}`);
-      }
+        
+        if (customerEmail) {
+          try {
+            const { emailService } = require('../services/emailService');
+            await emailService.sendOrderStatusUpdate(customerEmail, updatedOrder, status, currentStatus);
+            console.log(`📧 [EMAIL] Order status update email sent for ${updatedOrder.orderNumber}: ${currentStatus} → ${status}`);
+          } catch (emailError) {
+            console.error('❌ [EMAIL] Failed to send order status update email:', emailError);
+            // Don't fail the operation if email fails
+          }
+        } else {
+          console.log(`⚠️ [EMAIL] No customer email found for ${isVendorOrder ? 'VendorOrder' : 'Order'} ${updatedOrder.orderNumber}`);
+        }
+      });
     }
 
-    // If this is a sub-order (has parentOrderId), recalculate parent order status
+    // If this is a sub-order (has parentOrderId), recalculate parent order status (asynchronous)
     if (updatedOrder.parentOrderId) {
       console.log(`🔄 Recalculating parent order status for parent: ${updatedOrder.parentOrderId}`);
-      try {
-        await recalculateParentOrderStatus(updatedOrder.parentOrderId);
-      } catch (parentError) {
-        console.error(`❌ Failed to recalculate parent order status:`, parentError);
-        // Don't fail the main operation, just log the error
-      }
+      setImmediate(async () => {
+        try {
+          await recalculateParentOrderStatus(updatedOrder.parentOrderId);
+        } catch (parentError) {
+          console.error(`❌ Failed to recalculate parent order status:`, parentError);
+          // Don't fail the main operation, just log the error
+        }
+      });
     }
 
-    // Invalidate order caches to ensure fresh data in order history
-    try {
-      const cacheInvalidator = require('../utils/cacheInvalidator');
-      await cacheInvalidator.invalidateOrders();
-      console.log('🔄 Order caches invalidated after status update');
-    } catch (cacheError) {
-      console.error('❌ Failed to invalidate order caches:', cacheError);
-      // Don't fail the operation, just log the error
-    }
+    // Invalidate order caches to ensure fresh data in order history (asynchronous)
+    setImmediate(async () => {
+      try {
+        const cacheInvalidator = require('../utils/cacheInvalidator');
+        await cacheInvalidator.invalidateOrders();
+        console.log('🔄 Order caches invalidated after status update');
+      } catch (cacheError) {
+        console.error('❌ Failed to invalidate order caches:', cacheError);
+        // Don't fail the operation, just log the error
+      }
+    });
 
     res.json({
       success: true,
@@ -500,10 +524,32 @@ const cancelCustomerOrder = async (req, res) => {
       });
     }
 
-    // Reverse commissions before updating status
-    console.log(`🔧 [CANCEL ORDER] About to reverse commissions for order ${orderId}`);
-    await reverseCommissions(order._id, order);
-    console.log(`✅ [CANCEL ORDER] Commission reversal completed for order ${orderId}`);
+    // Reverse commissions before updating status (only for orders with vendor items and appropriate status)
+    const isVendorOrder = order.constructor.modelName === 'VendorOrder';
+    const hasVendorItems = isVendorOrder || 
+      (order.cart && order.cart.some(item => item.vendor)) ||
+      (order.items && order.items.some(item => item.vendor));
+    
+    let commissionWasReversed = false;
+    
+    if (hasVendorItems) {
+      const currentStatus = order.status || 'placed';
+      
+      // Commission should only be reversed if order has progressed beyond 'placed' status
+      // At 'placed' status, no commission has been paid yet
+      const statusesWithCommission = ['processing', 'shipped', 'delivered'];
+      
+      if (statusesWithCommission.includes(currentStatus)) {
+        console.log(`🔧 [CANCEL ORDER] Order ${orderId} has vendor items and status '${currentStatus}', processing commission reversal`);
+        await reverseCommissions(order._id, order);
+        commissionWasReversed = true;
+        console.log(`✅ [CANCEL ORDER] Commission reversal completed for order ${orderId}`);
+      } else {
+        console.log(`ℹ️ [CANCEL ORDER] Order ${orderId} has vendor items but status '${currentStatus}' - no commission to reverse (commission not yet paid)`);
+      }
+    } else {
+      console.log(`ℹ️ [CANCEL ORDER] Order ${orderId} is admin-only (no vendor items), skipping commission reversal`);
+    }
 
     // Update status to cancelled_by_customer
     const updateData = {
@@ -512,7 +558,7 @@ const cancelCustomerOrder = async (req, res) => {
       cancelledAt: new Date(),
       cancellationReason: reason || 'Cancelled by customer',
       cancelledBy: 'customer',
-      commissionReversed: true, // Mark commission as reversed
+      commissionReversed: commissionWasReversed, // Only mark as reversed if commission was actually processed
       $push: {
         statusHistory: {
           status: 'cancelled_by_customer',
@@ -570,19 +616,47 @@ const cancelCustomerOrder = async (req, res) => {
           console.error(`❌ Failed to update vendor order ${vendorOrder.orderNumber}:`, vendorUpdateError);
         }
       }
+
+      // CRITICAL: Also update sub-orders (child orders) that have this order as parent
+      const subOrders = await Order.find({
+        parentOrderId: order._id
+      });
+      
+      console.log(`🔍 Found ${subOrders.length} sub-orders for ${order.orderNumber}`);
+      
+      for (const subOrder of subOrders) {
+        try {
+          await Order.findByIdAndUpdate(subOrder._id, updateData);
+          console.log(`✅ Updated sub-order ${subOrder.orderNumber} status to cancelled_by_customer`);
+        } catch (subOrderUpdateError) {
+          console.error(`❌ Failed to update sub-order ${subOrder.orderNumber}:`, subOrderUpdateError);
+        }
+      }
     }
 
-    console.log(`✅ Order ${orderId} cancelled by customer with commission reversal`);
+    console.log(`✅ Order ${orderId} cancelled by customer${commissionWasReversed ? ' (commission reversed)' : hasVendorItems ? ' (no commission to reverse)' : ' (admin-only)'}`);
+
+    // Invalidate order caches to ensure fresh data in order history (asynchronous)
+    setImmediate(async () => {
+      try {
+        const cacheInvalidator = require('../utils/cacheInvalidator');
+        await cacheInvalidator.invalidateOrders();
+        console.log('🔄 Order caches invalidated after customer cancellation');
+      } catch (cacheError) {
+        console.error('❌ Failed to invalidate order caches after cancellation:', cacheError);
+        // Don't fail the operation, just log the error
+      }
+    });
 
     res.json({
       success: true,
-      message: 'Order cancelled successfully. Commission has been reversed.',
+      message: 'Order cancelled successfully.',
       data: {
         orderId,
         orderNumber: order.orderNumber,
         newStatus: 'cancelled_by_customer',
         cancelledAt: new Date(),
-        commissionReversed: true
+        commissionReversed: commissionWasReversed
       }
     });
 
@@ -738,10 +812,22 @@ const recalculateParentOrderStatus = async (parentOrderId) => {
     // Calculate new parent status using the same logic as mixed order resolver
     let newParentStatus;
     
-    // If no active orders (all cancelled), parent should be cancelled
+    // If no active orders (all cancelled), determine the specific cancellation type
     if (activeStatuses.length === 0) {
-      newParentStatus = 'cancelled';
-      console.log('🎯 [PARENT STATUS RECALC] All sub-orders cancelled → CANCELLED');
+      // All sub-orders are cancelled - determine the most specific cancellation reason
+      if (allStatuses.every(status => status === 'cancelled_by_customer')) {
+        newParentStatus = 'cancelled_by_customer';
+        console.log('🎯 [PARENT STATUS RECALC] All sub-orders cancelled by customer → CANCELLED_BY_CUSTOMER');
+      } else if (allStatuses.includes('cancelled_by_customer')) {
+        newParentStatus = 'cancelled_by_customer';
+        console.log('🎯 [PARENT STATUS RECALC] Some sub-orders cancelled by customer → CANCELLED_BY_CUSTOMER');
+      } else if (allStatuses.every(status => status === 'cancelled_by_user')) {
+        newParentStatus = 'cancelled_by_user';
+        console.log('🎯 [PARENT STATUS RECALC] All sub-orders cancelled by user → CANCELLED_BY_USER');
+      } else {
+        newParentStatus = 'cancelled';
+        console.log('🎯 [PARENT STATUS RECALC] All sub-orders cancelled (mixed types) → CANCELLED');
+      }
     } else if (activeStatuses.every(status => status === 'delivered')) {
       newParentStatus = 'delivered';
       console.log('🎯 [PARENT STATUS RECALC] All active parts delivered → DELIVERED');
@@ -784,6 +870,18 @@ const recalculateParentOrderStatus = async (parentOrderId) => {
       });
       
       console.log(`✅ [PARENT STATUS RECALC] Parent order ${parentOrder.orderNumber} status updated: ${parentOrder.status} → ${newParentStatus}`);
+      
+      // Invalidate order caches to ensure fresh data in order history (asynchronous)
+      setImmediate(async () => {
+        try {
+          const cacheInvalidator = require('../utils/cacheInvalidator');
+          await cacheInvalidator.invalidateOrders();
+          console.log('🔄 [PARENT STATUS RECALC] Order caches invalidated after parent status update');
+        } catch (cacheError) {
+          console.error('❌ [PARENT STATUS RECALC] Failed to invalidate order caches:', cacheError);
+          // Don't fail the operation, just log the error
+        }
+      });
     } else {
       console.log(`ℹ️ [PARENT STATUS RECALC] Parent order status unchanged: ${newParentStatus}`);
     }

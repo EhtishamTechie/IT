@@ -423,23 +423,22 @@ const GroupCategoryPage = () => {
               <h1 className="text-3xl font-bold text-gray-900 capitalize">
                 {displayGroup} Products
               </h1>
-              <p className="text-gray-600 mt-2">
-                {products.length} products found {totalProducts > products.length && `of ${totalProducts} total`}
-              </p>
             </div>
             
             {/* Controls */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500"
-              >
-                <option value="newest">Newest First</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="popularity">Most Popular</option>
-              </select>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-hidden">
+              <div className="w-full sm:min-w-[200px] sm:flex-1 relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full max-w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors truncate"
+                >
+                  <option value="newest">Newest First</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="popularity">Most Popular</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>
@@ -447,14 +446,7 @@ const GroupCategoryPage = () => {
 
       {/* Products */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Products Count */}
-        {totalProducts > 0 && (
-          <div className="mb-6">
-            <p className="text-gray-600">
-              Showing {products.length} of {totalProducts} products in "{displayGroup}"
-            </p>
-          </div>
-        )}
+
 
         {products.length === 0 && !loading ? (
           <div className="text-center py-12">
@@ -467,7 +459,7 @@ const GroupCategoryPage = () => {
             <p className="text-gray-500">No products available in this category yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {sortedProducts.map((product, index) => (
               <div
                 key={product._id}

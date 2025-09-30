@@ -117,9 +117,10 @@ const SpecialProductsManager = ({ type }) => {
         setError(null);
         
         try {
+            // Backend expects category name, not ID
             const response = await axios.get(getApiUrl('products'), {
                 params: {
-                    category: selectedCategory.name,
+                    category: selectedCategory.name, // Use category name as backend expects
                     isActive: true,
                     page,
                     limit: PAGE_SIZE,
@@ -127,6 +128,10 @@ const SpecialProductsManager = ({ type }) => {
                 }
             });
 
+            console.log('Category products response:', response.data);
+            console.log('Selected category name:', selectedCategory.name);
+            console.log('Total products returned:', response.data.products?.length);
+            
             // Filter out already selected products
             const availableProducts = (response.data.products || []).filter(product => 
                 !selectedProducts.some(sp => sp._id === product._id)
@@ -143,9 +148,9 @@ const SpecialProductsManager = ({ type }) => {
         }
     };
 
-    const handleCategoryChange = async (categoryId) => {
-        console.log('🏷️ [SPECIAL PRODUCTS] Category selected:', categoryId);
-        if (!categoryId) {
+    const handleCategoryChange = async (category) => {
+        console.log('🏷️ [SPECIAL PRODUCTS] Category selected:', category);
+        if (!category) {
             setSelectedCategory(null);
             setCategoryProducts([]);
             return;
@@ -153,24 +158,9 @@ const SpecialProductsManager = ({ type }) => {
 
         // Reset pagination when changing category
         setPage(1);
-        setLoading(true);
-        setError(null);
+        setSelectedCategory(category); // Directly set the category object
         
-        try {
-            // First, get the category details
-            const categoryResponse = await axios.get(getApiUrl(`categories/${categoryId}`));
-            setSelectedCategory(categoryResponse.data);
-
-            // Products will be loaded by the useEffect watching selectedCategory and page
-        } catch (error) {
-            const message = error.response?.data?.message || error.message || 'Error loading category';
-            setError(message);
-            toast.error(message);
-            setSelectedCategory(null);
-            setCategoryProducts([]);
-        } finally {
-            setLoading(false);
-        }
+        // Products will be loaded by the useEffect watching selectedCategory and page
     };
 
     const handleAddProduct = async (product) => {
@@ -263,7 +253,10 @@ const SpecialProductsManager = ({ type }) => {
 
             {/* Category Selection */}
             <Box sx={{ mb: 4 }}>
-                <CategorySelector onCategoryChange={handleCategoryChange} />
+                <CategorySelector 
+                    onCategoryChange={handleCategoryChange} 
+                    returnFullObject={true}
+                />
             </Box>
 
             {/* Selected Products Section */}
@@ -283,28 +276,34 @@ const SpecialProductsManager = ({ type }) => {
                 {!isPreviewMode ? (
                     <Grid container spacing={2}>
                         {selectedProducts.map((product) => (
-                            <Grid key={product._id} gridColumn={{ xs: "span 12", sm: "span 6", md: "span 3" }}>
-                            <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                            <Grid item xs={12} sm={6} md={4} lg={3} key={product._id}>
+                                <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', maxWidth: 300 }}>
                                 <CardMedia
                                     component="img"
                                     sx={{
                                         height: 200,
-                                        objectFit: 'cover'
+                                        objectFit: 'cover',
+                                        bgcolor: 'grey.200'
                                     }}
-                                    image={getImageUrl('products', getProductImage(product))}
-                                    alt={product.title}
+                                    image={getImageUrl('products', getProductImage(product)) || '/placeholder-image.png'}
+                                    alt={product.title || product.name || 'Product'}
                                     onError={(e) => {
-                                        console.log('🖼️ Image load failed:', product.title, getProductImage(product));
-                                        e.target.onerror = null;
-                                        e.target.src = '/assets/no-image.png';
+                                        e.target.style.display = 'none';
+                                        // Create a properly sized placeholder
+                                        if (!e.target.nextSibling) {
+                                            const placeholder = document.createElement('div');
+                                            placeholder.style.cssText = 'height: 200px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px; border: 1px solid #e0e0e0;';
+                                            placeholder.textContent = 'No Image Available';
+                                            e.target.parentNode.appendChild(placeholder);
+                                        }
                                     }}
                                 />
                                 <CardContent sx={{ flexGrow: 1 }}>
                                     <Typography variant="body1" noWrap>
-                                        {product.name}
+                                        {product.title || product.name || 'Untitled Product'}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                        ${product.price}
+                                        PKR {product.price || '0.00'}
                                     </Typography>
                                 </CardContent>
                                 <Box sx={{ p: 1 }}>
@@ -353,17 +352,10 @@ const SpecialProductsManager = ({ type }) => {
                         <Grid container spacing={2}>
                             {categoryProducts.map((product) => (
                                 <Grid 
-                                    key={product._id} 
-                                    sx={{ 
-                                        gridColumn: { 
-                                            xs: 'span 12', 
-                                            sm: 'span 6', 
-                                            md: 'span 4', 
-                                            lg: 'span 2' 
-                                        } 
-                                    }}
+                                    item xs={12} sm={6} md={4} lg={3}
+                                    key={product._id}
                                 >
-                                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                                    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', maxWidth: 300 }}>
                                         <CardMedia
                                             component="img"
                                             sx={{
@@ -371,21 +363,28 @@ const SpecialProductsManager = ({ type }) => {
                                                 objectFit: 'cover',
                                                 background: '#f5f5f5'
                                             }}
-                                            image={getImageUrl('products', getProductImage(product))}
-                                            alt={product.title}
+                                            image={getImageUrl('products', getProductImage(product)) || '/placeholder-image.png'}
+                                            alt={product.title || product.name || 'Product'}
                                             onError={(e) => {
-                                                console.log('🖼️ Image load failed:', product.image || product.images?.[0]);
-                                                e.target.onerror = null;
-                                                e.target.src = '/assets/no-image.png';
+                                                // Prevent infinite loop
+                                                if (!e.target.dataset.errorHandled) {
+                                                    e.target.dataset.errorHandled = 'true';
+                                                    e.target.style.display = 'none';
+                                                    // Create a small placeholder
+                                                    const placeholder = document.createElement('div');
+                                                    placeholder.style.cssText = 'height: 160px; background: #f5f5f5; display: flex; align-items: center; justify-content: center; color: #999; font-size: 12px; border: 1px solid #e0e0e0;';
+                                                    placeholder.textContent = 'No Image';
+                                                    e.target.parentNode.appendChild(placeholder);
+                                                }
                                             }}
                                             loading="lazy"
                                         />
                                         <CardContent sx={{ flexGrow: 1 }}>
                                             <Typography variant="body1" noWrap>
-                                                {product.name}
+                                                {product.title || product.name || 'Untitled Product'}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                                                ${product.price}
+                                                PKR {product.price || '0.00'}
                                             </Typography>
                                             {product.stock > 0 && (
                                                 <Typography variant="caption" color="success.main">

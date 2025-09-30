@@ -8,9 +8,28 @@ const getStaticCategories = async (req, res) => {
             .populate('selectedProducts')
             .sort('displayOrder');
 
+        // Clean up any null category references automatically
+        const validCategories = [];
+        const idsToDelete = [];
+        
+        for (const cat of categories) {
+            if (cat.category && cat.category._id) {
+                validCategories.push(cat);
+            } else {
+                console.log('Found null category reference, marking for deletion:', cat._id);
+                idsToDelete.push(cat._id);
+            }
+        }
+
+        // Delete null references if found
+        if (idsToDelete.length > 0) {
+            await HomepageStaticCategory.deleteMany({ _id: { $in: idsToDelete } });
+            console.log('Cleaned up null category references:', idsToDelete.length);
+        }
+
         res.json({
             success: true,
-            categories
+            categories: validCategories
         });
     } catch (error) {
         console.error('Error fetching static categories:', error);
@@ -27,6 +46,23 @@ const addStaticCategory = async (req, res) => {
     try {
         const { categoryId, displayOrder } = req.body;
 
+        // Validate categoryId
+        if (!categoryId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Category ID is required'
+            });
+        }
+
+        // Check if category is already selected for homepage
+        const existingCategory = await HomepageStaticCategory.findOne({ category: categoryId });
+        if (existingCategory) {
+            return res.status(400).json({
+                success: false,
+                message: 'Category is already selected for homepage'
+            });
+        }
+
         // Validate if we already have 4 categories
         const count = await HomepageStaticCategory.countDocuments();
         if (count >= 4) {
@@ -36,9 +72,12 @@ const addStaticCategory = async (req, res) => {
             });
         }
 
+        // Auto-assign displayOrder if not provided or use next available order
+        const nextDisplayOrder = displayOrder || (count + 1);
+
         const newStaticCategory = await HomepageStaticCategory.create({
             category: categoryId,
-            displayOrder,
+            displayOrder: nextDisplayOrder,
             selectedProducts: []
         });
 
