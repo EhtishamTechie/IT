@@ -181,16 +181,33 @@ const VendorRegisterPage = () => {
             message: 'Verification code sent to your email!'
           });
         } else {
+          // Handle specific validation errors with suggestions
+          let errorMessage = result.message || result.error || 'Failed to send verification code';
+          
+          // If there's an email suggestion, offer it to the user
+          if (result.suggestion) {
+            errorMessage = `${errorMessage} (${result.suggestion})`;
+          }
+          
           setNotification({
             type: 'error',
-            message: result.message || 'Failed to send verification code'
+            message: errorMessage
           });
         }
       } catch (error) {
         console.error('OTP Error:', error);
+        
+        // Handle detailed error messages from email validation
+        let errorMessage = error.message || 'Failed to send verification code. Please try again.';
+        
+        // Check if the error contains email suggestions
+        if (error.suggestion) {
+          errorMessage = `${errorMessage} (Did you mean: ${error.suggestion}?)`;
+        }
+        
         setNotification({
           type: 'error',
-          message: error.message || 'Failed to send verification code. Please try again.'
+          message: errorMessage
         });
       } finally {
         setIsLoading(false); // Stop loading after OTP process

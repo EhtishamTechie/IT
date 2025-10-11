@@ -35,6 +35,8 @@ import RegisterPage from './pages/RegisterPage';
 import ContactUsPage from './pages/ContactUsPage';
 import AboutUsPage from './pages/AboutUsPage';
 import BlogPage from './pages/BlogPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import TermsConditionsPage from './pages/TermsConditionsPage';
 import UserProfilePage from './pages/UserProfilePage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 // NEW: Simple order components to fix blinking issues
@@ -87,6 +89,7 @@ import WholesaleManagement from './pages/Admin/WholesaleManagement';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminProtectedRoute from './components/AdminProtectedRoute';
 import VendorProtectedRoute from './components/Vendor/VendorProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 import './App.css';
 
 // Component to handle conditional navbar rendering
@@ -99,6 +102,9 @@ const AppContent = () => {
     <div className={isAdminRoute ? 'admin-layout' : isVendorRoute ? 'vendor-layout' : 'main-website'}>
       {/* Only show navbar if NOT on admin or vendor routes */}
       {!isAdminRoute && !isVendorRoute && <Navbar />}
+      
+      {/* ScrollToTop component to handle automatic scrolling on route changes */}
+      <ScrollToTop />
       
       <Routes>
         <Route path="/" element={<Home />} />
@@ -121,6 +127,10 @@ const AppContent = () => {
         <Route path="/about" element={<AboutUsPage />} />
         <Route path="/BlogPage" element={<BlogPage />} />
         <Route path="/blog" element={<BlogPage />} />
+        <Route path="/privacy" element={<PrivacyPolicyPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/terms" element={<TermsConditionsPage />} />
+        <Route path="/terms-conditions" element={<TermsConditionsPage />} />
         <Route path="/simple-order-history" element={<SimpleOrderHistoryPage />} />
         <Route path="/coming-soon" element={<ComingSoon />} />
         <Route 

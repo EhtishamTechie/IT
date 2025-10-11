@@ -523,9 +523,6 @@ const AllProductsPage = () => {
             <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-50 to-orange-100 rounded-full px-6 py-3 border border-orange-200">
               <div className="text-left">
                 <p className="text-gray-800 font-semibold">You've reached the end!</p>
-                <p className="text-gray-600 text-sm">
-                  {totalProducts} products total
-                </p>
               </div>
             </div>
           </div>

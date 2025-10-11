@@ -399,8 +399,8 @@ const Footer = () => {
             <div className="flex flex-wrap items-center gap-4">
               <p>© 2025 International Tijarat. All rights reserved.</p>
               <div className="flex gap-4">
-                <a href="#" className="hover:text-white transition-colors duration-200">Privacy Policy</a>
-                <a href="#" className="hover:text-white transition-colors duration-200">Terms of Service</a>
+                <Link to="/privacy" className="hover:text-white transition-colors duration-200">Privacy Policy</Link>
+                <Link to="/terms" className="hover:text-white transition-colors duration-200">Terms of Service</Link>
                 <a href="#" className="hover:text-white transition-colors duration-200">Cookies</a>
               </div>
             </div>

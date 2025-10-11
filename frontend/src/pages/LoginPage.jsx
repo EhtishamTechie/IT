@@ -166,9 +166,9 @@ const LoginPage = () => {
                 </button>
                 
                 <div className="flex items-center justify-center space-x-4 text-xs text-gray-500 mt-4">
-                  <a href="/privacy" className="hover:text-gray-700 transition-colors">Privacy Policy</a>
+                  <Link to="/privacy" className="hover:text-gray-700 transition-colors">Privacy Policy</Link>
                   <span>•</span>
-                  <a href="/terms" className="hover:text-gray-700 transition-colors">Terms of Service</a>
+                  <Link to="/terms" className="hover:text-gray-700 transition-colors">Terms of Service</Link>
                 </div>
               </div>
             </div>

@@ -18,6 +18,15 @@ class EmailVerificationService {
       return response.data;
     } catch (error) {
       console.error('🔍 EmailService: Customer OTP error', error);
+      
+      // Check if it's a validation error from our backend
+      if (error.response && error.response.data && error.response.status === 400) {
+        // Return the error data instead of throwing for validation errors
+        console.log('🔍 EmailService: Validation error', error.response.data);
+        return error.response.data;
+      }
+      
+      // For other errors, throw
       throw this.handleError(error);
     }
   }
@@ -33,6 +42,13 @@ class EmailVerificationService {
       });
       return response.data;
     } catch (error) {
+      // Check if it's a validation error from our backend
+      if (error.response && error.response.data && error.response.status === 400) {
+        // Return the error data instead of throwing for validation errors
+        return error.response.data;
+      }
+      
+      // For other errors, throw
       throw this.handleError(error);
     }
   }
@@ -89,7 +105,17 @@ class EmailVerificationService {
    */
   handleError(error) {
     if (error.response && error.response.data) {
-      return new Error(error.response.data.message || 'Email verification failed');
+      const errorData = error.response.data;
+      
+      // Create error object with suggestion if available
+      const customError = new Error(errorData.message || errorData.error || 'Email verification failed');
+      
+      // Pass through suggestion if provided by backend validation
+      if (errorData.suggestion) {
+        customError.suggestion = errorData.suggestion;
+      }
+      
+      return customError;
     }
     return new Error('Network error. Please check your connection.');
   }

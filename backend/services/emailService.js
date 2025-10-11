@@ -11,13 +11,28 @@ class EmailService {
                              process.env.EMAIL_USER === 'shami537uet@gmail.com';
 
     if (!this.isDevelopmentMode) {
-      // Configure email transporter for production
+      // Configure email transporter for production with enhanced settings
       this.transporter = nodemailer.createTransport({
         service: 'gmail',
         auth: {
           user: process.env.EMAIL_USER,
           pass: process.env.EMAIL_PASS // Fixed: was EMAIL_PASSWORD, now EMAIL_PASS
-        }
+        },
+        // Enhanced configuration for better error detection
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 5000,    // 5 seconds
+        socketTimeout: 15000,     // 15 seconds
+        pool: false,              // Disable connection pooling for immediate error detection
+        maxConnections: 1,
+        maxMessages: 1,
+        secure: true,             // Use SSL/TLS
+        requireTLS: true,         // Require TLS encryption
+        tls: {
+          rejectUnauthorized: true // Strict certificate validation
+        },
+        // Enable debug mode in development for better error tracking
+        debug: process.env.NODE_ENV === 'development',
+        logger: process.env.NODE_ENV === 'development'
       });
     } else {
       console.log('📧 EmailService: Running in DEVELOPMENT MODE (emails will be simulated)');
@@ -37,9 +52,205 @@ class EmailService {
   }
 
   /**
+   * Validate email address format and basic domain structure
+   */
+  validateEmailAddress(email) {
+    // Basic email format validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    
+    if (!emailRegex.test(email)) {
+      return { valid: false, error: 'Invalid email format. Please enter a valid email address.' };
+    }
+
+    // Check for common typos in popular domains
+    const commonDomainTypos = {
+      'gmial.com': 'gmail.com',
+      'gmai.com': 'gmail.com',
+      'gamil.com': 'gmail.com',
+      'yaho.com': 'yahoo.com',
+      'yahooo.com': 'yahoo.com',
+      'hotmial.com': 'hotmail.com',
+      'hotmai.com': 'hotmail.com',
+      'outlok.com': 'outlook.com'
+    };
+
+    const [localPart, domain] = email.split('@');
+    const lowerDomain = domain.toLowerCase();
+    
+    if (commonDomainTypos[lowerDomain]) {
+      return { 
+        valid: false, 
+        error: `Did you mean ${localPart}@${commonDomainTypos[lowerDomain]}?`,
+        suggestion: `${localPart}@${commonDomainTypos[lowerDomain]}`
+      };
+    }
+
+    // Check for obviously fake or test domains
+    const suspiciousDomains = ['example.com', 'test.com', 'fake.com', 'invalid.com', 'dummy.com'];
+    if (suspiciousDomains.includes(lowerDomain)) {
+      return { valid: false, error: 'Please enter a real email address.' };
+    }
+
+    // Additional validation for domain structure
+    if (domain.includes('..') || domain.startsWith('.') || domain.endsWith('.')) {
+      return { valid: false, error: 'Invalid email domain format.' };
+    }
+
+    return { valid: true };
+  }
+
+  /**
+   * Check if email domain has MX record (basic deliverability check)
+   */
+  async validateEmailDomain(email) {
+    try {
+      const dns = require('dns').promises;
+      const domain = email.split('@')[1];
+      
+      // Check if domain has MX records
+      const mxRecords = await dns.resolveMx(domain);
+      
+      if (!mxRecords || mxRecords.length === 0) {
+        return { valid: false, error: 'Email domain does not accept emails.' };
+      }
+      
+      return { valid: true };
+    } catch (error) {
+      // If DNS lookup fails, it might be a network issue or invalid domain
+      if (error.code === 'ENOTFOUND') {
+        return { valid: false, error: 'Email domain not found. Please check your email address.' };
+      }
+      
+      // For other DNS errors, allow the email to proceed but log the issue
+      console.warn('DNS validation warning for', email, ':', error.message);
+      return { valid: true }; // Don't block on DNS issues
+    }
+  }
+
+  /**
+   * Advanced email verification using SMTP connection test
+   * This attempts to verify if the email address exists without sending a message
+   */
+  async verifyEmailExists(email) {
+    try {
+      const net = require('net');
+      const dns = require('dns').promises;
+      
+      const domain = email.split('@')[1];
+      
+      // Get MX records for the domain
+      const mxRecords = await dns.resolveMx(domain);
+      if (!mxRecords || mxRecords.length === 0) {
+        return { valid: false, error: 'Email domain does not accept emails.' };
+      }
+      
+      // Sort MX records by priority (lower number = higher priority)
+      mxRecords.sort((a, b) => a.priority - b.priority);
+      
+      // Try to connect to the primary MX server
+      const primaryMX = mxRecords[0].exchange;
+      
+      return new Promise((resolve) => {
+        const socket = net.createConnection(25, primaryMX);
+        
+        // Set timeout for the verification process
+        const timeout = setTimeout(() => {
+          socket.destroy();
+          resolve({ valid: true }); // Don't block on timeout, but log it
+          console.warn('SMTP verification timeout for', email, 'on server', primaryMX);
+        }, 5000); // 5 second timeout
+        
+        let response = '';
+        let step = 0;
+        
+        socket.on('data', (data) => {
+          response += data.toString();
+          
+          if (step === 0 && response.includes('220')) {
+            // Server ready, send HELO
+            socket.write('HELO smtp-verification.test\r\n');
+            step = 1;
+            response = '';
+          } else if (step === 1 && response.includes('250')) {
+            // HELO accepted, send MAIL FROM
+            socket.write('MAIL FROM:<noreply@internationaltijarat.com>\r\n');
+            step = 2;
+            response = '';
+          } else if (step === 2 && response.includes('250')) {
+            // MAIL FROM accepted, send RCPT TO
+            socket.write(`RCPT TO:<${email}>\r\n`);
+            step = 3;
+            response = '';
+          } else if (step === 3) {
+            // Check response to RCPT TO
+            clearTimeout(timeout);
+            socket.write('QUIT\r\n');
+            socket.end();
+            
+            if (response.includes('250') || response.includes('251')) {
+              // Email address accepted
+              resolve({ valid: true });
+            } else if (response.includes('550') || response.includes('551') || response.includes('553')) {
+              // Email address rejected
+              resolve({ valid: false, error: 'Email address not found or invalid.' });
+            } else {
+              // Uncertain response, allow to proceed
+              resolve({ valid: true });
+              console.warn('Uncertain SMTP response for', email, ':', response.trim());
+            }
+          }
+        });
+        
+        socket.on('error', (error) => {
+          clearTimeout(timeout);
+          socket.destroy();
+          // Don't block on connection errors, but log them
+          console.warn('SMTP verification error for', email, ':', error.message);
+          resolve({ valid: true });
+        });
+        
+        socket.on('timeout', () => {
+          clearTimeout(timeout);
+          socket.destroy();
+          console.warn('SMTP verification connection timeout for', email);
+          resolve({ valid: true });
+        });
+      });
+      
+    } catch (error) {
+      console.warn('SMTP verification failed for', email, ':', error.message);
+      return { valid: true }; // Don't block on verification errors
+    }
+  }
+
+  /**
    * Send OTP email for customer registration
    */
   async sendCustomerVerificationOTP(email, otp, name = '') {
+    // Validate email format first
+    const formatValidation = this.validateEmailAddress(email);
+    if (!formatValidation.valid) {
+      console.error('❌ Email validation failed for customer:', email, '-', formatValidation.error);
+      return { success: false, error: formatValidation.error, suggestion: formatValidation.suggestion };
+    }
+
+    // Validate email domain (with DNS check)
+    const domainValidation = await this.validateEmailDomain(email);
+    if (!domainValidation.valid) {
+      console.error('❌ Email domain validation failed for customer:', email, '-', domainValidation.error);
+      return { success: false, error: domainValidation.error };
+    }
+
+    // Advanced SMTP verification (only in production mode)
+    if (!this.isDevelopmentMode) {
+      console.log('🔍 Verifying email address exists:', email);
+      const smtpVerification = await this.verifyEmailExists(email);
+      if (!smtpVerification.valid) {
+        console.error('❌ SMTP verification failed for customer:', email, '-', smtpVerification.error);
+        return { success: false, error: smtpVerification.error };
+      }
+    }
+
     // Development mode simulation
     if (this.isDevelopmentMode) {
       console.log('📧 [DEV MODE] Customer verification email would be sent to:', email);
@@ -133,7 +344,25 @@ class EmailService {
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('❌ Failed to send customer verification email:', error);
-      throw new Error('Failed to send verification email');
+      
+      // Provide specific error messages based on SMTP error codes
+      let errorMessage = 'Failed to send verification email';
+      
+      if (error.code === 'EENVELOPE' || error.code === 'EENVELOPE_ADDRESS') {
+        errorMessage = 'Invalid email address. Please check your email and try again.';
+      } else if (error.code === 'EAUTH') {
+        errorMessage = 'Email service authentication failed. Please contact support.';
+      } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNECTION') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.responseCode === 550) {
+        errorMessage = 'Email address not found or invalid. Please check your email address.';
+      } else if (error.responseCode === 554) {
+        errorMessage = 'Email rejected by the server. Please contact support.';
+      } else if (error.message && error.message.includes('Invalid mail command')) {
+        errorMessage = 'Invalid email address format. Please enter a valid email.';
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 
@@ -141,6 +370,30 @@ class EmailService {
    * Send OTP email for vendor application
    */
   async sendVendorVerificationOTP(email, otp, businessName = '') {
+    // Validate email format first
+    const formatValidation = this.validateEmailAddress(email);
+    if (!formatValidation.valid) {
+      console.error('❌ Email validation failed for vendor:', email, '-', formatValidation.error);
+      return { success: false, error: formatValidation.error, suggestion: formatValidation.suggestion };
+    }
+
+    // Validate email domain (with DNS check)
+    const domainValidation = await this.validateEmailDomain(email);
+    if (!domainValidation.valid) {
+      console.error('❌ Email domain validation failed for vendor:', email, '-', domainValidation.error);
+      return { success: false, error: domainValidation.error };
+    }
+
+    // Advanced SMTP verification (only in production mode)
+    if (!this.isDevelopmentMode) {
+      console.log('🔍 Verifying vendor email address exists:', email);
+      const smtpVerification = await this.verifyEmailExists(email);
+      if (!smtpVerification.valid) {
+        console.error('❌ SMTP verification failed for vendor:', email, '-', smtpVerification.error);
+        return { success: false, error: smtpVerification.error };
+      }
+    }
+
     // Development mode simulation
     if (this.isDevelopmentMode) {
       console.log('📧 [DEV MODE] Vendor verification email would be sent to:', email);
@@ -240,7 +493,25 @@ class EmailService {
       return { success: true, messageId: result.messageId };
     } catch (error) {
       console.error('❌ Failed to send vendor verification email:', error);
-      throw new Error('Failed to send verification email');
+      
+      // Provide specific error messages based on SMTP error codes
+      let errorMessage = 'Failed to send verification email';
+      
+      if (error.code === 'EENVELOPE' || error.code === 'EENVELOPE_ADDRESS') {
+        errorMessage = 'Invalid email address. Please check your email and try again.';
+      } else if (error.code === 'EAUTH') {
+        errorMessage = 'Email service authentication failed. Please contact support.';
+      } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNECTION') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.responseCode === 550) {
+        errorMessage = 'Email address not found or invalid. Please check your email address.';
+      } else if (error.responseCode === 554) {
+        errorMessage = 'Email rejected by the server. Please contact support.';
+      } else if (error.message && error.message.includes('Invalid mail command')) {
+        errorMessage = 'Invalid email address format. Please enter a valid email.';
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 

@@ -53,7 +53,16 @@ router.post('/send-customer-otp', async (req, res) => {
 
     // Generate and send OTP
     const otp = otpService.generateOTP(email, 'customer');
-    await sendCustomerVerificationOTP(email, otp, name);
+    const emailResult = await sendCustomerVerificationOTP(email, otp, name);
+
+    // Check if email sending failed
+    if (!emailResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: emailResult.error || 'Failed to send verification code. Please check your email address.',
+        suggestion: emailResult.suggestion
+      });
+    }
 
     res.json({
       success: true,
@@ -63,9 +72,13 @@ router.post('/send-customer-otp', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error sending customer OTP:', error);
+    
+    // Send specific error message from email service if available
+    const errorMessage = error.message || 'Failed to send verification code. Please try again.';
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to send verification code. Please try again.'
+      message: errorMessage
     });
   }
 });
@@ -122,7 +135,16 @@ router.post('/send-vendor-otp', async (req, res) => {
 
     // Generate and send OTP
     const otp = otpService.generateOTP(email, 'vendor');
-    await sendVendorVerificationOTP(email, otp, businessName);
+    const emailResult = await sendVendorVerificationOTP(email, otp, businessName);
+
+    // Check if email sending failed
+    if (!emailResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: emailResult.error || 'Failed to send verification code. Please check your business email address.',
+        suggestion: emailResult.suggestion
+      });
+    }
 
     res.json({
       success: true,
@@ -132,9 +154,13 @@ router.post('/send-vendor-otp', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error sending vendor OTP:', error);
+    
+    // Send specific error message from email service if available
+    const errorMessage = error.message || 'Failed to send verification code. Please try again.';
+    
     res.status(500).json({
       success: false,
-      message: 'Failed to send verification code. Please try again.'
+      message: errorMessage
     });
   }
 });

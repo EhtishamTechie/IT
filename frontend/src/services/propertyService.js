@@ -1,30 +1,42 @@
 import { config } from '../config';
 
-// Helper function to get full image URL
+// Helper function to get full image URL for properties
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '/assets/no-image.png';
   
-  // If it's a full URL from our old backend (port 5000), fix it
-  if (imagePath.includes('localhost:5000')) {
-    const match = imagePath.match(/\/uploads\/(.+)$/);
-    if (match) {
-      const filename = match[1].replace(/^properties\/+/, '');
-      return `${config.BASE_URL}/properties/${filename}`;
-    }
+  // Handle data URLs (for image previews)
+  if (imagePath.startsWith('data:')) {
+    return imagePath;
+  }
+
+  // If it's already a full URL, return as is
+  if (imagePath.startsWith('http')) {
+    return imagePath;
+  }
+
+  // Clean up any prefixes and get just the filename
+  const cleanFilename = imagePath
+    .replace(/^\/uploads\/properties\//, '')
+    .replace(/^uploads\/properties\//, '')
+    .replace(/^\/uploads\//, '')
+    .replace(/^uploads\//, '')
+    .replace(/^properties\//, '')
+    .replace(/^\/properties\//, '')
+    .split('/')
+    .pop()
+    .split('\\')
+    .pop();
+
+  // For properties, always use the uploads/properties path
+  const relativeUrl = `/uploads/properties/${cleanFilename}`;
+
+  // For development, use the full URL
+  if (import.meta.env.DEV) {
+    return `${config.BASE_URL}${relativeUrl}`;
   }
   
-  // If it's any other full URL, return it as is
-  if (imagePath.startsWith('http')) return imagePath;
-  
-  // Clean up and construct URL for relative paths
-  // Remove any path prefixes, we just want the filename
-  const filename = imagePath
-    .replace(/^\/+/, '')           // Remove leading slashes
-    .replace(/^uploads\/+/, '')    // Remove uploads/ prefix
-    .replace(/^properties\/+/, '') // Remove properties/ prefix
-  
-  // Use BASE_URL which doesn't include /api
-  return `${config.BASE_URL}/properties/${filename}`;
+  // In production, use relative URL
+  return relativeUrl;
 };
 
 // Helper function to normalize property data

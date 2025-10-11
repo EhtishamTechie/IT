@@ -65,11 +65,30 @@ const RegisterPage = () => {
         showNotification("Verification code sent to your email!", "success");
       } else {
         console.log('🔍 RegisterPage: OTP failed', otpResult);
-        showNotification(otpResult.message || "Failed to send verification code", "error");
+        
+        // Handle specific validation errors with suggestions
+        let errorMessage = otpResult.message || otpResult.error || "Failed to send verification code";
+        
+        // If there's an email suggestion, offer it to the user
+        if (otpResult.suggestion) {
+          errorMessage = `${errorMessage} (${otpResult.suggestion})`;
+        }
+        
+        // Show specific error message
+        showNotification(errorMessage, "error");
       }
     } catch (err) {
       console.error('🔍 RegisterPage: Error in handleRegister', err);
-      showNotification(err.message || "Failed to send verification code", "error");
+      
+      // Handle detailed error messages from email validation
+      let errorMessage = err.message || "Failed to send verification code";
+      
+      // Check if the error contains email suggestions
+      if (err.suggestion) {
+        errorMessage = `${errorMessage} (Did you mean: ${err.suggestion}?)`;
+      }
+      
+      showNotification(errorMessage, "error");
     }
   }, [showNotification]);
 
@@ -362,9 +381,9 @@ const RegisterPage = () => {
                 </p>
                 
                 <div className="flex items-center justify-center space-x-4 text-xs text-gray-500">
-                  <a href="/privacy" className="hover:text-gray-700 transition-colors">Privacy Policy</a>
+                  <Link to="/privacy" className="hover:text-gray-700 transition-colors">Privacy Policy</Link>
                   <span>•</span>
-                  <a href="/terms" className="hover:text-gray-700 transition-colors">Terms of Service</a>
+                  <Link to="/terms" className="hover:text-gray-700 transition-colors">Terms of Service</Link>
                 </div>
               </div>
             </div>

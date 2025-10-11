@@ -165,7 +165,9 @@ const BannerManagement = () => {
             cache.current.categoryProducts.page === pageNum &&
             now - cache.current.categoryProducts.timestamp < CACHE_DURATION) {
             setCategoryProducts(cache.current.categoryProducts.data.products);
-            setTotalPages(Math.ceil(cache.current.categoryProducts.data.total / PAGE_SIZE));
+            // Fix: Use totalProducts instead of total to match backend response
+            const total = cache.current.categoryProducts.data.totalProducts || cache.current.categoryProducts.data.total || 0;
+            setTotalPages(Math.ceil(total / PAGE_SIZE));
             setPage(pageNum);
             setLoadingProducts(false);
             return;
@@ -191,7 +193,9 @@ const BannerManagement = () => {
 
             if (response.data?.products) {
                 setCategoryProducts(response.data.products);
-                setTotalPages(Math.ceil(response.data.total / PAGE_SIZE));
+                // Fix: Use totalProducts instead of total to match backend response
+                const total = response.data.totalProducts || response.data.total || 0;
+                setTotalPages(Math.ceil(total / PAGE_SIZE));
                 setPage(pageNum);
             }
         } catch (error) {
