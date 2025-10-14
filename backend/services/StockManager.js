@@ -121,7 +121,8 @@ class StockManager {
         product.stock -= item.quantity;
         product.soldCount = (product.soldCount || 0) + item.quantity;
         
-        await product.save();
+        // Save only the modified fields to avoid validation errors on other fields
+        await product.save({ validateModifiedOnly: true });
         
         console.log(`📉 ${product.title}: Stock reduced by ${item.quantity} (${originalStock} → ${product.stock})`);
       }
@@ -173,7 +174,8 @@ class StockManager {
         product.stock += item.quantity;
         product.soldCount = Math.max(0, (product.soldCount || 0) - item.quantity);
         
-        await product.save();
+        // Save only the modified fields to avoid validation errors on other fields
+        await product.save({ validateModifiedOnly: true });
         
         console.log(`📈 ${product.title}: Stock increased by ${item.quantity} (${product.stock - item.quantity} → ${product.stock})`);
       }
@@ -217,7 +219,8 @@ class StockManager {
       product.stock += quantity;
       product.soldCount = Math.max(0, (product.soldCount || 0) - quantity);
       
-      await product.save();
+      // Save only the modified fields to avoid validation errors on other fields
+      await product.save({ validateModifiedOnly: true });
       
       console.log(`📈 ${product.title}: Stock increased by ${quantity} (${product.stock - quantity} → ${product.stock})`);
       
@@ -256,7 +259,8 @@ class StockManager {
 
       const oldStock = product.stock;
       product.stock = newStock;
-      await product.save();
+      // Save only the modified fields to avoid validation errors on other fields
+      await product.save({ validateModifiedOnly: true });
 
       console.log(`📊 ${product.title}: Stock updated (${oldStock} → ${newStock})`);
 

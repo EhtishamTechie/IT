@@ -227,7 +227,8 @@ const addAdminProduct = async (req, res) => {
   try {
     console.log('📝 Adding admin product');
     console.log('📦 Product data received:', req.body);
-    console.log('📷 Files received:', req.files);
+    console.log('� Shipping value received:', req.body.shipping, typeof req.body.shipping);
+    console.log('�📷 Files received:', req.files);
     
     const productData = { ...req.body };
     
@@ -282,6 +283,17 @@ const addAdminProduct = async (req, res) => {
       }
     }
     
+    // Handle numeric fields - convert from strings to numbers
+    if (productData.price) {
+      productData.price = parseFloat(productData.price);
+    }
+    if (productData.stock) {
+      productData.stock = parseInt(productData.stock);
+    }
+    if (productData.shipping) {
+      productData.shipping = parseFloat(productData.shipping);
+    }
+    
     // Handle file uploads
     if (req.files && req.files.image && req.files.image[0]) {
       productData.image = req.files.image[0].filename;
@@ -329,6 +341,8 @@ const addAdminProduct = async (req, res) => {
 const updateAdminProduct = async (req, res) => {
   try {
     console.log('📝 Updating admin product:', req.params.id);
+    console.log('📦 Update data received:', req.body);
+    console.log('📦 Shipping value received:', req.body.shipping, typeof req.body.shipping);
     
     const updateData = { ...req.body };
     updateData.updatedAt = new Date();
@@ -382,6 +396,17 @@ const updateAdminProduct = async (req, res) => {
         console.error('Error processing sub categories:', error);
         updateData.subCategory = [];
       }
+    }
+    
+    // Handle numeric fields - convert from strings to numbers
+    if (updateData.price) {
+      updateData.price = parseFloat(updateData.price);
+    }
+    if (updateData.stock) {
+      updateData.stock = parseInt(updateData.stock);
+    }
+    if (updateData.shipping) {
+      updateData.shipping = parseFloat(updateData.shipping);
     }
     
     // Handle file uploads

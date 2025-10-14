@@ -20,6 +20,7 @@ const SimpleProductForm = () => {
     description: '',
     price: '',
     stock: '',
+    shipping: '',
     mainCategory: '',
     subCategory: '',
     brand: '',
@@ -133,6 +134,7 @@ const SimpleProductForm = () => {
       submitData.append('title', formData.name); // Backend expects 'title'
       submitData.append('description', formData.description);
       submitData.append('price', formData.price);
+      submitData.append('shipping', formData.shipping);
       submitData.append('stock', formData.stock);
       submitData.append('keywords', formData.keywords);
       
@@ -305,6 +307,27 @@ const SimpleProductForm = () => {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-gray-900"
                     placeholder="0.00"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <svg className="w-4 h-4 inline mr-1 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                    </svg>
+                    Shipping Cost (PKR) *
+                  </label>
+                  <input
+                    type="number"
+                    name="shipping"
+                    required
+                    min="0"
+                    step="0.01"
+                    value={formData.shipping}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all duration-200 text-gray-900"
+                    placeholder="0.00"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Shipping fee for this product. For multiple products, highest shipping fee applies.</p>
                 </div>
 
                 <div>

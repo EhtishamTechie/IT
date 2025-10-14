@@ -204,10 +204,40 @@ const OrderDetailPage = () => {
 
   // Utility functions
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-PK', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'PKR'
     }).format(amount || 0);
+  };
+
+  // Calculate shipping cost for the order
+  const calculateOrderShipping = (order) => {
+    if (!order.cart || order.cart.length === 0) return 0;
+    
+    // Get the maximum shipping cost from all items
+    const shippingCosts = order.cart.map(item => {
+      const shipping = item.shipping || item.productData?.shipping || 0;
+      return Number(shipping);
+    }).filter(cost => !isNaN(cost) && cost > 0);
+    
+    if (shippingCosts.length === 0) return 0;
+    
+    const maxShippingCost = Math.max(...shippingCosts);
+    
+    // Check if order qualifies for free shipping (10,000 or more)
+    const subtotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    if (subtotal >= 10000) {
+      return 0; // Free shipping for orders >= 10,000
+    }
+    
+    return maxShippingCost;
+  };
+
+  // Calculate order subtotal (without shipping)
+  const calculateOrderSubtotal = (order) => {
+    if (!order.cart || order.cart.length === 0) return 0;
+    return order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
   const formatDate = (date) => {
@@ -481,19 +511,22 @@ const OrderDetailPage = () => {
               <div className="p-6 space-y-4">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Subtotal</span>
-                  <span className="font-semibold">{formatCurrency(order.totalAmount || 0)}</span>
+                  <span className="font-semibold">{formatCurrency(calculateOrderSubtotal(order))}</span>
                 </div>
-                {order.shipping && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Shipping</span>
-                    <span className="font-semibold">{formatCurrency(order.shipping.cost || 0)}</span>
-                  </div>
-                )}
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Shipping</span>
+                  <span className="font-semibold">
+                    {calculateOrderShipping(order) > 0 
+                      ? formatCurrency(calculateOrderShipping(order))
+                      : 'Free'
+                    }
+                  </span>
+                </div>
                 <div className="border-t pt-4">
                   <div className="flex justify-between">
                     <span className="text-lg font-bold">Total</span>
                     <span className="text-lg font-bold text-orange-600">
-                      {formatCurrency((order.totalAmount || 0) + (order.shipping?.cost || 0))}
+                      {formatCurrency(calculateOrderSubtotal(order) + calculateOrderShipping(order))}
                     </span>
                   </div>
                 </div>

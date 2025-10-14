@@ -152,12 +152,19 @@ const CheckoutPage = () => {
       try {
         const product = JSON.parse(buyNowData);
         console.log('✅ Found buy now item:', product);
+        
+        // Ensure shipping field is included in buyNowItem
         setBuyNowItem({
           ...product,
-          quantity: product.quantity || 1
+          quantity: product.quantity || 1,
+          shipping: product.shipping || product.productData?.shipping || 0, // Ensure shipping is included
+          productData: {
+            ...product.productData,
+            shipping: product.shipping || product.productData?.shipping || 0
+          }
         });
         setIsBuyNowCheckout(true);
-        console.log('✅ Buy now checkout mode activated');
+        console.log('✅ Buy now checkout mode activated with shipping:', product.shipping);
         // Don't clear localStorage yet - wait until order is complete
       } catch (error) {
         console.error('❌ Error parsing buy now item:', error);
@@ -249,11 +256,31 @@ const CheckoutPage = () => {
   // Calculate order totals and analyze cart
   const orderTotals = useMemo(() => {
     const subtotal = checkoutStats?.totalPrice || 0;
-    // No shipping cost - always N/A
-    const shippingCost = 0;
+    
+    // Calculate shipping cost based on your requirements:
+    // 1. Find maximum shipping cost among all products
+    // 2. Free shipping if subtotal >= $10,000
+    let shippingCost = 0;
+    
+    if (checkoutStats?.items && Array.isArray(checkoutStats.items)) {
+      const shippingCosts = checkoutStats.items.map(item => {
+        // Get shipping cost from product data
+        const productShipping = item.productData?.shipping || item.shipping || 0;
+        return parseFloat(productShipping) || 0;
+      });
+      
+      // Get maximum shipping cost
+      shippingCost = Math.max(...shippingCosts, 0);
+    }
+    
+    // Apply free shipping rule for orders >= $10,000
+    if (subtotal >= 10000) {
+      shippingCost = 0;
+    }
+    
     // No tax - removed as requested
     const tax = 0;
-    const total = subtotal; // Only product charges
+    const total = subtotal + shippingCost;
 
     return {
       subtotal,
@@ -261,7 +288,7 @@ const CheckoutPage = () => {
       tax,
       total
     };
-  }, [checkoutStats?.totalPrice]);
+  }, [checkoutStats?.totalPrice, checkoutStats?.items]);
 
   // Analyze cart for order type and mixed delivery notification
   const cartAnalysis = useMemo(() => {
@@ -701,6 +728,7 @@ const CheckoutPage = () => {
             productId: productData?._id || item._id || item.id,
             name: productData?.title || productData?.name || item.title || item.name,
             price: productData?.price || item.price,
+            shipping: productData?.shipping || item.shipping || 0,
             quantity: item.quantity,
             image: productData?.image || item.image,
             // Include vendor information for proper order processing
@@ -1600,16 +1628,29 @@ const CheckoutPage = () => {
               <div className="border-t border-gray-200 pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
-                  <span className="text-gray-900">PKR {(checkoutStats.totalPrice || 0).toFixed(2)}</span>
+                  <span className="text-gray-900">PKR {(orderTotals.subtotal || 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="text-gray-900">Free</span>
+                  <span className="text-gray-900">
+                    {orderTotals.shipping > 0 ? `PKR ${orderTotals.shipping.toFixed(2)}` : 'Free'}
+                    {orderTotals.subtotal >= 10000 && (
+                      <span className="text-green-600 text-xs block">Free shipping applied!</span>
+                    )}
+                  </span>
                 </div>
+                
+                {/* Shipping Information */}
+                {orderTotals.shipping > 0 && orderTotals.subtotal < 10000 && (
+                  <div className="text-xs text-gray-500">
+                    <p>Highest product shipping: PKR {orderTotals.shipping.toFixed(2)}</p>
+                    <p className="text-green-600">Add PKR {(10000 - orderTotals.subtotal).toFixed(2)} more for free shipping!</p>
+                  </div>
+                )}
                 <div className="border-t border-gray-200 pt-2">
                   <div className="flex justify-between text-base font-semibold">
                     <span className="text-gray-900">Total</span>
-                    <span className="text-gray-900">PKR {(checkoutStats.totalPrice || 0).toFixed(2)}</span>
+                    <span className="text-gray-900">PKR {(orderTotals.total || 0).toFixed(2)}</span>
                   </div>
                 </div>
               </div>

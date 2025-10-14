@@ -410,10 +410,10 @@ const Navbar = () => {
                               {subs.sort().map((sub, i) => ( // Sort subcategories alphabetically
                                 <li key={i}>
                                   <Link
-                                    to={`/category/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                                    to={`/category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
                                     onClick={() => {
                                       console.log(`Secondary nav - Navigating to subcategory: ${sub}`);
-                                      console.log(`Secondary nav - URL: /category/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`);
+                                      console.log(`Secondary nav - URL: /category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`);
                                       setCatOpen(false);
                                     }}
                                     className="block py-1 px-3 text-sm text-gray-600 hover:text-orange-500 hover:bg-gray-50 rounded-md transition-colors duration-150"
@@ -548,7 +548,7 @@ const Navbar = () => {
                         {subs.sort().map((sub, i) => ( // Sort subcategories alphabetically
                           <li key={i}>
                             <Link
-                              to={`/category/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                              to={`/category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
                               className="block py-1 text-sm text-gray-600 hover:text-orange-500"
                               onClick={() => setIsOpen(false)}
                             >

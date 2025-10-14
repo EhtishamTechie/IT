@@ -60,6 +60,13 @@ const getCart = async (req, res) => {
           if (currentProduct) {
             item.productData.stock = currentProduct.stock || 0;
             item.productData.inStock = currentProduct.stock > 0;
+            item.productData.shipping = currentProduct.shipping || 0;
+            console.log('📦 Updated cart item with shipping:', {
+              productId: item.productData._id,
+              title: item.productData.title,
+              currentProductShipping: currentProduct.shipping,
+              updatedShipping: item.productData.shipping
+            });
           }
           
           // Keep raw image filename - let frontend handle URL construction with getImageUrl
@@ -183,6 +190,7 @@ const addToCart = async (req, res) => {
           ...cart.items[existingItemIndex].productData,
           stock: product.stock || 0,
           inStock: product.stock > 0,
+          shipping: product.shipping || 0,
           images: product.images || [],
           image: product.images?.[0] || product.image || 'placeholder-image.jpg'
         };
@@ -222,10 +230,11 @@ const addToCart = async (req, res) => {
             handledBy: product.vendor ? 'vendor' : 'admin',
             assignedVendor: product.vendor || null,
             // Add additional required fields for order processing
-            weight: product.weight,
-            dimensions: product.dimensions,
-            sku: product.sku,
-            vendorSku: product.vendorSku
+            weight: product.weight || null,
+            dimensions: product.dimensions || null,
+            shipping: product.shipping || 0,
+            sku: product.sku || null,
+            vendorSku: product.vendorSku || null
           },
           quantity,
           price: product.price

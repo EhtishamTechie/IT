@@ -4,11 +4,13 @@ import { Helmet } from "react-helmet-async";
 import ProductService from "../services/productService";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
+import { useNotification } from "../contexts/NotificationContext";
 import { getApiUrl, getImageUrl } from '../config';
 import ProductCarousel from '../components/ProductCarousel';
 import Footer from '../components/Footer';
 import { generateProductSEO, generateBreadcrumbs, generateCanonicalUrl } from '../utils/seoHelpers';
 import { generateProductSchema, generateBreadcrumbSchema } from '../utils/schemaGenerator';
+import { trackProductView, trackAddToCart } from '../utils/analytics';
 
 // Mock product data for fallback
 const mockProduct = {
@@ -51,6 +53,7 @@ const ProductDetailPage = () => {
   // Use cart and auth contexts
   const { addToCart, isInCart, getCartItem } = useCart();
   const { isAuthenticated, user } = useAuth();
+  const { showError } = useNotification();
 
   // Helper function to safely extract category names
   const extractCategoryNames = (categoryData) => {
@@ -163,23 +166,103 @@ const ProductDetailPage = () => {
     }
   }, [productId, navigate]);
 
+  // Reset quantity when product changes
+  useEffect(() => {
+    if (product) {
+      setQuantity(1); // Reset to 1 when product changes
+      
+      // Track product view for analytics
+      trackProductView(product);
+    }
+  }, [product?._id]); // Only reset when the actual product ID changes
+
   const handleAddToCart = async () => {
     if (!product) return;
+    
+    // Check stock availability for the requested quantity
+    const availableStock = product.stock || 0;
+    if (availableStock <= 0) {
+      showError('This product is currently out of stock.');
+      return;
+    }
+    
+    if (quantity > availableStock) {
+      showError(`Cannot add ${quantity} items. Only ${availableStock} items available in stock.`);
+      return;
+    }
     
     setIsAddingToCart(true);
     try {
       await addToCart(product, quantity);
       console.log('Product added to cart successfully');
+      
+      // Track add to cart event for analytics
+      trackAddToCart(product, quantity);
     } catch (error) {
       console.error('Error adding to cart:', error);
+      // Handle backend stock validation errors
+      if (error.response?.data?.message) {
+        showError(error.response.data.message);
+      } else {
+        showError('Failed to add item to cart. Please try again.');
+      }
     } finally {
       setIsAddingToCart(false);
     }
   };
 
+  // Helper functions for quantity management with stock validation
+  const handleQuantityIncrease = () => {
+    const availableStock = product?.stock || 0;
+    const newQuantity = quantity + 1;
+    
+    if (newQuantity > availableStock) {
+      showError(`Cannot add more items. Only ${availableStock} items available in stock.`);
+      return;
+    }
+    
+    setQuantity(newQuantity);
+  };
+
+  const handleQuantityDecrease = () => {
+    if (quantity > 1) {
+      setQuantity(quantity - 1);
+    }
+  };
+
+  const handleQuantityChange = (e) => {
+    const value = parseInt(e.target.value) || 1;
+    const availableStock = product?.stock || 0;
+    
+    if (value < 1) {
+      setQuantity(1);
+      return;
+    }
+    
+    if (value > availableStock) {
+      showError(`Cannot set quantity to ${value}. Only ${availableStock} items available in stock.`);
+      setQuantity(Math.min(value, availableStock));
+      return;
+    }
+    
+    setQuantity(value);
+  };
+
   // Handle buy now with authentication check
   const handleBuyNow = async () => {
     if (!product) return;
+    
+    // Check stock availability for the requested quantity
+    const availableStock = product.stock || 0;
+    if (availableStock <= 0) {
+      showError('This product is currently out of stock.');
+      return;
+    }
+    
+    if (quantity > availableStock) {
+      showError(`Cannot buy ${quantity} items. Only ${availableStock} items available in stock.`);
+      return;
+    }
     
     try {
       // Check if user is authenticated first
@@ -196,7 +279,11 @@ const ProductDetailPage = () => {
         price: product.price,
         image: product.image || (product.images?.[0] || null),
         stock: product.stock || 100,
-        quantity: quantity
+        quantity: quantity,
+        shipping: product.shipping || 0, // Include shipping cost
+        productData: {
+          shipping: product.shipping || 0
+        }
       };
       
       localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
@@ -507,7 +594,7 @@ const ProductDetailPage = () => {
                   <label className="text-lg lg:text-base font-semibold">Quantity:</label>
                   <div className="flex items-center border-2 border-gray-300 rounded-lg">
                     <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      onClick={handleQuantityDecrease}
                       className="px-3 lg:px-2 py-2 lg:py-1 text-xl lg:text-lg font-bold hover:bg-gray-100 transition-colors"
                       disabled={quantity <= 1}
                     >
@@ -516,18 +603,39 @@ const ProductDetailPage = () => {
                     <input
                       type="number"
                       value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                      onChange={handleQuantityChange}
                       className="w-16 lg:w-12 py-2 lg:py-1 text-center border-0 focus:ring-0 text-lg lg:text-base font-semibold"
                       min="1"
+                      max={product?.stock || 999}
                     />
                     <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="px-3 lg:px-2 py-2 lg:py-1 text-xl lg:text-lg font-bold hover:bg-gray-100 transition-colors"
+                      onClick={handleQuantityIncrease}
+                      className={`px-3 lg:px-2 py-2 lg:py-1 text-xl lg:text-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        (product?.stock || 0) === 0 
+                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                          : quantity >= (product?.stock || 0)
+                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                            : 'hover:bg-gray-100'
+                      }`}
+                      disabled={(product?.stock || 0) === 0}
                     >
                       +
                     </button>
                   </div>
                 </div>
+
+                {/* Stock availability indicator */}
+                {product?.stock !== undefined && (
+                  <div className="text-sm text-gray-600">
+                    {product.stock > 0 ? (
+                      <span>
+                        <strong>{product.stock}</strong> items available
+                      </span>
+                    ) : (
+                      <span className="text-red-600 font-medium">Out of stock</span>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex gap-3">
                   <button

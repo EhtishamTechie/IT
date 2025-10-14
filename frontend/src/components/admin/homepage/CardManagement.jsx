@@ -242,6 +242,11 @@ const CardManagement = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log('CardManagement: handleSubmit called');
+    console.log('CardManagement: editingCard state:', editingCard);
+    console.log('CardManagement: formData:', formData);
+    
+    setLoading(true);
     
     try {
       // Validation for subcategories type
@@ -251,20 +256,23 @@ const CardManagement = () => {
           const item = formData.subcategoryItems[i];
           if (!item.name || !item.categoryId) {
             toast.error(`Subcategory item ${i + 1} must have both name and category selected`);
+            setLoading(false);
             return;
           }
           
-          // Check corresponding image exists
-          if (!images[`subcategoryImage${i + 1}`]) {
+          // Check corresponding image exists (new image or existing image for updates)
+          if (!images[`subcategoryImage${i + 1}`] && (!editingCard || !editingCard.subcategories?.[i]?.image)) {
             toast.error(`Image for subcategory item ${i + 1} is required`);
+            setLoading(false);
             return;
           }
         }
       }
 
-      // Validation for main-category type
-      if (formData.type === 'main-category' && !images.mainImage) {
+      // Validation for main-category type (check for new image or existing image for updates)
+      if (formData.type === 'main-category' && !images.mainImage && (!editingCard || !editingCard.mainImage)) {
         toast.error('Main image is required for main category cards');
+        setLoading(false);
         return;
       }
 
@@ -301,11 +309,15 @@ const CardManagement = () => {
       }
 
       if (editingCard) {
+        console.log('CardManagement: Updating existing card with ID:', editingCard._id);
+        console.log('CardManagement: Update URL:', getApiUrl(`homepage/cards/${editingCard._id}`));
         await API.put(getApiUrl(`homepage/cards/${editingCard._id}`), formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
+        console.log('CardManagement: Card updated successfully');
         toast.success('Card updated successfully');
       } else {
+        console.log('CardManagement: Creating new card');
         await API.post(getApiUrl('homepage/cards'), formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
@@ -706,9 +718,15 @@ const CardManagement = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  disabled={loading}
+                  onClick={() => console.log('CardManagement: Update button clicked!')}
+                  className={`px-4 py-2 text-white rounded-md transition-colors ${
+                    loading 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
-                  {editingCard ? 'Update Card' : 'Create Card'}
+                  {loading ? 'Processing...' : (editingCard ? 'Update Card' : 'Create Card')}
                 </button>
               </div>
             </form>

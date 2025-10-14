@@ -103,6 +103,7 @@ const createOrder = async (req, res) => {
     // Validate products and calculate total
     let calculatedTotal = 0;
     const orderItems = [];
+    const shippingCosts = []; // Track shipping costs from each product
 
     for (const item of items) {
       const product = await Product.findById(item.productId).populate('vendor', 'businessName email');
@@ -116,6 +117,12 @@ const createOrder = async (req, res) => {
       const itemTotal = product.price * item.quantity;
       calculatedTotal += itemTotal;
 
+      // Add shipping cost from product
+      const productShipping = product.shipping || 0;
+      if (productShipping > 0) {
+        shippingCosts.push(productShipping);
+      }
+
       orderItems.push({
         productId: product._id,  // ADD productId for stock tracking
         product: product._id,
@@ -126,12 +133,31 @@ const createOrder = async (req, res) => {
         itemTotal: itemTotal,
         total: itemTotal,
         image: product.image,
+        shipping: productShipping, // Add shipping field to order items
         mainCategory: Array.isArray(product.mainCategory) ? product.mainCategory[0] : product.mainCategory,
         subCategory: Array.isArray(product.subCategory) ? (product.subCategory[0] || '') : product.subCategory,
         status: 'placed', // Changed from 'pending' to match enum
         commissionAmount: 0 // Commission will be calculated when admin forwards to vendors
       });
     }
+
+    // Calculate shipping cost (maximum shipping cost from all products)
+    let calculatedShippingCost = 0;
+    if (shippingCosts.length > 0) {
+      calculatedShippingCost = Math.max(...shippingCosts);
+      
+      // Apply free shipping rule for orders >= 10,000
+      if (calculatedTotal >= 10000) {
+        calculatedShippingCost = 0;
+      }
+    }
+
+    console.log('🚢 [ORDER CREATION] Shipping calculation:', {
+      cartTotal: calculatedTotal,
+      shippingCosts,
+      maxShipping: calculatedShippingCost,
+      freeShippingApplied: calculatedTotal >= 10000
+    });
 
     // CATEGORIZE ORDER TYPE
     const adminItems = orderItems.filter(item => !item.vendor);
@@ -179,7 +205,8 @@ const createOrder = async (req, res) => {
       
       // NEW MULTI-VENDOR FIELDS
       orderType: orderType,
-      totalAmount: finalTotals.total || (calculatedTotal + taxAmount + shippingCost - discountAmount),
+      shippingCost: calculatedShippingCost, // Store calculated shipping cost
+      totalAmount: finalTotals.total || (calculatedTotal + taxAmount + calculatedShippingCost - discountAmount),
       paymentStatus: finalPaymentMethod === 'advance_payment' ? 'pending_verification' : 'pending',
       adminNotes: notes,
       completionDetails: {

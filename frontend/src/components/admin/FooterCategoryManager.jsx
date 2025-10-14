@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Check, X, Edit2, Save, Settings } from 'lucide-react';
+import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { Check, X, Edit2, Save, Settings, RefreshCw } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl } from '../../config';
 
-const FooterCategoryManager = () => {
+const FooterCategoryManager = forwardRef((props, ref) => {
   const [categories, setCategories] = useState([]);
   const [footerCategories, setFooterCategories] = useState([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -12,6 +12,20 @@ const FooterCategoryManager = () => {
 
   useEffect(() => {
     loadData();
+    
+    // Add event listener to refresh when window gains focus
+    // This helps catch updates from other browser tabs/windows
+    const handleFocus = () => {
+      console.log('Window focused, refreshing footer categories...');
+      loadData();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
   }, []);
 
   const loadData = async () => {
@@ -25,12 +39,41 @@ const FooterCategoryManager = () => {
       const allCategories = Array.isArray(categoriesResponse.data.data) ? categoriesResponse.data.data : 
                            Array.isArray(categoriesResponse.data) ? categoriesResponse.data : [];
       
-      setCategories(allCategories);
+      // Filter only active categories for footer display
+      const activeCategories = allCategories.filter(category => category.isActive !== false);
+      setCategories(activeCategories);
       
       // Load current footer categories configuration
       try {
         const footerResponse = await axios.get(`${getApiUrl()}/admin/categories/footer-categories`, { headers });
-        setFooterCategories(footerResponse.data.data || []);
+        const currentFooterCategories = footerResponse.data.data || [];
+        
+        // Get list of active category names for validation
+        const activeCategoryNames = activeCategories.map(cat => cat.name);
+        
+        // Filter out any footer categories that are no longer active
+        const validFooterCategories = currentFooterCategories.filter(categoryName => 
+          activeCategoryNames.includes(categoryName)
+        );
+        
+        // If any categories were filtered out, automatically save the cleaned list
+        if (validFooterCategories.length !== currentFooterCategories.length) {
+          console.log('Removing inactive categories from footer:', 
+            currentFooterCategories.filter(cat => !activeCategoryNames.includes(cat))
+          );
+          
+          // Save the cleaned list back to the server
+          try {
+            await axios.post(`${getApiUrl()}/admin/categories/footer-categories`, {
+              categories: validFooterCategories
+            }, { headers });
+            console.log('Footer categories automatically cleaned of inactive categories');
+          } catch (saveError) {
+            console.error('Failed to auto-clean footer categories:', saveError);
+          }
+        }
+        
+        setFooterCategories(validFooterCategories);
       } catch (error) {
         // If endpoint doesn't exist yet, start with default categories
         setFooterCategories([
@@ -50,6 +93,14 @@ const FooterCategoryManager = () => {
       setLoading(false);
     }
   };
+
+  // Expose refresh method to parent component
+  useImperativeHandle(ref, () => ({
+    refreshCategories: () => {
+      console.log('FooterCategoryManager refresh triggered');
+      loadData();
+    }
+  }), []);
 
   const handleCategoryToggle = (categoryName) => {
     setFooterCategories(prev => {
@@ -111,6 +162,17 @@ const FooterCategoryManager = () => {
             <h3 className="text-lg font-semibold text-gray-900">Footer Categories Management</h3>
           </div>
           <div className="flex items-center space-x-2">
+            {!isEditing && (
+              <button
+                onClick={loadData}
+                disabled={loading}
+                className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center"
+                title="Refresh categories from database"
+              >
+                <RefreshCw className={`w-4 h-4 mr-1 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </button>
+            )}
             {isEditing ? (
               <>
                 <button
@@ -235,6 +297,8 @@ const FooterCategoryManager = () => {
       </div>
     </div>
   );
-};
+});
+
+FooterCategoryManager.displayName = 'FooterCategoryManager';
 
 export default FooterCategoryManager;

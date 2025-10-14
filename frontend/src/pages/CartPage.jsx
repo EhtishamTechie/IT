@@ -84,8 +84,34 @@ const CartPage = () => {
     }, 0);
     
     const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
-    const shipping = 0; // No shipping cost - always N/A
-    const total = subtotal; // Only product cost, no shipping
+    
+    // Calculate shipping - find maximum shipping cost among all products
+    let shipping = 0;
+    if (cartItems.length > 0) {
+      console.log('CartPage: Cart items for shipping calculation:', cartItems);
+      const shippingCosts = cartItems.map(item => {
+        const productShipping = item.productData?.shipping || item.shipping || 0;
+        console.log('CartPage: Item shipping data:', {
+          itemId: item._id,
+          hasProductData: !!item.productData,
+          productData: item.productData,
+          productDataShipping: item.productData?.shipping,
+          itemShipping: item.shipping,
+          finalShipping: productShipping
+        });
+        return parseFloat(productShipping) || 0;
+      });
+      console.log('CartPage: All shipping costs:', shippingCosts);
+      shipping = Math.max(...shippingCosts, 0);
+      console.log('CartPage: Maximum shipping cost:', shipping);
+    }
+    
+    // Apply free shipping rule for orders >= $10,000
+    if (subtotal >= 10000) {
+      shipping = 0;
+    }
+    
+    const total = subtotal + shipping;
     
     return { subtotal, totalItems, shipping, total };
   }, [cartItems]);
@@ -471,8 +497,21 @@ const CartPage = () => {
                 
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Shipping</span>
-                  <span className="font-medium">N/A</span>
+                  <span className="font-medium">
+                    {shipping > 0 ? `PKR ${shipping.toFixed(2)}` : 'Free'}
+                    {subtotal >= 10000 && (
+                      <span className="text-green-600 text-xs block">Free shipping applied!</span>
+                    )}
+                  </span>
                 </div>
+                
+                {/* Shipping Information */}
+                {shipping > 0 && subtotal < 10000 && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    <p>Highest product shipping: PKR {shipping.toFixed(2)}</p>
+                    <p className="text-green-600">Add PKR {(10000 - subtotal).toFixed(2)} more for free shipping!</p>
+                  </div>
+                )}
                 
                 <hr className="border-gray-200" />
                 

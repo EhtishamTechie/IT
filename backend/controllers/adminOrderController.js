@@ -727,8 +727,25 @@ async function createVendorOrder(mainOrder, vendorId, vendorItems, adminId) {
       throw new Error(`Vendor not found: ${vendorId}`);
     }
     
-    const totalAmount = vendorItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const commissionAmount = CommissionConfig.calculateCommission(totalAmount); // 20% commission
+    // Calculate total amount including shipping
+    const itemsTotal = vendorItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    // Calculate shipping for vendor items (find maximum shipping cost)
+    const shippingCosts = vendorItems.map(item => parseFloat(item.shipping) || 0);
+    const vendorShipping = Math.max(...shippingCosts, 0);
+    
+    // Apply free shipping rule for orders >= $10,000
+    const finalShipping = itemsTotal >= 10000 ? 0 : vendorShipping;
+    
+    const totalAmount = itemsTotal + finalShipping;
+    const commissionAmount = CommissionConfig.calculateCommission(totalAmount); // 20% commission on total including shipping
+    
+    console.log(`💰 Vendor Order Calculation:`, {
+      itemsTotal: itemsTotal.toFixed(2),
+      shipping: finalShipping.toFixed(2),
+      totalAmount: totalAmount.toFixed(2),
+      commissionAmount: commissionAmount.toFixed(2)
+    });
     
     const vendorOrder = new VendorOrder({
       parentOrderId: mainOrder._id,
@@ -745,12 +762,14 @@ async function createVendorOrder(mainOrder, vendorId, vendorItems, adminId) {
         productId: item.productId,
         title: item.title,
         price: item.price,
+        shipping: item.shipping || 0,
         quantity: item.quantity,
         itemTotal: item.price * item.quantity,
         image: item.image,
         mainCategory: item.mainCategory,
         subCategory: item.subCategory
       })),
+      shippingCost: finalShipping,
       totalAmount: totalAmount,
       commissionAmount: commissionAmount,
       status: 'placed', // Changed from 'pending'

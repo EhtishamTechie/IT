@@ -191,7 +191,11 @@ const ProductPage = () => {
         price: product.price,
         image: product.image || (product.images?.[0] || null),
         stock: product.stock || 100,
-        quantity: quantity
+        quantity: quantity,
+        shipping: product.shipping || 0, // Include shipping cost
+        productData: {
+          shipping: product.shipping || 0
+        }
       };
       
       localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));

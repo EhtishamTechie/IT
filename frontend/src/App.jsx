@@ -23,6 +23,7 @@ import { AdminProvider } from './contexts/AdminContext';
 import { AdminAuthProvider } from './contexts/AdminAuthContext';
 import { VendorAuthProvider } from './contexts/VendorAuthContext';
 import NotificationProvider from './contexts/NotificationContext';
+import useAnalytics from './hooks/useAnalytics';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import AllProductsPage from './pages/AllProductsPage';
@@ -97,6 +98,9 @@ const AppContent = () => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isVendorRoute = location.pathname.startsWith('/vendor');
+  
+  // Initialize analytics tracking
+  useAnalytics();
 
   return (
     <div className={isAdminRoute ? 'admin-layout' : isVendorRoute ? 'vendor-layout' : 'main-website'}>

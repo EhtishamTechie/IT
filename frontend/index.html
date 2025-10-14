@@ -12,12 +12,49 @@
     'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-K55PGMBD');</script>
     <!-- End Google Tag Manager -->
+
+    <!-- Meta Pixel Code -->
+    <script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+    n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+    if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+    n.queue=[];t=b.createElement(e);t.async=!0;
+    t.src=v;s=b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t,s)}(window, document,'script',
+    'https://connect.facebook.net/en_US/fbevents.js');
+    
+    // Initialize Meta Pixel with logging
+    fbq('init', '1122233005539042');
+    console.log('Meta Pixel: Initialized with ID 1122233005539042');
+    
+    // Track PageView with logging
+    fbq('track', 'PageView');
+    console.log('Meta Pixel: Page view tracked -', document.title, '(' + window.location.pathname + ')');
+    
+    // Add event listener to track when the pixel script loads
+    window.addEventListener('load', function() {
+        if (typeof fbq !== 'undefined') {
+            console.log('Meta Pixel: Script loaded successfully');
+        } else {
+            console.log('Meta Pixel: Script failed to load');
+        }
+    });
+    </script>
+    <!-- End Meta Pixel Code -->
   </head>
   <body>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K55PGMBD"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
+    
+    <!-- Meta Pixel Code (noscript) -->
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1122233005539042&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code (noscript) -->
+    
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

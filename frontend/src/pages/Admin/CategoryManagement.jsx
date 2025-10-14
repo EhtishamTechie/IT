@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   Plus, 
@@ -16,6 +16,7 @@ import { getApiUrl } from '../../config';
 import FooterCategoryManager from '../../components/admin/FooterCategoryManager';
 
 const CategoryManagement = () => {
+  const footerManagerRef = useRef(null);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,6 +130,12 @@ try {
       await axios.delete(`${getApiUrl()}/admin/categories/${categoryId}`, { headers });
       alert('Category deleted successfully');
       loadCategories();
+      
+      // Trigger refresh of FooterCategoryManager
+      if (footerManagerRef.current && footerManagerRef.current.refreshCategories) {
+        console.log('Triggering footer categories refresh after delete...');
+        footerManagerRef.current.refreshCategories();
+      }
     } catch (error) {
       console.error('Error deleting category:', error);
       alert('Failed to delete category');
@@ -275,7 +282,7 @@ try {
       </div>
 
       {/* Footer Categories Manager */}
-      <FooterCategoryManager />
+      <FooterCategoryManager ref={footerManagerRef} />
 
       {/* Search */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">

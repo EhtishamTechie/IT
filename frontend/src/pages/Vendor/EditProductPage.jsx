@@ -27,6 +27,7 @@ const EditProductPage = () => {
     description: '',
     price: '',
     stock: '',
+    shipping: '',
     mainCategory: '',
     subCategory: '',
     brand: '',
@@ -131,6 +132,7 @@ const EditProductPage = () => {
           description: product.description || '',
           price: product.price?.toString() || '',
           stock: product.stock?.toString() || '',
+          shipping: product.shipping?.toString() || '0',
           mainCategory: mainCategoryValue,
           subCategory: subCategoryValue,
           brand: product.brand || '',
@@ -249,6 +251,7 @@ const EditProductPage = () => {
       submitData.append('title', formData.name); // Backend expects 'title'
       submitData.append('description', formData.description);
       submitData.append('price', formData.price);
+      submitData.append('shipping', formData.shipping);
       submitData.append('stock', formData.stock);
       submitData.append('brand', formData.brand);
       submitData.append('tags', formData.keywords);
@@ -423,6 +426,27 @@ const EditProductPage = () => {
                       className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
                       placeholder="0.00"
                     />
+                  </div>
+
+                  {/* Shipping */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Shipping Cost ($) *
+                    </label>
+                    <input
+                      type="number"
+                      name="shipping"
+                      value={formData.shipping}
+                      onChange={(e) => setFormData(prev => ({...prev, shipping: e.target.value}))}
+                      onWheel={(e) => e.target.blur()} // Prevent scroll wheel from changing value
+                      required
+                      step="0.01"
+                      min="0"
+                      autoComplete="off"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors"
+                      placeholder="0.00"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Shipping fee for this product. For multiple products, highest shipping fee applies.</p>
                   </div>
 
                   {/* Stock */}

@@ -451,7 +451,16 @@ const EnhancedOrderManagement = () => {
           'City': order.city || order.customer?.city || 'N/A',
           'Order Type': orderType.replace('_', ' '),
           'Status': order.status?.replace('_', ' ') || 'N/A',
-          'Total Amount': `$${order.totalAmount || order.total || 0}`,
+          'Total Amount': `PKR ${(() => {
+            // Calculate total including shipping
+            if (order.cart && Array.isArray(order.cart)) {
+              const cartTotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              const shippingCost = order.shippingCost || 0;
+              return (cartTotal + shippingCost).toFixed(2);
+            }
+            // Fallback to stored totalAmount
+            return (order.totalAmount || order.total || 0).toFixed(2);
+          })()}`,
           'Payment Method': order.paymentMethod || 'N/A',
           'Order Date': new Date(order.createdAt).toLocaleDateString(),
           'Items Count': (order.cart || order.items || []).length,
@@ -739,7 +748,16 @@ const EnhancedOrderManagement = () => {
                           Customer: {order.name || order.customer?.name || order.customerName || 'N/A'}
                         </p>
                         <p className="text-sm text-gray-500">
-                          Total: ${order.totalAmount || order.total || 0}
+                          Total: PKR {(() => {
+                            // Calculate total including shipping
+                            if (order.cart && Array.isArray(order.cart)) {
+                              const cartTotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                              const shippingCost = order.shippingCost || 0;
+                              return (cartTotal + shippingCost).toFixed(2);
+                            }
+                            // Fallback to stored totalAmount
+                            return (order.totalAmount || order.total || 0).toFixed(2);
+                          })()}
                         </p>
                         <p className="text-sm text-gray-500">
                           Date: {new Date(order.createdAt).toLocaleDateString()}

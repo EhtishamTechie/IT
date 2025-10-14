@@ -152,6 +152,93 @@ const SimpleOrderDetailPage = () => {
   
   const isAnyUserAuthenticated = isAuthenticated || vendor || hasVendorToken || hasAdminToken || hasRegularToken;
 
+  // Shipping calculation functions
+  const calculateOrderShipping = (order) => {
+    if (!order || (!order.cart && !order.items)) {
+      console.log('🚢 [SHIPPING DEBUG] No order or cart data available');
+      return 0;
+    }
+    
+    const cartItems = order.cart || order.items || [];
+    
+    console.log('🚢 [SHIPPING DEBUG] Order data:', {
+      orderId: order._id,
+      cart: cartItems?.length || 0,
+      totalAmount: order.totalAmount,
+      shippingCost: order.shippingCost,
+      endpoint: order._endpoint || 'unknown',
+      cartItems: cartItems?.map(item => ({
+        title: item.title,
+        shipping: item.shipping,
+        productData: item.productData
+      }))
+    });
+    
+    // Use stored shipping cost first (for new orders)
+    if (order.shippingCost !== undefined && order.shippingCost !== null) {
+      console.log('🚢 [SHIPPING DEBUG] Using stored shippingCost:', order.shippingCost);
+      return order.shippingCost;
+    }
+    
+    // Fallback: Try to get shipping from cart items (for old orders)
+    if (cartItems.length > 0) {
+      const shippingCosts = cartItems.map(item => {
+        const shipping = item.shipping || item.productData?.shipping || 0;
+        return Number(shipping);
+      }).filter(cost => !isNaN(cost) && cost > 0);
+      
+      console.log('🚢 [SHIPPING DEBUG] Cart shipping costs:', shippingCosts);
+      
+      if (shippingCosts.length > 0) {
+        const maxShippingCost = Math.max(...shippingCosts);
+        
+        // Check if order qualifies for free shipping (10,000 or more)
+        const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        if (subtotal >= 10000) {
+          console.log('🚢 [SHIPPING DEBUG] Free shipping - subtotal >= 10000');
+          return 0; // Free shipping for orders >= 10,000
+        }
+        
+        console.log('🚢 [SHIPPING DEBUG] Using cart max shipping:', maxShippingCost);
+        return maxShippingCost;
+      }
+    }
+    
+    // Last fallback: Calculate from totalAmount vs cart total (for very old orders)
+    if (cartItems.length > 0) {
+      const cartTotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      const storedTotal = order.totalAmount || 0;
+      const impliedShipping = storedTotal - cartTotal;
+      
+      if (impliedShipping > 0 && impliedShipping < 1000) { // Reasonable shipping cost
+        console.log('🚢 [SHIPPING DEBUG] Implied shipping from total difference:', impliedShipping);
+        return impliedShipping;
+      }
+    }
+    
+    console.log('🚢 [SHIPPING DEBUG] No shipping cost found, returning 0');
+    return 0;
+  };
+
+  // Calculate order subtotal (without shipping)
+  const calculateOrderSubtotal = (order) => {
+    if (!order) return 0;
+    
+    const cartItems = order.cart || order.items || [];
+    
+    if (cartItems.length === 0) {
+      // If no cart, use totalAmount as fallback (assuming it includes shipping)
+      return order.totalAmount || 0;
+    }
+    
+    const cartSubtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    console.log('🧮 [SUBTOTAL DEBUG] Cart subtotal:', cartSubtotal, 'vs stored total:', order.totalAmount);
+    
+    // Use cart calculation for consistency
+    return cartSubtotal;
+  };
+
   // Debug authentication state
   useEffect(() => {
     console.log('🔐 Authentication Debug:', {
@@ -278,7 +365,7 @@ const SimpleOrderDetailPage = () => {
         
         // Process the fallback result
         if (result.success) {
-          processOrderData(result);
+          processOrderData(result, fallbackUrl);
           return;
         } else {
           throw new Error('Failed to load order from fallback endpoint');
@@ -290,7 +377,7 @@ const SimpleOrderDetailPage = () => {
       console.log('💳 Payment receipt in response:', result.data?.paymentReceipt);
       
       // Process the successful result
-      processOrderData(result);
+      processOrderData(result, apiUrl);
       
     } catch (error) {
       console.error('❌ Load order error:', error);
@@ -299,8 +386,9 @@ const SimpleOrderDetailPage = () => {
     }
   }, [orderId, currentUser?.role, vendor]);
 
-  const processOrderData = (result) => {
+  const processOrderData = (result, endpoint = 'unknown') => {
     try {
+      console.log('🔄 Processing order data from endpoint:', endpoint);
       console.log('🔄 Processing order data:', result);
       
       if (result.success) {
@@ -319,6 +407,7 @@ const SimpleOrderDetailPage = () => {
           
           const transformedOrderData = {
             ...responseData,
+            _endpoint: endpoint, // Add endpoint marker
             // Map vendorItems to items and cart for consistency
             items: responseData.vendorItems?.map(item => ({
               title: item.productName || item.title || item.name,
@@ -365,6 +454,7 @@ const SimpleOrderDetailPage = () => {
           // Transform to expected format for SimpleOrderDetailPage
           const transformedOrderData = {
             ...mainOrder,
+            _endpoint: endpoint, // Add endpoint marker
             // Use items from originalItems if available, otherwise from mainOrder
             items: originalItems?.map(item => ({
               title: item.productName,
@@ -383,7 +473,8 @@ const SimpleOrderDetailPage = () => {
               name: item.productName,
               quantity: item.quantity,
               price: item.price,
-              image: item.image
+              image: item.image,
+              shipping: item.shipping || 0 // Include shipping from items
             })) || mainOrder?.cart || [],
             orderType: isSplit ? 'mixed' : (mainOrder?.orderType || 'admin_only'),
             isSplit: isSplit,
@@ -402,7 +493,10 @@ const SimpleOrderDetailPage = () => {
         } else {
           // Old format - direct order data
           console.log('📡 Direct order format detected:', responseData);
-          setOrderDetails(responseData);
+          setOrderDetails({
+            ...responseData,
+            _endpoint: endpoint // Add endpoint marker
+          });
         }
       } else {
         setError(result.message || 'Failed to load order details');
@@ -1010,9 +1104,61 @@ const SimpleOrderDetailPage = () => {
               
               {/* Order Total */}
               <div className="mt-6 border-t border-gray-200 pt-4">
-                <div className="flex items-center justify-between text-lg font-medium text-gray-900">
-                  <span>Total Amount</span>
-                  <span>PKR{orderDetails.totalAmount}</span>
+                <div className="space-y-2">
+                  {(() => {
+                    if (!orderDetails) return null;
+                    
+                    const cartItems = orderDetails.cart || orderDetails.items || [];
+                    const cartSubtotal = cartItems.length > 0 ? 
+                      cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
+                    const calculatedShipping = calculateOrderShipping(orderDetails);
+                    const storedTotal = orderDetails.totalAmount || 0;
+                    
+                    console.log('💰 [TOTAL DEBUG]', {
+                      cartSubtotal,
+                      calculatedShipping,
+                      storedTotal,
+                      hasShippingCost: orderDetails.shippingCost !== undefined,
+                      shippingCostValue: orderDetails.shippingCost,
+                      cartItemsCount: cartItems.length,
+                      endpoint: orderDetails._endpoint || 'unknown'
+                    });
+                    
+                    // Always show breakdown if we have cart/items data
+                    if (cartItems.length > 0) {
+                      return (
+                        <>
+                          <div className="flex items-center justify-between text-gray-700">
+                            <span>Subtotal</span>
+                            <span>PKR {cartSubtotal.toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-gray-700">
+                            <span>Shipping</span>
+                            <span>
+                              {calculatedShipping > 0 
+                                ? `PKR ${calculatedShipping.toFixed(2)}`
+                                : 'Free'
+                              }
+                            </span>
+                          </div>
+                          <div className="border-t border-gray-200 pt-2">
+                            <div className="flex items-center justify-between text-lg font-medium text-gray-900">
+                              <span>Total Amount</span>
+                              <span>PKR {(cartSubtotal + calculatedShipping).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </>
+                      );
+                    } else {
+                      // No cart data - just show total
+                      return (
+                        <div className="flex items-center justify-between text-lg font-medium text-gray-900">
+                          <span>Total Amount</span>
+                          <span>PKR {storedTotal.toFixed(2)}</span>
+                        </div>
+                      );
+                    }
+                  })()}
                 </div>
               </div>
             </div>

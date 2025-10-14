@@ -51,6 +51,7 @@ const ProductManagement = () => {
     description: '',
     price: '',
     stock: '',
+    shipping: '',
     keywords: '',
     mainCategory: '',
     subCategory: '',
@@ -230,6 +231,7 @@ const ProductManagement = () => {
       submitData.append('description', formData.description);
       submitData.append('price', formData.price);
       submitData.append('stock', formData.stock);
+      submitData.append('shipping', formData.shipping || '0');
       submitData.append('keywords', formData.keywords);
       
       // Add SEO fields
@@ -467,6 +469,7 @@ const ProductManagement = () => {
         description: product.description || '',
         price: product.price ? product.price.toString() : '',
         stock: product.stock !== undefined ? product.stock.toString() : '0',
+        shipping: product.shipping !== undefined ? product.shipping.toString() : '0',
         keywords: Array.isArray(product.keywords) ? product.keywords.join(', ') : product.keywords || '',
         mainCategory: mainCat,
         subCategory: subCat,
@@ -504,6 +507,7 @@ const ProductManagement = () => {
       description: '',
       price: '',
       stock: '',
+      shipping: '',
       keywords: '',
       mainCategory: '',
       subCategory: '',
@@ -895,6 +899,25 @@ const ProductManagement = () => {
                         placeholder="0.00"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <Package className="w-4 h-4 inline mr-1" />
+                        Shipping Cost ($) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        required
+                        value={formData.shipping}
+                        onChange={(e) => setFormData(prev => ({...prev, shipping: e.target.value}))}
+                        onWheel={(e) => e.target.blur()} // Prevent scroll wheel from changing value
+                        placeholder="0.00"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Shipping fee for this product. For multiple products, highest shipping fee applies.</p>
                     </div>
 
                     <div>

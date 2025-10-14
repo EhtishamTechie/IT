@@ -388,13 +388,14 @@ const OrderManagement = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm font-medium text-gray-900">
-                        ${(() => {
+                        PKR {(() => {
                           // Calculate total from cart items
                           if (order.cart && Array.isArray(order.cart)) {
-                            const total = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                            return total.toFixed(2);
+                            const cartTotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                            const shippingCost = order.shippingCost || 0;
+                            return (cartTotal + shippingCost).toFixed(2);
                           }
-                          // Fallback to totalAmount if available
+                          // Fallback to totalAmount if available (should include shipping)
                           return order.totalAmount?.toFixed(2) || '0.00';
                         })()}
                       </p>

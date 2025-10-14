@@ -139,6 +139,11 @@ const productSchema = new mongoose.Schema({
     type: Number,
     min: [0, 'Weight cannot be negative']
   },
+  shipping: {
+    type: Number,
+    min: [0, 'Shipping cost cannot be negative'],
+    default: 0
+  },
   dimensions: {
     length: Number,
     width: Number,

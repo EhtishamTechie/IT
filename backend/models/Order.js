@@ -39,6 +39,7 @@ const orderItemSchema = new mongoose.Schema({
   vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' }, // Vendor reference
   title: String,
   price: Number,
+  shipping: { type: Number, default: 0 }, // Add shipping cost for each product
   quantity: Number,
   itemTotal: { type: Number, default: 0 }, // New field: item total amount
   image: String,
@@ -113,6 +114,15 @@ const orderSchema = new mongoose.Schema({
     default: null
   },
   cart: [orderItemSchema], // Using enhanced schema
+  
+  // Shipping calculation fields
+  shippingCost: { type: Number, default: 0 },
+  freeShippingApplied: { type: Boolean, default: false },
+  shippingCalculationMethod: { 
+    type: String, 
+    enum: ['max_product_shipping', 'free_shipping'],
+    default: 'max_product_shipping'
+  },
   
   // Modern unified status field - single source of truth
   status: {

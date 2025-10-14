@@ -34,14 +34,22 @@ const cartItemSchema = new mongoose.Schema({
       default: null
     },
     // Additional fields for complete order processing
-    weight: Number,
+    weight: { type: Number, default: null },
     dimensions: {
-      length: Number,
-      width: Number, 
-      height: Number
+      type: {
+        length: { type: Number, default: null },
+        width: { type: Number, default: null }, 
+        height: { type: Number, default: null }
+      },
+      default: null
     },
-    sku: String,
-    vendorSku: String
+    shipping: {
+      type: Number,
+      min: 0,
+      default: 0
+    },
+    sku: { type: String, default: null },
+    vendorSku: { type: String, default: null }
   },
   quantity: {
     type: Number,

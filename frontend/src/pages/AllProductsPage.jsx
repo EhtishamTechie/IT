@@ -210,7 +210,11 @@ const AllProductsPage = () => {
         price: product.price,
         image: product.image || (product.images?.[0] || null),
         stock: product.stock || 100,
-        quantity: 1
+        quantity: 1,
+        shipping: product.shipping || 0, // Include shipping cost
+        productData: {
+          shipping: product.shipping || 0
+        }
       };
       
       localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));

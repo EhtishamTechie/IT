@@ -44,6 +44,7 @@ const cartReducer = (state, action) => {
       _id: action.payload._id,
       title: action.payload.title,
       price: action.payload.price,
+      shipping: action.payload.shipping || 0, // Include shipping field
       image: action.payload.image || (action.payload.images?.[0] || null), // Primary image first, then fallback
       stock: action.payload.stock || 100,
       quantity: action.payload.quantity || 1
@@ -292,6 +293,7 @@ export const CartProvider = ({ children }) => {
 
   // Cart calculations
   const cartStats = {
+    items: state.items, // Add items array for shipping calculations
     totalItems: state.items.reduce((sum, item) => sum + item.quantity, 0),
     totalPrice: state.items.reduce((sum, item) => {
       // Handle both direct price and productData.price structures

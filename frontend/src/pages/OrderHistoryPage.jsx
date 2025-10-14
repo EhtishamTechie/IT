@@ -22,6 +22,38 @@ const OrderHistoryPage = () => {
   const [cancelLoading, setCancelLoading] = useState(false);
   const { showSuccess, showError, showWarning, NotificationComponent } = useNotification();
 
+  // Shipping calculation functions
+  const calculateOrderShipping = (order) => {
+    if (!order.cart || order.cart.length === 0) return 0;
+    
+    // Get the maximum shipping cost from all items
+    const shippingCosts = order.cart.map(item => {
+      const shipping = item.shipping || item.productData?.shipping || 0;
+      return Number(shipping);
+    }).filter(cost => !isNaN(cost) && cost > 0);
+    
+    if (shippingCosts.length === 0) return 0;
+    
+    const maxShippingCost = Math.max(...shippingCosts);
+    
+    // Check if order qualifies for free shipping (10,000 or more)
+    const subtotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    
+    if (subtotal >= 10000) {
+      return 0; // Free shipping for orders >= 10,000
+    }
+    
+    return maxShippingCost;
+  };
+
+  // Calculate order total including shipping
+  const calculateOrderTotal = (order) => {
+    if (!order.cart || order.cart.length === 0) return 0;
+    const subtotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const shipping = calculateOrderShipping(order);
+    return subtotal + shipping;
+  };
+
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
@@ -480,9 +512,16 @@ const OrderHistoryPage = () => {
                       </div>
                     )}
                     {/* Price Summary */}
-                    <span className="text-lg font-bold text-orange-600">
-                      ${order.cart ? order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0).toFixed(2) : '0.00'}
-                    </span>
+                    <div className="text-right">
+                      <span className="text-lg font-bold text-orange-600">
+                        PKR {calculateOrderTotal(order).toFixed(2)}
+                      </span>
+                      {calculateOrderShipping(order) > 0 && (
+                        <p className="text-xs text-gray-500">
+                          (incl. PKR {calculateOrderShipping(order).toFixed(2)} shipping)
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 {/* Order Items Preview */}

@@ -59,10 +59,54 @@ const OrderConfirmationPage = () => {
     }
   };
 
+  // Calculate shipping cost based on cart items
+  const calculateShippingCost = (cartItems) => {
+    if (!cartItems || cartItems.length === 0) return 0;
+    
+    // Get the maximum shipping cost from all items
+    const shippingCosts = cartItems.map(item => {
+      const shipping = item.shipping || item.productData?.shipping || 0;
+      console.log(`Shipping for ${item.title}: ${shipping}`);
+      return Number(shipping);
+    }).filter(cost => !isNaN(cost) && cost > 0);
+    
+    console.log('All shipping costs:', shippingCosts);
+    
+    if (shippingCosts.length === 0) return 0;
+    
+    const maxShippingCost = Math.max(...shippingCosts);
+    console.log('Maximum shipping cost:', maxShippingCost);
+    
+    // Check if order qualifies for free shipping (10,000 or more)
+    const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    console.log('Order subtotal:', subtotal);
+    
+    if (subtotal >= 10000) {
+      console.log('Order qualifies for free shipping (subtotal >= 10000)');
+      return 0;
+    }
+    
+    return maxShippingCost;
+  };
+
   // Transform backend order format to frontend format
   const transformBackendOrder = (backendOrder) => {
     // Handle both direct order and wrapped response
     const order = backendOrder.order || backendOrder;
+    
+    // Use stored shipping cost or calculate from cart items as fallback
+    let shippingCost = 0;
+    if (order.shippingCost !== undefined) {
+      // Use stored shipping cost (for new orders)
+      shippingCost = order.shippingCost;
+      console.log('🚢 [ORDER CONFIRMATION] Using stored shipping cost:', shippingCost);
+    } else {
+      // Fallback: calculate shipping cost from cart items (for old orders)
+      shippingCost = calculateShippingCost(order.cart);
+      console.log('🚢 [ORDER CONFIRMATION] Calculated shipping cost from cart:', shippingCost);
+    }
+    
+    const subtotal = order.cart ? order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0;
     
     return {
       orderNumber: order._id || order.orderNumber || orderNumber,
@@ -97,16 +141,17 @@ const OrderConfirmationPage = () => {
         price: item.price,
         quantity: item.quantity,
         image: item.image,
-        productId: item.productId
+        productId: item.productId,
+        shipping: item.shipping || item.productData?.shipping || 0
       })) : [],
       
-      // Calculate totals
+      // Calculate totals with actual shipping
       totals: {
-        subtotal: order.cart ? order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0,
-        shipping: 0, // Default
+        subtotal: subtotal,
+        shipping: shippingCost,
         tax: 0, // Default
         discount: 0, // Default
-        total: order.cart ? order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0) : 0
+        total: subtotal + shippingCost
       },
       
       // Keep original data for reference
@@ -230,6 +275,12 @@ const OrderConfirmationPage = () => {
                   <p className="text-sm text-gray-500 mt-1">
                     Estimated delivery: {OrderService.estimateDeliveryDate(order.shippingInfo?.method || order.shipping?.method)}
                   </p>
+                  <p className="text-sm font-medium text-orange-600 mt-2">
+                    Shipping Cost: {order.totals?.shipping > 0 
+                      ? `PKR ${order.totals.shipping.toFixed(2)}` 
+                      : 'Free (Order ≥ PKR 10,000)'
+                    }
+                  </p>
                 </div>
               </div>
             </div>
@@ -268,16 +319,21 @@ const OrderConfirmationPage = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
-                  <span>${order.totals?.subtotal?.toFixed(2) || order.totals?.total?.toFixed(2) || '0.00'}</span>
+                  <span>PKR {order.totals?.subtotal?.toFixed(2) || '0.00'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
-                  <span>Free</span>
+                  <span>
+                    {order.totals?.shipping > 0 
+                      ? `PKR ${order.totals.shipping.toFixed(2)}` 
+                      : 'Free'
+                    }
+                  </span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-semibold">
                     <span>Total</span>
-                    <span>${order.totals?.total?.toFixed(2) || '0.00'}</span>
+                    <span>PKR {order.totals?.total?.toFixed(2) || '0.00'}</span>
                   </div>
                 </div>
               </div>
