@@ -285,7 +285,7 @@ const ContactUsPage = () => {
   const faqs = [
     {
       question: "What are your shipping policies?",
-      answer: "We offer free standard shipping on orders over $35. Standard shipping takes 3-5 business days, while expedited shipping takes 1-2 business days. All orders are processed within 24 hours and tracking information is provided via email."
+      answer: "We offer free standard shipping on orders over PKR 10,000. Standard shipping takes 3-5 business days, while expedited shipping takes 1-2 business days. All orders are processed within 24 hours and tracking information is provided via email."
     },
     {
       question: "What is your return policy?",
@@ -295,10 +295,7 @@ const ContactUsPage = () => {
       question: "How can I track my order?",
       answer: "Once your order ships, you'll receive a tracking number via email and SMS. You can also track your order by logging into your account or using our order tracking page with your order number."
     },
-    {
-      question: "Do you offer international shipping?",
-      answer: "Yes! We ship to over 100 countries worldwide. International shipping rates and delivery times vary by destination. All international orders include tracking and are subject to local customs duties."
-    },
+     
     {
       question: "How do I become a business partner?",
       answer: "We welcome business partnerships! Please contact us through the contact options above selecting 'Business Partnership', or email partnerships@internationaltijarat.com with your proposal and company information."

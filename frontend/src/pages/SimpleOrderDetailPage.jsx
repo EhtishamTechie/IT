@@ -303,11 +303,21 @@ const SimpleOrderDetailPage = () => {
       
       // Determine the correct endpoint and token based on user context
       // Priority: current user context > localStorage tokens
+      const orderDetailSource = localStorage.getItem('orderDetailSource');
+      console.log('🔍 [NAVIGATION DEBUG] Order detail source:', orderDetailSource);
+      console.log('🔍 [NAVIGATION DEBUG] User context:', {
+        currentUserRole: _currentUser?.role,
+        hasAdminToken: !!localStorage.getItem('adminToken'),
+        hasVendorToken: !!localStorage.getItem('vendorToken'),
+        vendor: !!vendor
+      });
+      
       if (_currentUser?.role === 'admin' || localStorage.getItem('adminToken')) {
         // Admin context - use admin split-details endpoint
         apiUrl = getApiUrl(`/orders/${orderId}/split-details`);
         authToken = localStorage.getItem('adminToken') || localStorage.getItem('token');
         console.log('👑 Using admin endpoint:', apiUrl);
+        console.log('👑 Navigation source was:', orderDetailSource);
       } else if (vendor || _currentUser?.role === 'vendor' || localStorage.getItem('vendorToken')) {
         // Vendor context - use vendor endpoint
         apiUrl = `${getApiUrl()}/vendors/orders/${orderId}`;
@@ -375,6 +385,20 @@ const SimpleOrderDetailPage = () => {
       const result = await response.json();
       console.log('📡 Order response:', result);
       console.log('💳 Payment receipt in response:', result.data?.paymentReceipt);
+      console.log('📊 [API RESPONSE] Raw data received:', {
+        orderId,
+        apiUrl,
+        dataStructure: result,
+        hasOrder: !!result.order,
+        hasMessage: !!result.message,
+        hasData: !!result.data,
+        orderKeys: result.order ? Object.keys(result.order) : null,
+        dataKeys: result.data ? Object.keys(result.data) : null,
+        storedShippingCost: result.order?.storedShippingCost || result.data?.storedShippingCost,
+        shippingCost: result.order?.shippingCost || result.data?.shippingCost,
+        totalAmount: result.order?.totalAmount || result.data?.totalAmount,
+        items: (result.order?.items?.length || result.data?.items?.length || 0)
+      });
       
       // Process the successful result
       processOrderData(result, apiUrl);
@@ -1121,7 +1145,10 @@ const SimpleOrderDetailPage = () => {
                       hasShippingCost: orderDetails.shippingCost !== undefined,
                       shippingCostValue: orderDetails.shippingCost,
                       cartItemsCount: cartItems.length,
-                      endpoint: orderDetails._endpoint || 'unknown'
+                      endpoint: orderDetails._endpoint || 'unknown',
+                      orderNumber: orderDetails.orderNumber,
+                      orderSource: localStorage.getItem('orderDetailSource'),
+                      calculationMethod: calculatedShipping > 0 ? (orderDetails.shippingCost !== undefined ? 'stored' : 'calculated') : 'free'
                     });
                     
                     // Always show breakdown if we have cart/items data
@@ -1144,7 +1171,7 @@ const SimpleOrderDetailPage = () => {
                           <div className="border-t border-gray-200 pt-2">
                             <div className="flex items-center justify-between text-lg font-medium text-gray-900">
                               <span>Total Amount</span>
-                              <span>PKR {(cartSubtotal + calculatedShipping).toFixed(2)}</span>
+                              <span>PKR {storedTotal.toFixed(2)}</span>
                             </div>
                           </div>
                         </>

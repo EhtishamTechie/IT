@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { getImageUrl } from '../config';
 
-const ProductCarousel = ({ product, className = '' }) => {
+const ProductGallery = ({ product }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -103,16 +103,16 @@ const ProductCarousel = ({ product, className = '' }) => {
 
   if (mediaItems.length === 0) {
     return (
-      <div className={`w-full bg-gray-200 rounded-lg flex items-center justify-center ${className || 'h-96'}`}>
+      <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
         <span className="text-gray-500">No media available</span>
       </div>
     );
   }
 
   return (
-    <div className={`w-full ${className}`}>
+    <div className="w-full space-y-4">
       {/* Main Media Display */}
-      <div className="relative w-full max-w-sm h-80 mx-auto bg-gray-100 rounded-lg overflow-hidden shadow-lg mb-6">
+      <div className="relative w-full h-80 lg:h-96 bg-gray-100 rounded-lg overflow-hidden shadow-lg">
         {currentMedia?.type === 'video' ? (
           <div className="relative w-full h-full">
             <video
@@ -187,65 +187,48 @@ const ProductCarousel = ({ product, className = '' }) => {
         )}
       </div>
 
-      {/* Thumbnail Navigation */}
+      {/* Thumbnail Navigation - Separate section */}
       {mediaItems.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 justify-center max-w-sm mx-auto">
-          {mediaItems.map((media, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`
-                flex-shrink-0 w-12 h-12 rounded-md overflow-hidden border-2 transition-all duration-200
-                ${currentIndex === index 
-                  ? 'border-blue-500 shadow-md' 
-                  : 'border-gray-300 hover:border-gray-400'
-                }
-              `}
-            >
-              {media.type === 'video' ? (
-                <div className="relative w-full h-full bg-gray-200 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                    <Play className="w-6 h-6 text-white" />
+        <div className="w-full">
+          <div className="flex gap-2 overflow-x-auto pb-2 justify-center">
+            {mediaItems.map((media, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`
+                  flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all duration-200
+                  ${currentIndex === index 
+                    ? 'border-blue-500 shadow-md' 
+                    : 'border-gray-300 hover:border-gray-400'
+                  }
+                `}
+              >
+                {media.type === 'video' ? (
+                  <div className="relative w-full h-full bg-gray-200 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                      <Play className="w-4 h-4 text-white" />
+                    </div>
+                    <video className="w-full h-full object-contain" muted>
+                      <source src={getImageUrl('products', media.src)} type="video/mp4" />
+                    </video>
                   </div>
-                  <video className="w-full h-full object-contain" muted>
-                    <source src={getImageUrl('products', media.src)} type="video/mp4" />
-                  </video>
-                </div>
-              ) : (
-                <img
-                  src={getImageUrl('products', media.src)}
-                  alt={media.alt}
-                  className="w-full h-full object-contain bg-white p-1"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Dots Indicator (for mobile) */}
-      {mediaItems.length > 1 && (
-        <div className="mt-4 flex justify-center gap-2 md:hidden">
-          {mediaItems.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => goToSlide(index)}
-              className={`
-                w-2 h-2 rounded-full transition-all duration-200
-                ${currentIndex === index 
-                  ? 'bg-blue-500 w-6' 
-                  : 'bg-gray-300 hover:bg-gray-400'
-                }
-              `}
-            />
-          ))}
+                ) : (
+                  <img
+                    src={getImageUrl('products', media.src)}
+                    alt={media.alt}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.style.display = 'none';
+                    }}
+                  />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default ProductCarousel;
+export default ProductGallery;

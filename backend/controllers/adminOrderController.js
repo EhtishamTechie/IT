@@ -1251,7 +1251,62 @@ const getAdminOrders = async (req, res) => {
 
     // Format orders for frontend
     const formattedOrders = adminOrders.map(order => {
-      const totalAmount = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      // Debug: Log order shipping data
+      console.log(`🚢 [ORDER DEBUG] Order ${order.orderNumber}:`, {
+        storedTotalAmount: order.totalAmount,
+        storedShippingCost: order.shippingCost,
+        cartItems: order.cart?.length || 0
+      });
+      
+      // Calculate shipping cost for ALL orders (old and new)
+      let calculatedShippingCost = 0;
+      let cartTotal = 0;
+      
+      if (order.cart && order.cart.length > 0) {
+        // Calculate cart subtotal
+        cartTotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        
+        // Find maximum shipping cost among all items
+        const shippingCosts = order.cart.map(item => {
+          const productShipping = item.productId?.shipping || item.shipping || 0;
+          return Number(productShipping);
+        }).filter(cost => cost > 0);
+        
+        if (shippingCosts.length > 0) {
+          const maxShipping = Math.max(...shippingCosts);
+          
+          // Apply free shipping threshold (10,000 PKR)
+          if (cartTotal < 10000) {
+            calculatedShippingCost = maxShipping;
+          }
+        }
+      }
+      
+      // Determine final values
+      let finalTotalAmount;
+      let finalShippingCost;
+      
+      // If order has stored shippingCost > 0, use stored values
+      if (order.shippingCost && order.shippingCost > 0) {
+        finalTotalAmount = order.totalAmount;
+        finalShippingCost = order.shippingCost;
+        console.log(`🚢 [ORDER DEBUG] Using stored shipping for ${order.orderNumber}`);
+      } else {
+        // For old orders or orders without shipping cost, recalculate
+        finalShippingCost = calculatedShippingCost;
+        finalTotalAmount = cartTotal + calculatedShippingCost;
+        console.log(`🚢 [ORDER DEBUG] Calculated shipping for ${order.orderNumber}:`, {
+          cartTotal,
+          calculatedShippingCost,
+          finalTotalAmount,
+          storedTotal: order.totalAmount
+        });
+      }
+      
+      console.log(`🚢 [ORDER DEBUG] Final values for ${order.orderNumber}:`, {
+        finalTotalAmount,
+        finalShippingCost
+      });
       
       return {
         _id: order._id,
@@ -1260,7 +1315,8 @@ const getAdminOrders = async (req, res) => {
         customerName: order.name || order.customerName,
         customerEmail: order.email,
         status: order.status,
-        totalAmount: totalAmount,
+        totalAmount: finalTotalAmount, // Corrected total including shipping
+        shippingCost: finalShippingCost, // Calculated or stored shipping cost
         itemCount: order.cart.length,
         type: order.partialOrderType === 'admin_part' ? 'Mixed Order Part' : 'Admin Only',
         createdAt: order.createdAt,

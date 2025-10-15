@@ -1571,7 +1571,7 @@ const CheckoutPage = () => {
                     disabled={isSubmitting}
                     className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
                   >
-                    {isSubmitting ? 'Processing...' : `${cartAnalysis.notification?.buttonText || 'Place Order'} - PKR ${(checkoutStats?.totalPrice || 0).toFixed(2)}`}
+                    {isSubmitting ? 'Processing...' : `${cartAnalysis.notification?.buttonText || 'Place Order'} - PKR ${(orderTotals?.total || 0).toFixed(2)}`}
                   </button>
                 </div>
               </div>

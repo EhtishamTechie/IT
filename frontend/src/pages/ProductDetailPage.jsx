@@ -6,7 +6,8 @@ import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
 import { useNotification } from "../contexts/NotificationContext";
 import { getApiUrl, getImageUrl } from '../config';
-import ProductCarousel from '../components/ProductCarousel';
+import ProductGallery from '../components/ProductGallery';
+import ProductInfo from '../components/ProductInfo';
 import Footer from '../components/Footer';
 import { generateProductSEO, generateBreadcrumbs, generateCanonicalUrl } from '../utils/seoHelpers';
 import { generateProductSchema, generateBreadcrumbSchema } from '../utils/schemaGenerator';
@@ -496,182 +497,27 @@ const ProductDetailPage = () => {
 
         {/* Product Details */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="flex flex-col lg:flex-row">
+          <div className="flex flex-col space-y-6 lg:space-y-0 lg:flex-row">
             
-            {/* Product Media Carousel */}
-            <div className="w-full lg:w-1/2">
-              <ProductCarousel product={product} className="h-80 lg:h-72" />
+            {/* Product Media Gallery - Mobile: Full width with proper spacing */}
+            <div className="w-full lg:w-1/2 p-4 lg:p-6 lg:border-r border-gray-200">
+              <ProductGallery product={product} className="h-80 lg:h-96" />
             </div>
 
-            {/* Product Details */}
-            <div className="w-full lg:w-1/2 p-6 lg:p-4">
-              {/* Product Title */}
-              <h1 className="text-2xl lg:text-2xl font-bold text-gray-900 mb-2 lg:mb-1" itemProp="name">
-                {product?.seo?.title || product?.metaTitle || product?.title || 'Product'}
-              </h1>
-
-              {/* Price */}
-              <div className="mb-4 lg:mb-2">
-                <span className="text-3xl lg:text-4xl font-bold text-orange-600">
-                  PKR {(discountedPrice || 0).toFixed(2)}
-                </span>
-                {product && product.discount > 0 && (
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="text-lg text-gray-500 line-through">
-                      PKR {(product.price || 0).toFixed(2)}
-                    </span>
-                    <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
-                      {product.discount}% OFF
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Stock Status */}
-              <div className="flex items-center gap-2 mb-4 lg:mb-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  product && product.stock > 0 ? 'bg-green-500' : 'bg-red-500'
-                }`}></div>
-                <span className={`font-medium ${
-                  product && product.stock > 0 ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {product && product.stock > 0 ? 'In Stock' : 'Out of Stock'}
-                </span>
-              </div>
-
-              {/* Description */}
-              <div className="mb-4 lg:mb-2">
-                <h3 className="text-lg lg:text-base font-semibold mb-1">Description</h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {product?.description || 'No description available'}
-                </p>
-              </div>
-
-              {/* Categories */}
-              {(() => {
-                const mainCategories = extractCategoryNames(product?.mainCategory);
-                const subCategories = extractCategoryNames(product?.subCategory);
-                const categories = extractCategoryNames(product?.category);
-                const hasAnyCategories = mainCategories.length > 0 || subCategories.length > 0 || categories.length > 0;
-                
-                return hasAnyCategories && (
-                  <div className="mb-4 lg:mb-2">
-                    <h3 className="text-lg lg:text-base font-semibold mb-2 lg:mb-1">Categories</h3>
-                    <div className="flex flex-wrap gap-1 lg:gap-1">
-                      {mainCategories.map((catName, index) => (
-                        <span key={index} className="bg-blue-100 text-blue-800 px-2 lg:px-2 py-1 rounded-full text-sm lg:text-xs">
-                          {catName}
-                        </span>
-                      ))}
-                      {subCategories.map((catName, index) => (
-                        <span key={index} className="bg-green-100 text-green-800 px-2 lg:px-2 py-1 rounded-full text-sm lg:text-xs">
-                          {catName}
-                        </span>
-                      ))}
-                      {categories.map((catName, index) => (
-                        <span key={index} className="bg-purple-100 text-purple-800 px-2 lg:px-2 py-1 rounded-full text-sm lg:text-xs">
-                          {catName}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })()}
-
-              {/* Vendor Information */}
-              <div className="mb-4 lg:mb-2">
-                <h3 className="text-lg lg:text-base font-semibold mb-1">Sold by</h3>
-                <span className="text-orange-600 font-semibold text-lg">
-                  {product?.vendor && typeof product.vendor === 'object' && product.vendor.businessName
-                    ? product.vendor.businessName
-                    : product?.vendor?.name || 'International Tijarat'}
-                </span>
-              </div>
-
-              {/* Quantity and Action Buttons */}
-              <div className="space-y-3 lg:space-y-2">
-                <div className="flex items-center gap-4">
-                  <label className="text-lg lg:text-base font-semibold">Quantity:</label>
-                  <div className="flex items-center border-2 border-gray-300 rounded-lg">
-                    <button
-                      onClick={handleQuantityDecrease}
-                      className="px-3 lg:px-2 py-2 lg:py-1 text-xl lg:text-lg font-bold hover:bg-gray-100 transition-colors"
-                      disabled={quantity <= 1}
-                    >
-                      -
-                    </button>
-                    <input
-                      type="number"
-                      value={quantity}
-                      onChange={handleQuantityChange}
-                      className="w-16 lg:w-12 py-2 lg:py-1 text-center border-0 focus:ring-0 text-lg lg:text-base font-semibold"
-                      min="1"
-                      max={product?.stock || 999}
-                    />
-                    <button
-                      onClick={handleQuantityIncrease}
-                      className={`px-3 lg:px-2 py-2 lg:py-1 text-xl lg:text-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                        (product?.stock || 0) === 0 
-                          ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                          : quantity >= (product?.stock || 0)
-                            ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
-                            : 'hover:bg-gray-100'
-                      }`}
-                      disabled={(product?.stock || 0) === 0}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                {/* Stock availability indicator */}
-                {product?.stock !== undefined && (
-                  <div className="text-sm text-gray-600">
-                    {product.stock > 0 ? (
-                      <span>
-                        <strong>{product.stock}</strong> items available
-                      </span>
-                    ) : (
-                      <span className="text-red-600 font-medium">Out of stock</span>
-                    )}
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleAddToCart}
-                    disabled={(product?.stock || 0) === 0 || isAddingToCart}
-                    className={`flex-1 py-4 lg:py-2 rounded-lg font-bold text-lg lg:text-sm transition-colors ${
-                      (product?.stock || 0) === 0
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-orange-500 text-white hover:bg-orange-600'
-                    }`}
-                  >
-                    {isAddingToCart ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 lg:h-3 lg:w-3 border-b-2 border-white"></div>
-                        <span className="lg:text-xs">Adding...</span>
-                      </div>
-                    ) : (product?.stock || 0) === 0 ? (
-                      'Out of Stock'
-                    ) : (
-                      'Add to Cart'
-                    )}
-                  </button>
-                  
-                  <button
-                    onClick={handleBuyNow}
-                    disabled={(product?.stock || 0) === 0}
-                    className={`flex-1 py-4 lg:py-2 rounded-lg font-bold text-lg lg:text-sm transition-colors ${
-                      (product?.stock || 0) === 0
-                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        : 'bg-green-600 text-white hover:bg-green-700'
-                    }`}
-                  >
-                    {(product?.stock || 0) === 0 ? 'Out of Stock' : 'Buy Now'}
-                  </button>
-                </div>
-              </div>
+            {/* Product Information - Mobile: Full width with clear separation */}
+            <div className="w-full lg:w-1/2 p-6 lg:p-6">
+              <ProductInfo 
+                product={product}
+                discountedPrice={discountedPrice}
+                quantity={quantity}
+                handleQuantityDecrease={handleQuantityDecrease}
+                handleQuantityChange={handleQuantityChange}
+                handleQuantityIncrease={handleQuantityIncrease}
+                handleAddToCart={handleAddToCart}
+                handleBuyNow={handleBuyNow}
+                isAddingToCart={isAddingToCart}
+                extractCategoryNames={extractCategoryNames}
+              />
             </div>
           </div>
         </div>

@@ -271,12 +271,78 @@ const getSplitOrderDetails = async (req, res) => {
       });
     }
 
-    console.log('� [PAYMENT RECEIPT DEBUG] Order payment fields:', {
+    console.log('📧 [PAYMENT RECEIPT DEBUG] Order payment fields:', {
       orderId: mainOrder._id,
       orderNumber: mainOrder.orderNumber,
       paymentMethod: mainOrder.paymentMethod,
       paymentReceipt: mainOrder.paymentReceipt,
       hasPaymentReceipt: !!mainOrder.paymentReceipt
+    });
+
+    // Calculate shipping cost for older orders that don't have it stored
+    console.log('🚢 [SPLIT-DETAILS SHIPPING DEBUG] Order shipping data:', {
+      orderId: mainOrder._id,
+      orderNumber: mainOrder.orderNumber,
+      storedShippingCost: mainOrder.shippingCost,
+      storedTotalAmount: mainOrder.totalAmount,
+      cartItems: mainOrder.cart?.length || 0,
+      hasCartData: !!(mainOrder.cart && mainOrder.cart.length > 0)
+    });
+
+    // Ensure shipping cost is properly calculated for display
+    if ((!mainOrder.shippingCost || mainOrder.shippingCost === 0) && mainOrder.cart && mainOrder.cart.length > 0) {
+      console.log('🚢 [SPLIT-DETAILS] Calculating missing shipping cost for order:', mainOrder.orderNumber);
+      
+      // Calculate shipping costs from cart items
+      const shippingCosts = mainOrder.cart
+        .map(item => {
+          const productShipping = item.productId?.shipping || item.shipping || 0;
+          return Number(productShipping);
+        })
+        .filter(cost => !isNaN(cost) && cost > 0);
+
+      console.log('🚢 [SPLIT-DETAILS] Item shipping costs:', shippingCosts);
+
+      if (shippingCosts.length > 0) {
+        const maxShippingCost = Math.max(...shippingCosts);
+        
+        // Check if order qualifies for free shipping (10,000 or more)
+        const subtotal = mainOrder.cart.reduce((sum, item) => {
+          return sum + (item.price * item.quantity);
+        }, 0);
+
+        console.log('🚢 [SPLIT-DETAILS] Subtotal calculation:', {
+          subtotal,
+          maxShippingCost,
+          qualifiesForFreeShipping: subtotal >= 10000
+        });
+
+        if (subtotal >= 10000) {
+          mainOrder.shippingCost = 0; // Free shipping
+          console.log('🚢 [SPLIT-DETAILS] Applied free shipping (subtotal >= 10000)');
+        } else {
+          mainOrder.shippingCost = maxShippingCost;
+          console.log('🚢 [SPLIT-DETAILS] Applied max shipping cost:', maxShippingCost);
+        }
+
+        // Update totalAmount to include shipping if it doesn't already
+        const calculatedTotal = subtotal + mainOrder.shippingCost;
+        if (Math.abs(mainOrder.totalAmount - calculatedTotal) > 1) { // Allow for small rounding differences
+          console.log('🚢 [SPLIT-DETAILS] Updating totalAmount:', {
+            originalTotal: mainOrder.totalAmount,
+            calculatedTotal: calculatedTotal,
+            subtotal: subtotal,
+            shipping: mainOrder.shippingCost
+          });
+          mainOrder.totalAmount = calculatedTotal;
+        }
+      }
+    }
+
+    console.log('🚢 [SPLIT-DETAILS] Final order totals:', {
+      orderNumber: mainOrder.orderNumber,
+      shippingCost: mainOrder.shippingCost,
+      totalAmount: mainOrder.totalAmount
     });
 
     console.log('�📋 Main order details:', {
@@ -344,6 +410,7 @@ const getSplitOrderDetails = async (req, res) => {
             orderNumber: mainOrder.orderNumber,
             status: mappedStatus, // Use resolved and mapped status
             totalAmount: mainOrder.totalAmount,
+            shippingCost: mainOrder.shippingCost, // Include shipping cost
             createdAt: mainOrder.createdAt,
             isSplit: false, // Treat admin part as non-split for display
             customerName: parentOrder.customerName || parentOrder.name,
@@ -408,6 +475,7 @@ const getSplitOrderDetails = async (req, res) => {
           orderNumber: displayOrder.orderNumber,
           status: displayStatus, // Use calculated display status
           totalAmount: displayOrder.totalAmount,
+          shippingCost: displayOrder.shippingCost, // Include shipping cost
           createdAt: displayOrder.createdAt,
           isSplit: false,
           customerName: displayOrder.customerName || displayOrder.name,
@@ -478,6 +546,7 @@ const getSplitOrderDetails = async (req, res) => {
           orderNumber: displayOrder.orderNumber,
           status: displayStatus, // Use calculated display status
           totalAmount: displayOrder.totalAmount,
+          shippingCost: displayOrder.shippingCost, // Include shipping cost
           createdAt: displayOrder.createdAt,
           isSplit: false,
           customerName: displayOrder.customerName || displayOrder.name,
@@ -797,6 +866,7 @@ const getSplitOrderDetails = async (req, res) => {
         orderNumber: mainOrder.orderNumber,
         status: calculatedOverallStatus,
         totalAmount: mainOrder.totalAmount,
+        shippingCost: mainOrder.shippingCost, // Include shipping cost
         createdAt: mainOrder.createdAt,
         isSplit: actuallyHasParts, // Use actual parts detection instead of flag
         // Add customer details for non-split orders

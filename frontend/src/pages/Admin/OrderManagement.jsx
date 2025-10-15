@@ -388,17 +388,19 @@ const OrderManagement = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm font-medium text-gray-900">
-                        PKR {(() => {
-                          // Calculate total from cart items
-                          if (order.cart && Array.isArray(order.cart)) {
-                            const cartTotal = order.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                            const shippingCost = order.shippingCost || 0;
-                            return (cartTotal + shippingCost).toFixed(2);
-                          }
-                          // Fallback to totalAmount if available (should include shipping)
-                          return order.totalAmount?.toFixed(2) || '0.00';
-                        })()}
+                        PKR {order.totalAmount?.toFixed(2) || '0.00'}
                       </p>
+                      {(() => {
+                        const shippingCost = order.shippingCost || 0;
+                        if (shippingCost > 0) {
+                          return (
+                            <p className="text-xs text-gray-500">
+                              Shipping: PKR {shippingCost.toFixed(2)}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
