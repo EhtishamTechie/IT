@@ -274,19 +274,29 @@ const ProductDetailPage = () => {
       }
 
       // Store product in localStorage for buy now checkout
+      // IMPORTANT: Match the exact structure used by cart items for consistency
       const buyNowItem = {
-        _id: product._id,
-        title: product.title,
-        price: product.price,
-        image: product.image || (product.images?.[0] || null),
-        stock: product.stock || 100,
         quantity: quantity,
-        shipping: product.shipping || 0, // Include shipping cost
         productData: {
-          shipping: product.shipping || 0
+          _id: product._id,
+          title: product.title,
+          name: product.title, // Include name for fallback compatibility
+          price: product.price,
+          image: product.image || (product.images?.[0] || null),
+          images: product.images || [],
+          stock: product.stock || 0,
+          shipping: product.shipping || 0,
+          vendor: product.vendor,
+          currency: product.currency || 'USD',
+          discount: product.discount || 0,
+          description: product.description || '',
+          mainCategory: product.mainCategory,
+          subCategory: product.subCategory,
+          category: product.category
         }
       };
       
+      console.log('✅ Buy Now item structured to match cart format:', buyNowItem);
       localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
       
       // Navigate directly to checkout, skipping cart page

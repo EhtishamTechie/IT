@@ -1166,6 +1166,7 @@ const getAdminOrders = async (req, res) => {
       page = 1, 
       limit = 20,
       status,
+      search,
       sortBy = 'createdAt',
       sortOrder = 'desc'
     } = req.query;
@@ -1203,6 +1204,27 @@ const getAdminOrders = async (req, res) => {
     };
     
     console.log('📋 My Orders Query:', JSON.stringify(query, null, 2));
+    
+    // Add search functionality
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      const searchConditions = {
+        $or: [
+          { orderNumber: searchRegex },
+          { customerName: searchRegex },
+          { name: searchRegex },
+          { email: searchRegex }
+        ]
+      };
+      
+      // Combine with existing query
+      query = {
+        $and: [
+          query,
+          searchConditions
+        ]
+      };
+    }
     
     if (status) {
       if (status === 'cancelled_by_user') {

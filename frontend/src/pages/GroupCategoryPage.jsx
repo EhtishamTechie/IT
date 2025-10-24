@@ -251,25 +251,41 @@ const GroupCategoryPage = () => {
 
   const handleBuyNow = useCallback(async (product) => {
     try {
-      // Clear any previous error messages for this product
-      setErrorMessages(prev => ({ ...prev, [product._id]: null }));
-      setAddingToCart(prev => ({ ...prev, [product._id]: true }));
-      
-      // Add to cart first
-      const quantityToAdd = quantities[product._id] || 1;
-      const result = await addToCartContext(product, quantityToAdd);
-      
-      if (result && result.success) {
-        // Navigate to checkout after successful cart addition
-        navigate('/checkout');
-      } else {
-        const errorMsg = result?.error || 'Failed to process order';
-        setErrorMessages(prev => ({ ...prev, [product._id]: errorMsg }));
-        
-        setTimeout(() => {
-          setErrorMessages(prev => ({ ...prev, [product._id]: null }));
-        }, 4000);
+      // Check if user is authenticated first
+      if (!user) {
+        navigate('/login');
+        return;
       }
+
+      // Store product in localStorage for buy now checkout
+      // IMPORTANT: Use standardized structure matching cart items
+      const quantityToAdd = quantities[product._id] || 1;
+      const buyNowItem = {
+        quantity: quantityToAdd,
+        productData: {
+          _id: product._id,
+          title: product.title,
+          name: product.title,
+          price: product.price,
+          image: product.image || (product.images?.[0] || null),
+          images: product.images || [],
+          stock: product.stock || 0,
+          shipping: product.shipping || 0,
+          vendor: product.vendor,
+          currency: product.currency || 'USD',
+          discount: product.discount || 0,
+          description: product.description || '',
+          mainCategory: product.mainCategory,
+          subCategory: product.subCategory,
+          category: product.category
+        }
+      };
+      
+      console.log('✅ Buy Now item structured (GroupCategoryPage):', buyNowItem);
+      localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
+      
+      // Navigate directly to checkout, skipping cart page
+      navigate('/checkout');
     } catch (error) {
       const errorMsg = 'Something went wrong. Please try again.';
       setErrorMessages(prev => ({ ...prev, [product._id]: errorMsg }));
@@ -279,10 +295,8 @@ const GroupCategoryPage = () => {
       }, 4000);
       
       console.error('Error with buy now:', error);
-    } finally {
-      setAddingToCart(prev => ({ ...prev, [product._id]: false }));
     }
-  }, [quantities, addToCartContext, navigate]);
+  }, [quantities, navigate, user]);
 
   // Helper function to check if product is in cart and get quantity
   const getCartItemQuantity = (productId) => {

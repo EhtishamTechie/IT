@@ -125,7 +125,9 @@ const CheckoutPage = () => {
   // Computed checkout stats for buy now
   const checkoutStats = useMemo(() => {
     if (isBuyNowCheckout && buyNowItem) {
-      const price = buyNowItem.price || 0;
+      // Buy now item now has the same structure as cart items (productData nested)
+      const productData = buyNowItem.productData || {};
+      const price = productData.price || 0;
       const quantity = buyNowItem.quantity || 1;
       return {
         totalPrice: price * quantity,
@@ -153,18 +155,10 @@ const CheckoutPage = () => {
         const product = JSON.parse(buyNowData);
         console.log('✅ Found buy now item:', product);
         
-        // Ensure shipping field is included in buyNowItem
-        setBuyNowItem({
-          ...product,
-          quantity: product.quantity || 1,
-          shipping: product.shipping || product.productData?.shipping || 0, // Ensure shipping is included
-          productData: {
-            ...product.productData,
-            shipping: product.shipping || product.productData?.shipping || 0
-          }
-        });
+        // Buy now item now has standardized structure matching cart items
+        setBuyNowItem(product);
         setIsBuyNowCheckout(true);
-        console.log('✅ Buy now checkout mode activated with shipping:', product.shipping);
+        console.log('✅ Buy now checkout mode activated');
         // Don't clear localStorage yet - wait until order is complete
       } catch (error) {
         console.error('❌ Error parsing buy now item:', error);

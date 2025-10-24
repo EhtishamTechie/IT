@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   Plus, 
   Edit, 
@@ -33,13 +33,17 @@ const getImageUrl = (imagePath) => {
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Only for initial load
+  const [isSearching, setIsSearching] = useState(false); // Separate state for search/filter updates
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStock, setSelectedStock] = useState('all'); // Add stock filter
   const [categories, setCategories] = useState([]); // Dynamic categories from backend
+  
+  // Ref to maintain focus on search input
+  const searchInputRef = useRef(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -123,20 +127,6 @@ const ProductManagement = () => {
     return map;
   })();
 
-  useEffect(() => {
-    loadProducts();
-    loadCategories();
-  }, [currentPage]); // Add currentPage dependency
-
-  // Effect to reset page when filters change
-  useEffect(() => {
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    } else {
-      loadProducts();
-    }
-  }, [searchTerm, selectedCategory, selectedStock]);
-
   const loadCategories = async () => {
     try {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
@@ -155,9 +145,17 @@ const ProductManagement = () => {
     }
   };
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
-      setLoading(true);
+      // Use isSearching for subsequent loads, loading only for first load
+      const isInitialLoad = products.length === 0 && !searchTerm && !selectedCategory && selectedStock === 'all';
+      
+      if (isInitialLoad) {
+        setLoading(true);
+      } else {
+        setIsSearching(true);
+      }
+      
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
@@ -168,7 +166,7 @@ const ProductManagement = () => {
         approvalStatus: 'all' // Load all products regardless of approval status
       });
 
-      // Add search parameter if present
+      // Add search parameter if present (use direct search term)
       if (searchTerm.trim()) {
         params.append('search', searchTerm.trim());
       }
@@ -182,7 +180,7 @@ const ProductManagement = () => {
       
       if (response.data.success) {
         setProducts(response.data.products || []);
-        setCurrentPage(response.data.pagination?.currentPage || 1);
+        // Don't update currentPage from response to avoid re-renders
         setTotalPages(response.data.pagination?.totalPages || 1);
         setTotalProducts(response.data.pagination?.totalProducts || 0);
       } else {
@@ -193,14 +191,46 @@ const ProductManagement = () => {
     } catch (error) {
       console.error('Error loading products:', error);
       console.error('Error response:', error.response?.data);
-      alert('Failed to load products: ' + (error.response?.data?.message || error.message));
+      // Don't show alert on search - just log the error
+      console.error('Failed to load products:', error.response?.data?.message || error.message);
       setProducts([]);
       setTotalPages(1);
       setTotalProducts(0);
     } finally {
       setLoading(false);
+      setIsSearching(false);
     }
-  };
+  }, [currentPage, itemsPerPage, searchTerm, selectedCategory, selectedStock, products.length]); // Updated dependencies
+
+  // Effects - placed after function definitions
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]); // loadProducts is now stable via useCallback
+
+  useEffect(() => {
+    loadCategories();
+  }, []); // Load categories only once on mount
+
+  // Restore focus to search input after searching completes (if user is searching)
+  useEffect(() => {
+    if (!isSearching && searchTerm.length > 0 && document.activeElement !== searchInputRef.current) {
+      // Small delay to ensure DOM is updated
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+        // Restore cursor position to end of text
+        const length = searchTerm.length;
+        searchInputRef.current?.setSelectionRange(length, length);
+      }, 0);
+    }
+  }, [isSearching, searchTerm]);
+
+  // Effect to reset page when filters change
+  useEffect(() => {
+    // Only reset page if not already on page 1
+    if (currentPage !== 1) {
+      setCurrentPage(1);
+    }
+  }, [searchTerm, selectedCategory, selectedStock, currentPage]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -657,7 +687,8 @@ const ProductManagement = () => {
     );
   };
 
-  if (loading) {
+  // Only show loading spinner on initial page load (before any products are loaded)
+  if (loading && products.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -670,20 +701,18 @@ const ProductManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Product Management</h1>
-          {!loading && (
-            <p className="text-gray-600 mt-1">
-              {totalProducts > 0 ? (
-                <>
-                  {totalProducts} product{totalProducts !== 1 ? 's' : ''} total
-                  {(searchTerm || selectedCategory || selectedStock !== 'all') && (
-                    <span>, showing {filteredProducts.length} filtered</span>
-                  )}
-                </>
-              ) : (
-                'No products found'
-              )}
-            </p>
-          )}
+          <p className="text-gray-600 mt-1">
+            {totalProducts > 0 ? (
+              <>
+                {totalProducts} product{totalProducts !== 1 ? 's' : ''} total
+                {(searchTerm || selectedCategory || selectedStock !== 'all') && (
+                  <span>, showing {filteredProducts.length} filtered</span>
+                )}
+              </>
+            ) : (
+              'No products found'
+            )}
+          </p>
         </div>
         <button
           onClick={() => {
@@ -704,11 +733,13 @@ const ProductManagement = () => {
             <div className="relative">
               <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
+                ref={searchInputRef}
                 type="text"
-                placeholder="Search products..."
+                placeholder="Search products... (searches as you type)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                autoComplete="off"
               />
             </div>
           </div>

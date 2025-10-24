@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, 
   Filter, 
@@ -18,10 +18,14 @@ import { getApiUrl } from '../../config';
 const OrderManagement = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Only for initial load
+  const [isSearching, setIsSearching] = useState(false); // Separate state for search/filter updates
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [updatingOrders, setUpdatingOrders] = useState(new Set());
+  
+  // Ref to maintain focus on search input
+  const searchInputRef = useRef(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -29,14 +33,14 @@ const OrderManagement = () => {
   const [totalOrders, setTotalOrders] = useState(0);
   const [pagination, setPagination] = useState({});
 
-  // Reset to page 1 when filter changes
+  // Reset to page 1 when filter or search changes
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     } else {
       loadOrders();
     }
-  }, [statusFilter]);
+  }, [statusFilter, searchTerm]);
 
   // Load orders when page changes
   useEffect(() => {
@@ -64,21 +68,34 @@ const OrderManagement = () => {
 
   const loadOrders = async () => {
     try {
-      setLoading(true);
+      // Use isSearching for subsequent loads, loading only for first load
+      const isInitialLoad = orders.length === 0 && !statusFilter;
+      
+      if (isInitialLoad) {
+        setLoading(true);
+      } else {
+        setIsSearching(true);
+      }
+      
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
-      // Use the my-orders endpoint with pagination parameters
+      // Always use normal pagination - search is sent to backend
       const params = new URLSearchParams({
         page: currentPage.toString(),
-        limit: '20' // 20 orders per page
+        limit: '20'
       });
       
       if (statusFilter !== 'all') {
         params.append('status', statusFilter);
       }
       
-      console.log('🔍 [ADMIN MY ORDERS] Making paginated request with params:', params.toString());
+      // Add search parameter to backend
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim());
+      }
+      
+      console.log('🔍 [ADMIN MY ORDERS] Making request with params:', params.toString());
       
       const apiUrl = `${getApiUrl()}/admin/orders/my-orders?${params.toString()}`;
       const response = await axios.get(apiUrl, { headers });
@@ -116,6 +133,7 @@ const OrderManagement = () => {
       setTotalOrders(0);
     } finally {
       setLoading(false);
+      setIsSearching(false);
     }
   };
 
@@ -232,19 +250,8 @@ const OrderManagement = () => {
     return !((order.status === 'cancelled' || order.status === 'Cancelled') && order.cancelledBy === 'user');
   };
 
-  const filteredOrders = orders.filter(order => {
-    // Backend my-orders endpoint provides admin orders, we only handle search filtering here
-    const matchesSearch = 
-      (order.orderNumber && order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (order._id && order._id.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (order.customerName && order.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (order.name && order.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (order.email && order.email.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    return matchesSearch;
-  });
-
-  if (loading) {
+  // Only show loading spinner on initial page load (before any orders are loaded)
+  if (loading && orders.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -257,11 +264,17 @@ const OrderManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
-          {!loading && totalOrders > 0 && (
-            <p className="text-sm text-gray-600 mt-1">
-              {totalOrders} orders • {totalPages > 1 ? `Page ${currentPage} of ${totalPages}` : 'All orders displayed'}
-            </p>
-          )}
+          <p className="text-sm text-gray-600 mt-1">
+            {totalOrders > 0 ? (
+              <>
+                {totalOrders} total order{totalOrders !== 1 ? 's' : ''}
+                {searchTerm && ' (filtered)'}
+                {totalPages > 1 && ` • Page ${currentPage} of ${totalPages}`}
+              </>
+            ) : (
+              searchTerm ? 'No orders match your search' : 'No orders found'
+            )}
+          </p>
         </div>
         <div className="flex space-x-3">
           <button
@@ -289,11 +302,13 @@ const OrderManagement = () => {
             <div className="relative">
               <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search by order number, customer name, or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                autoComplete="off"
               />
             </div>
           </div>
@@ -324,10 +339,12 @@ const OrderManagement = () => {
 
       {/* Orders Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-        {filteredOrders.length === 0 ? (
+        {orders.length === 0 ? (
           <div className="text-center py-12">
             <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">No orders found</p>
+            <p className="text-gray-500">
+              {searchTerm ? 'No orders match your search' : 'No orders found'}
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -355,7 +372,7 @@ const OrderManagement = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredOrders.map((order) => (
+                {orders.map((order) => (
                   <tr key={order._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
