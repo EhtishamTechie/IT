@@ -51,6 +51,25 @@ router.get('/sitemap.xml', async (req, res) => {
   </url>
 `;
 
+    // Add important static pages
+    const staticPages = [
+      { path: '/products', changefreq: 'daily', priority: '0.9' },
+      { path: '/used-products', changefreq: 'daily', priority: '0.8' },
+      { path: '/properties', changefreq: 'daily', priority: '0.8' },
+      { path: '/contact-wholeseller', changefreq: 'monthly', priority: '0.6' },
+      { path: '/ContactUsPage', changefreq: 'monthly', priority: '0.6' }
+    ];
+
+    staticPages.forEach(page => {
+      sitemap += `  <url>
+    <loc>${baseUrl}${page.path}</loc>
+    <lastmod>${new Date().toISOString()}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>
+`;
+    });
+
     // Add category pages
     categories.forEach(category => {
       const entry = generateSitemapEntry(category, 'category');

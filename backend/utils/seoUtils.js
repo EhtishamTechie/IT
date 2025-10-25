@@ -114,7 +114,18 @@ const validateSEOData = {
 // Generate sitemap data for products/categories
 const generateSitemapEntry = (item, type = 'product') => {
   const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
-  const path = type === 'product' ? `/product/${item.slug}` : `/category/${item.slug}`;
+  
+  // Use correct URL patterns matching your actual routes
+  let path;
+  if (type === 'product') {
+    path = `/product/${item.slug}`;
+  } else if (type === 'category') {
+    path = `/category/${item.slug}`;
+  } else if (type === 'category-group') {
+    path = `/category-group/${item.slug}`;
+  } else {
+    path = `/${item.slug}`;
+  }
   
   return {
     loc: `${baseUrl}${path}`,
