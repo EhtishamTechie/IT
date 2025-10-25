@@ -1,5 +1,4 @@
 User-agent: *
-Allow: /
 
 # Sitemaps
 Sitemap: https://internationaltijarat.com/api/seo/sitemap.xml
@@ -7,17 +6,42 @@ Sitemap: https://internationaltijarat.com/api/seo/sitemap.xml
 # Crawl-delay
 Crawl-delay: 1
 
-# Disallow admin areas
+# Allow important public pages
+Allow: /$                              # Homepage
+Allow: /products*                      # All products page
+Allow: /product/*                      # Product detail pages
+Allow: /category/*                     # Category pages
+Allow: /category-group/*               # Category group pages (e.g., /category-group/jewellery)
+Allow: /search*                        # Search pages
+Allow: /used-products*                 # Used products marketplace
+Allow: /used-product/*                 # Individual used product pages
+Allow: /sell-used-product*             # Sell used product page
+Allow: /properties*                    # Properties listing
+Allow: /property/*                     # Individual property pages
+Allow: /sell-property*                 # Sell property page
+Allow: /contact-wholeseller*           # Contact wholesaler page
+Allow: /ContactUsPage*                 # Contact us page
+Allow: /about*                         # About page
+Allow: /privacy*                       # Privacy policy
+Allow: /terms*                         # Terms & conditions
+
+# Disallow admin and private areas
 Disallow: /admin/
 Disallow: /vendor/
-Disallow: /api/
-Disallow: /uploads/
-Disallow: /private/
+Disallow: /cart*
+Disallow: /checkout*
+Disallow: /my-orders*
+Disallow: /profile*
 
-# Allow important pages
-Allow: /product/
-Allow: /category/
-Allow: /about
-Allow: /contact
-Allow: /privacy
-Allow: /terms
+# Disallow API endpoints but allow SEO endpoints
+Disallow: /api/
+Allow: /api/seo/
+
+# Allow product images for Google Image Search, block other uploads
+Allow: /uploads/products/
+Allow: /uploads/used-products/
+Allow: /uploads/properties/
+Disallow: /uploads/
+
+# Block other private areas
+Disallow: /private/
