@@ -296,7 +296,7 @@ const GroupCategoryPage = () => {
       
       console.error('Error with buy now:', error);
     }
-  }, [quantities, navigate, user]);
+  }, [quantities, navigate]);
 
   // Helper function to check if product is in cart and get quantity
   const getCartItemQuantity = (productId) => {
