@@ -11,6 +11,18 @@ router.get('/sitemap.xml', async (req, res) => {
     
     const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
     
+    // Helper function to escape XML special characters
+    const escapeXml = (unsafe) => {
+      if (!unsafe) return '';
+      return unsafe
+        .toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+    };
+    
     // Get all active products with slugs
     const products = await Product.find({ 
       isActive: true, 
@@ -43,7 +55,7 @@ router.get('/sitemap.xml', async (req, res) => {
     categories.forEach(category => {
       const entry = generateSitemapEntry(category, 'category');
       sitemap += `  <url>
-    <loc>${entry.loc}</loc>
+    <loc>${escapeXml(entry.loc)}</loc>
     <lastmod>${entry.lastmod}</lastmod>
     <changefreq>${entry.changefreq}</changefreq>
     <priority>${entry.priority}</priority>
@@ -55,7 +67,7 @@ router.get('/sitemap.xml', async (req, res) => {
     products.forEach(product => {
       const entry = generateSitemapEntry(product, 'product');
       sitemap += `  <url>
-    <loc>${entry.loc}</loc>
+    <loc>${escapeXml(entry.loc)}</loc>
     <lastmod>${entry.lastmod}</lastmod>
     <changefreq>${entry.changefreq}</changefreq>
     <priority>${entry.priority}</priority>`;
@@ -65,8 +77,8 @@ router.get('/sitemap.xml', async (req, res) => {
         product.images.forEach(image => {
           sitemap += `
     <image:image>
-      <image:loc>${baseUrl}/uploads/products/${image}</image:loc>
-      <image:title>${product.title}</image:title>
+      <image:loc>${escapeXml(baseUrl + '/uploads/products/' + image)}</image:loc>
+      <image:title>${escapeXml(product.title)}</image:title>
     </image:image>`;
         });
       }

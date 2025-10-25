@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://internationaltijarat.com/api/seo/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Disallow admin areas
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /private/
+
+# Allow important pages
+Allow: /product/
+Allow: /category/
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
