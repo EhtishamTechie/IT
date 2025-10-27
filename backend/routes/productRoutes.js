@@ -4,6 +4,7 @@ const cacheService = require('../services/cacheService');
 const cacheInvalidator = require('../utils/cacheInvalidator');
 const { authenticateToken, authenticateAdmin } = require('../middleware/auth');
 const { uploadProductMedia, handleUploadError } = require('../middleware/uploadMiddleware');
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
 const {
   addProduct,
   getAllProducts,
@@ -33,14 +34,29 @@ const CATEGORY_CACHE = 3600; // 1 hour
 // Product routes
 
 // Admin-only routes (require admin authentication with cache invalidation)
-router.post('/add', authenticateAdmin, uploadProductMedia, handleUploadError, async (req, res, next) => {
-  await cacheInvalidator.invalidateProducts();
-  next();
-}, addProduct);
-router.put('/:id', authenticateAdmin, uploadProductMedia, handleUploadError, async (req, res, next) => {
-  await cacheInvalidator.invalidateProducts();
-  next();
-}, updateProduct);
+router.post('/add', 
+  authenticateAdmin, 
+  uploadProductMedia, 
+  handleUploadError,
+  optimizeUploadedImages({ quality: 85, generateWebP: true }),
+  async (req, res, next) => {
+    await cacheInvalidator.invalidateProducts();
+    next();
+  }, 
+  addProduct
+);
+
+router.put('/:id', 
+  authenticateAdmin, 
+  uploadProductMedia, 
+  handleUploadError,
+  optimizeUploadedImages({ quality: 85, generateWebP: true }),
+  async (req, res, next) => {
+    await cacheInvalidator.invalidateProducts();
+    next();
+  }, 
+  updateProduct
+);
 router.delete('/:id', authenticateAdmin, async (req, res, next) => {
   await cacheInvalidator.invalidateProducts();
   next();

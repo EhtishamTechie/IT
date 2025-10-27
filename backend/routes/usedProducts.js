@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
 const {
   upload,
   submitUsedProduct,
@@ -23,7 +24,12 @@ router.get('/', getApprovedUsedProducts); // Get all approved used products
 router.get('/public/:id', getUsedProductByIdPublic); // Get single used product details (public)
 
 // User Protected Routes
-router.post('/', protect, upload.array('images', 6), submitUsedProduct); // Submit used product
+router.post('/', 
+  protect, 
+  upload.array('images', 6),
+  optimizeUploadedImages({ quality: 85, generateWebP: true }),
+  submitUsedProduct
+); // Submit used product
 router.get('/user/my-submissions', protect, getUserUsedProducts); // Get user's submissions
 router.patch('/user/:id/mark-sold', protect, markProductAsSold); // Mark product as sold
 router.patch('/user/:id/update-price', protect, updateProductPrice); // Update product price

@@ -39,5 +39,8 @@
   },
   "engines": {
     "node": "22.x"
+  },
+  "devDependencies": {
+    "terser": "^5.44.0"
   }
 }

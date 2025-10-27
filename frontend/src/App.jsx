@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -25,73 +25,95 @@ import { VendorAuthProvider } from './contexts/VendorAuthContext';
 import NotificationProvider from './contexts/NotificationContext';
 import useAnalytics from './hooks/useAnalytics';
 import Navbar from './components/Navbar';
-import Home from './pages/Home';
-import AllProductsPage from './pages/AllProductsPage';
-import GroupCategoryPage from './pages/GroupCategoryPage';
-import ProductDetailPage from './pages/ProductDetailPage';
-import CartPage from './pages/CartPage';
-import CheckoutPage from './pages/CheckoutPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import ContactUsPage from './pages/ContactUsPage';
-import AboutUsPage from './pages/AboutUsPage';
-import BlogPage from './pages/BlogPage';
-import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
-import TermsConditionsPage from './pages/TermsConditionsPage';
-import UserProfilePage from './pages/UserProfilePage';
-import OrderHistoryPage from './pages/OrderHistoryPage';
-// NEW: Simple order components to fix blinking issues
-import SimpleOrderHistoryPage from './pages/SimpleOrderHistoryPage';
-import SimpleOrderDetailPage from './pages/SimpleOrderDetailPage';
-import ComingSoon from './components/ComingSoon';
-import OrderConfirmationPage from './pages/OrderConfirmationPage';
-import TrackOrderPage from './pages/TrackOrderPage';
-import SearchPage from './pages/SearchPage';
-import AdminPage from './pages/Admin/AdminPage';
-import AdminLoginPage from './pages/Admin/AdminLoginPage';
-import VendorRegisterPage from './pages/Vendor/VendorRegisterPage';
-import VendorLoginPage from './pages/Vendor/VendorLoginPage';
-import VendorDashboardPage from './pages/Vendor/VendorDashboardPage';
-import VendorCategoriesPage from './pages/Vendor/VendorCategoriesPage';
-import VendorProductsPage from './pages/Vendor/VendorProductsPage_clean';
-import VendorProfilePageOptimized from './pages/Vendor/VendorProfilePageOptimized';
-import AddProductPage from './pages/Vendor/AddProductPage';
-import EditProductPage from './pages/Vendor/EditProductPage';
-import BulkProductsPage from './pages/Vendor/BulkProductsPage';
-import ProductAnalyticsPage from './pages/Vendor/ProductAnalyticsPage';
-import VendorOrdersPage from './pages/Vendor/VendorOrdersPage';
-import SimplifiedVendorOrdersPage from './pages/Vendor/SimplifiedVendorOrdersPage';
-import EnhancedVendorOrdersPage from './pages/Vendor/EnhancedVendorOrdersPage';
-import VendorCommissionPage from './pages/Vendor/VendorCommissionPage';
-import OrderDetailPage from './pages/Vendor/OrderDetailPage';
-import OrderAnalyticsPage from './pages/Vendor/OrderAnalyticsPage';
-import VendorAnalyticsPage from './pages/Vendor/VendorAnalyticsPage_OPTIMIZED';
-import SalesReportsPage from './pages/Vendor/SalesReportsPage';
-import PerformanceDashboardPage from './pages/Vendor/PerformanceDashboardPage';
-import CustomerInquiriesPage from './pages/Vendor/CustomerInquiriesPage';
-import InquiryDetailPage from './pages/Vendor/InquiryDetailPage';
-import ContactPage from './pages/ContactPage';
-import ApplicationStatusPage from './pages/Vendor/ApplicationStatusPage';
-import InventoryManagement from './pages/Vendor/InventoryManagement';
-import VendorApplicationsPage from './pages/Admin/VendorApplicationsPage';
-import VendorApplicationDetailPage from './pages/Admin/VendorApplicationDetailPage';
-import VendorMarketplacePage from './pages/VendorMarketplacePage';
-import UsedProducts from './pages/UsedProducts';
-import SellUsedProduct from './pages/SellUsedProduct';
-import UsedProductDetailPage from './pages/UsedProductDetailPage';
-import SellerProductDetailPage from './pages/SellerProductDetailPage';
-// Property Pages
-import Properties from './pages/Properties';
-import SellProperty from './pages/SellProperty';
-import PropertyDetailPage from './pages/PropertyDetailPage';
-// Wholesale Pages
-import ContactWholeseller from './pages/ContactWholeseller';
-import WholesaleManagement from './pages/Admin/WholesaleManagement';
-import ProtectedRoute from './components/ProtectedRoute';
-import AdminProtectedRoute from './components/AdminProtectedRoute';
-import VendorProtectedRoute from './components/Vendor/VendorProtectedRoute';
 import ScrollToTop from './components/ScrollToTop';
 import './App.css';
+
+// Loading component for better UX
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+      <p className="mt-4 text-gray-600">Loading...</p>
+    </div>
+  </div>
+);
+
+// CRITICAL: Only load Home page immediately, lazy load everything else
+import Home from './pages/Home';
+
+// Lazy load ALL other pages for optimal performance
+// Public Pages
+const AllProductsPage = lazy(() => import('./pages/AllProductsPage'));
+const GroupCategoryPage = lazy(() => import('./pages/GroupCategoryPage'));
+const ProductDetailPage = lazy(() => import('./pages/ProductDetailPage'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ContactUsPage = lazy(() => import('./pages/ContactUsPage'));
+const AboutUsPage = lazy(() => import('./pages/AboutUsPage'));
+const BlogPage = lazy(() => import('./pages/BlogPage'));
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage'));
+const TermsConditionsPage = lazy(() => import('./pages/TermsConditionsPage'));
+const SearchPage = lazy(() => import('./pages/SearchPage'));
+const VendorMarketplacePage = lazy(() => import('./pages/VendorMarketplacePage'));
+const ContactPage = lazy(() => import('./pages/ContactPage'));
+const ComingSoon = lazy(() => import('./components/ComingSoon'));
+
+// User Pages
+const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const SimpleOrderHistoryPage = lazy(() => import('./pages/SimpleOrderHistoryPage'));
+const SimpleOrderDetailPage = lazy(() => import('./pages/SimpleOrderDetailPage'));
+const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage'));
+const TrackOrderPage = lazy(() => import('./pages/TrackOrderPage'));
+
+// Used Products Pages
+const UsedProducts = lazy(() => import('./pages/UsedProducts'));
+const SellUsedProduct = lazy(() => import('./pages/SellUsedProduct'));
+const UsedProductDetailPage = lazy(() => import('./pages/UsedProductDetailPage'));
+const SellerProductDetailPage = lazy(() => import('./pages/SellerProductDetailPage'));
+
+// Property Pages
+const Properties = lazy(() => import('./pages/Properties'));
+const SellProperty = lazy(() => import('./pages/SellProperty'));
+const PropertyDetailPage = lazy(() => import('./pages/PropertyDetailPage'));
+
+// Wholesale Pages
+const ContactWholeseller = lazy(() => import('./pages/ContactWholeseller'));
+
+// Admin Pages - Lazy load to avoid loading in main bundle
+const AdminPage = lazy(() => import('./pages/Admin/AdminPage'));
+const AdminLoginPage = lazy(() => import('./pages/Admin/AdminLoginPage'));
+
+// Vendor Pages - Lazy load all vendor pages
+const VendorRegisterPage = lazy(() => import('./pages/Vendor/VendorRegisterPage'));
+const VendorLoginPage = lazy(() => import('./pages/Vendor/VendorLoginPage'));
+const VendorDashboardPage = lazy(() => import('./pages/Vendor/VendorDashboardPage'));
+const VendorCategoriesPage = lazy(() => import('./pages/Vendor/VendorCategoriesPage'));
+const VendorProductsPage = lazy(() => import('./pages/Vendor/VendorProductsPage_clean'));
+const VendorProfilePageOptimized = lazy(() => import('./pages/Vendor/VendorProfilePageOptimized'));
+const AddProductPage = lazy(() => import('./pages/Vendor/AddProductPage'));
+const EditProductPage = lazy(() => import('./pages/Vendor/EditProductPage'));
+const BulkProductsPage = lazy(() => import('./pages/Vendor/BulkProductsPage'));
+const ProductAnalyticsPage = lazy(() => import('./pages/Vendor/ProductAnalyticsPage'));
+const SimplifiedVendorOrdersPage = lazy(() => import('./pages/Vendor/SimplifiedVendorOrdersPage'));
+const VendorOrdersPage = lazy(() => import('./pages/Vendor/VendorOrdersPage'));
+const EnhancedVendorOrdersPage = lazy(() => import('./pages/Vendor/EnhancedVendorOrdersPage'));
+const VendorCommissionPage = lazy(() => import('./pages/Vendor/VendorCommissionPage'));
+const OrderDetailPage = lazy(() => import('./pages/Vendor/OrderDetailPage'));
+const OrderAnalyticsPage = lazy(() => import('./pages/Vendor/OrderAnalyticsPage'));
+const VendorAnalyticsPage = lazy(() => import('./pages/Vendor/VendorAnalyticsPage_OPTIMIZED'));
+const SalesReportsPage = lazy(() => import('./pages/Vendor/SalesReportsPage'));
+const PerformanceDashboardPage = lazy(() => import('./pages/Vendor/PerformanceDashboardPage'));
+const CustomerInquiriesPage = lazy(() => import('./pages/Vendor/CustomerInquiriesPage'));
+const InquiryDetailPage = lazy(() => import('./pages/Vendor/InquiryDetailPage'));
+const ApplicationStatusPage = lazy(() => import('./pages/Vendor/ApplicationStatusPage'));
+const InventoryManagement = lazy(() => import('./pages/Vendor/InventoryManagement'));
+
+// Protected Route Components
+const ProtectedRoute = lazy(() => import('./components/ProtectedRoute'));
+const AdminProtectedRoute = lazy(() => import('./components/AdminProtectedRoute'));
+const VendorProtectedRoute = lazy(() => import('./components/Vendor/VendorProtectedRoute'));
 
 // Component to handle conditional navbar rendering
 const AppContent = () => {
@@ -110,266 +132,320 @@ const AppContent = () => {
       {/* ScrollToTop component to handle automatic scrolling on route changes */}
       <ScrollToTop />
       
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/products" element={<AllProductsPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/marketplace" element={<VendorMarketplacePage />} />
-        <Route path="/category-group/:groupName" element={<GroupCategoryPage />} />
-        <Route path="/product/:id" element={<ProductDetailPage />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-        <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmationPage />} />
-        <Route path="/track-order/:orderNumber" element={<TrackOrderPage />} />
-        <Route path="/track-order" element={<TrackOrderPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<RegisterPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/ContactUsPage" element={<ContactUsPage />} />
-        <Route path="/contact" element={<ContactUsPage />} />
-        <Route path="/AboutUsPage" element={<AboutUsPage />} />
-        <Route path="/about" element={<AboutUsPage />} />
-        <Route path="/BlogPage" element={<BlogPage />} />
-        <Route path="/blog" element={<BlogPage />} />
-        <Route path="/privacy" element={<PrivacyPolicyPage />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-        <Route path="/terms" element={<TermsConditionsPage />} />
-        <Route path="/terms-conditions" element={<TermsConditionsPage />} />
-        <Route path="/simple-order-history" element={<SimpleOrderHistoryPage />} />
-        <Route path="/coming-soon" element={<ComingSoon />} />
-        <Route 
-          path="/profile" 
-          element={
-            <ProtectedRoute>
-              <UserProfilePage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/orders" 
-          element={
-            <ProtectedRoute>
-              <SimpleOrderHistoryPage />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/order/:orderId" 
-          element={<SimpleOrderDetailPage />} 
-        />
-        
-        {/* Used Products Routes */}
-        <Route path="/used-products" element={<UsedProducts />} />
-        <Route path="/used-products/:id" element={<UsedProductDetailPage />} />
-        <Route 
-          path="/sell-used-products" 
-          element={
-            <ProtectedRoute>
-              <SellUsedProduct />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/seller/product/:id" 
-          element={
-            <ProtectedRoute>
-              <SellerProductDetailPage />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Property Routes */}
-        <Route path="/properties" element={<Properties />} />
-        <Route path="/properties/:id" element={<PropertyDetailPage />} />
-        <Route 
-          path="/sell-property" 
-          element={
-            <ProtectedRoute>
-              <SellProperty />
-            </ProtectedRoute>
-          } 
-        />
-        
-        {/* Wholesale Routes */}
-        <Route path="/contact-wholeseller" element={<ContactWholeseller />} />
-        
-        {/* Admin Routes */}
-        <Route path="/admin/login" element={<AdminLoginPage />} />
-        <Route 
-          path="/admin/*" 
-          element={
-            <AdminProtectedRoute>
-              <AdminPage />
-            </AdminProtectedRoute>
-          } 
-        />
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/products" element={<AllProductsPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/marketplace" element={<VendorMarketplacePage />} />
+          <Route path="/category-group/:groupName" element={<GroupCategoryPage />} />
+          <Route path="/product/:id" element={<ProductDetailPage />} />
+          <Route path="/cart" element={<CartPage />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/order-confirmation/:orderNumber" element={<OrderConfirmationPage />} />
+          <Route path="/track-order/:orderNumber" element={<TrackOrderPage />} />
+          <Route path="/track-order" element={<TrackOrderPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<RegisterPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/ContactUsPage" element={<ContactUsPage />} />
+          <Route path="/contact" element={<ContactUsPage />} />
+          <Route path="/AboutUsPage" element={<AboutUsPage />} />
+          <Route path="/about" element={<AboutUsPage />} />
+          <Route path="/BlogPage" element={<BlogPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/privacy" element={<PrivacyPolicyPage />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms" element={<TermsConditionsPage />} />
+          <Route path="/terms-conditions" element={<TermsConditionsPage />} />
+          <Route path="/simple-order-history" element={<SimpleOrderHistoryPage />} />
+          <Route path="/coming-soon" element={<ComingSoon />} />
+          <Route 
+            path="/profile" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProtectedRoute>
+                  <UserProfilePage />
+                </ProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/orders" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProtectedRoute>
+                  <SimpleOrderHistoryPage />
+                </ProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/order/:orderId" 
+            element={<SimpleOrderDetailPage />} 
+          />
+          
+          {/* Used Products Routes */}
+          <Route path="/used-products" element={<UsedProducts />} />
+          <Route path="/used-products/:id" element={<UsedProductDetailPage />} />
+          <Route 
+            path="/sell-used-products" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProtectedRoute>
+                  <SellUsedProduct />
+                </ProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/seller/product/:id" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProtectedRoute>
+                  <SellerProductDetailPage />
+                </ProtectedRoute>
+              </Suspense>
+            } 
+          />
+          
+          {/* Property Routes */}
+          <Route path="/properties" element={<Properties />} />
+          <Route path="/properties/:id" element={<PropertyDetailPage />} />
+          <Route 
+            path="/sell-property" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProtectedRoute>
+                  <SellProperty />
+                </ProtectedRoute>
+              </Suspense>
+            } 
+          />
+          
+          {/* Wholesale Routes */}
+          <Route path="/contact-wholeseller" element={<ContactWholeseller />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route 
+            path="/admin/*" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <AdminProtectedRoute>
+                  <AdminPage />
+                </AdminProtectedRoute>
+              </Suspense>
+            } 
+          />
 
-        {/* Vendor Routes */}
-        <Route path="/vendor/register" element={<VendorRegisterPage />} />
-        <Route path="/vendor/login" element={<VendorLoginPage />} />
-        <Route 
-          path="/vendor/dashboard" 
-          element={
-            <VendorProtectedRoute>
-              <VendorDashboardPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/categories" 
-          element={
-            <VendorProtectedRoute>
-              <VendorCategoriesPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/profile" 
-          element={
-            <VendorProtectedRoute>
-              <VendorProfilePageOptimized />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/products" 
-          element={
-            <VendorProtectedRoute>
-              <VendorProductsPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/products/add" 
-          element={
-            <VendorProtectedRoute>
-              <AddProductPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/products/:id/edit" 
-          element={
-            <VendorProtectedRoute>
-              <EditProductPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/products/bulk" 
-          element={
-            <VendorProtectedRoute>
-              <BulkProductsPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/products/:id/analytics" 
-          element={
-            <VendorProtectedRoute>
-              <ProductAnalyticsPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/orders" 
-          element={
-            <VendorProtectedRoute>
-              <SimplifiedVendorOrdersPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/orders/original" 
-          element={
-            <VendorProtectedRoute>
-              <VendorOrdersPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/orders/enhanced" 
-          element={
-            <VendorProtectedRoute>
-              <EnhancedVendorOrdersPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/commissions" 
-          element={
-            <VendorProtectedRoute>
-              <VendorCommissionPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/orders/analytics" 
-          element={
-            <VendorProtectedRoute>
-              <OrderAnalyticsPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/orders/:id" 
-          element={
-            <VendorProtectedRoute>
-              <OrderDetailPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/analytics" 
-          element={
-            <VendorProtectedRoute>
-              <VendorAnalyticsPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/reports" 
-          element={
-            <VendorProtectedRoute>
-              <SalesReportsPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/performance" 
-          element={
-            <VendorProtectedRoute>
-              <PerformanceDashboardPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/inquiries" 
-          element={
-            <VendorProtectedRoute>
-              <CustomerInquiriesPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/inquiries/:inquiryId" 
-          element={
-            <VendorProtectedRoute>
-              <InquiryDetailPage />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/vendor/inventory" 
-          element={
-            <VendorProtectedRoute>
-              <InventoryManagement />
-            </VendorProtectedRoute>
-          } 
-        />
-        <Route path="/contact" element={<ContactPage />} />
-        <Route path="/vendor/application-status" element={<ApplicationStatusPage />} />
-      </Routes>
+          {/* Vendor Routes */}
+          <Route path="/vendor/register" element={<VendorRegisterPage />} />
+          <Route path="/vendor/login" element={<VendorLoginPage />} />
+          <Route 
+            path="/vendor/dashboard" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <VendorDashboardPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/categories" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <VendorCategoriesPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/profile" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <VendorProfilePageOptimized />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/products" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <VendorProductsPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/products/add" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <AddProductPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/products/:id/edit" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <EditProductPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/products/bulk" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <BulkProductsPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/products/:id/analytics" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <ProductAnalyticsPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/orders" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <SimplifiedVendorOrdersPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/orders/original" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <VendorOrdersPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/orders/enhanced" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <EnhancedVendorOrdersPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/commissions" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <VendorCommissionPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/orders/analytics" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <OrderAnalyticsPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/orders/:id" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <OrderDetailPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/analytics" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <VendorAnalyticsPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/reports" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <SalesReportsPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/performance" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <PerformanceDashboardPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/inquiries" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <CustomerInquiriesPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/inquiries/:inquiryId" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <InquiryDetailPage />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/vendor/inventory" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <VendorProtectedRoute>
+                  <InventoryManagement />
+                </VendorProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/vendor/application-status" element={<ApplicationStatusPage />} />
+        </Routes>
+      </Suspense>
     </div>
   );
 };

@@ -35,6 +35,7 @@ const ProductManagement = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true); // Only for initial load
   const [isSearching, setIsSearching] = useState(false); // Separate state for search/filter updates
+  const [isSubmitting, setIsSubmitting] = useState(false); // Loading state for form submission
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -159,30 +160,83 @@ const ProductManagement = () => {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       
+      // Check if we're using client-side filters (category or stock)
+      const hasClientSideFilters = selectedCategory || selectedStock !== 'all';
+      
       // Build query parameters for pagination and filtering
       const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
         approvalStatus: 'all' // Load all products regardless of approval status
       });
+
+      // If using client-side filters, load ALL products without pagination
+      // Otherwise use server-side pagination
+      if (hasClientSideFilters) {
+        // Load all products for client-side filtering and pagination
+        params.append('page', '1');
+        params.append('limit', '10000'); // Large number to get all products
+      } else {
+        // Use server-side pagination when no client-side filters
+        params.append('page', currentPage.toString());
+        params.append('limit', itemsPerPage.toString());
+      }
 
       // Add search parameter if present (use direct search term)
       if (searchTerm.trim()) {
         params.append('search', searchTerm.trim());
       }
-
-      // Note: Category and stock filtering will be done client-side for now
-      // since the API doesn't support these filters yet
       
       console.log('Making paginated request to admin products API with params:', params.toString());
+      console.log('Using client-side filters:', hasClientSideFilters);
       const response = await axios.get(`${getApiUrl()}/admin/products/?${params.toString()}`, { headers });
       console.log('Admin products response:', response.data);
       
       if (response.data.success) {
-        setProducts(response.data.products || []);
-        // Don't update currentPage from response to avoid re-renders
-        setTotalPages(response.data.pagination?.totalPages || 1);
-        setTotalProducts(response.data.pagination?.totalProducts || 0);
+        const allProducts = response.data.products || [];
+        
+        if (hasClientSideFilters) {
+          // Apply client-side filtering
+          let filtered = allProducts.filter(product => {
+            const matchesCategory = !selectedCategory || (() => {
+              // Handle different category data structures
+              if (Array.isArray(product.mainCategory) && product.mainCategory.length > 0) {
+                const mainCat = product.mainCategory[0];
+                const categoryName = typeof mainCat === 'object' ? mainCat.name : mainCat;
+                return categoryName === selectedCategory;
+              } else if (typeof product.mainCategory === 'string') {
+                return product.mainCategory === selectedCategory;
+              } else if (product.mainCategoryName) {
+                return product.mainCategoryName === selectedCategory;
+              } else if (product.categoryName) {
+                return product.categoryName === selectedCategory;
+              }
+              return false;
+            })();
+            
+            const matchesStock = selectedStock === 'all' ||
+                                (selectedStock === 'in-stock' && product.stock > 5) ||
+                                (selectedStock === 'low-stock' && product.stock > 0 && product.stock <= 5) ||
+                                (selectedStock === 'out-of-stock' && product.stock === 0);
+            return matchesCategory && matchesStock;
+          });
+          
+          // Calculate client-side pagination
+          const totalFiltered = filtered.length;
+          const totalPagesFiltered = Math.ceil(totalFiltered / itemsPerPage);
+          const startIdx = (currentPage - 1) * itemsPerPage;
+          const endIdx = startIdx + itemsPerPage;
+          const paginatedProducts = filtered.slice(startIdx, endIdx);
+          
+          console.log(`Client-side pagination: ${totalFiltered} filtered products, showing ${paginatedProducts.length} on page ${currentPage}`);
+          
+          setProducts(paginatedProducts);
+          setTotalPages(totalPagesFiltered);
+          setTotalProducts(totalFiltered);
+        } else {
+          // Server-side pagination (no client filters)
+          setProducts(allProducts);
+          setTotalPages(response.data.pagination?.totalPages || 1);
+          setTotalProducts(response.data.pagination?.totalProducts || 0);
+        }
       } else {
         setProducts([]);
         setTotalPages(1);
@@ -200,7 +254,7 @@ const ProductManagement = () => {
       setLoading(false);
       setIsSearching(false);
     }
-  }, [currentPage, itemsPerPage, searchTerm, selectedCategory, selectedStock, products.length]); // Updated dependencies
+  }, [currentPage, itemsPerPage, searchTerm, selectedCategory, selectedStock]); // Removed products.length from dependencies
 
   // Effects - placed after function definitions
   useEffect(() => {
@@ -224,16 +278,19 @@ const ProductManagement = () => {
     }
   }, [isSearching, searchTerm]);
 
-  // Effect to reset page when filters change
+  // Effect to reset page when filters change (but not when page itself changes)
   useEffect(() => {
-    // Only reset page if not already on page 1
-    if (currentPage !== 1) {
-      setCurrentPage(1);
-    }
-  }, [searchTerm, selectedCategory, selectedStock, currentPage]);
+    // Reset to page 1 when search term, category, or stock filter changes
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedStock]); // Removed currentPage from dependencies to avoid circular loop
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (isSubmitting) return;
+    
+    setIsSubmitting(true); // Start loading
     
     console.log('💾 Saving product with categories:', {
       mainCategory: formData.mainCategory,
@@ -384,6 +441,8 @@ const ProductManagement = () => {
       console.error('❌ Error saving product:', error);
       console.error('❌ Error details:', error.response?.data);
       alert(error.response?.data?.message || 'Failed to save product');
+    } finally {
+      setIsSubmitting(false); // Stop loading in both success and error cases
     }
   };
 
@@ -559,33 +618,6 @@ const ProductManagement = () => {
     setShowAddForm(false);
   };
 
-  const filteredProducts = products.filter(product => {
-    // Only apply client-side filters for category and stock since API doesn't support them yet
-    // Search is now handled server-side
-    const matchesCategory = !selectedCategory || (() => {
-      // Handle different category data structures
-      if (Array.isArray(product.mainCategory) && product.mainCategory.length > 0) {
-        const mainCat = product.mainCategory[0];
-        // Check if it's an object with name property or just a string
-        const categoryName = typeof mainCat === 'object' ? mainCat.name : mainCat;
-        return categoryName === selectedCategory;
-      } else if (typeof product.mainCategory === 'string') {
-        return product.mainCategory === selectedCategory;
-      } else if (product.mainCategoryName) {
-        return product.mainCategoryName === selectedCategory;
-      } else if (product.categoryName) {
-        return product.categoryName === selectedCategory;
-      }
-      return false;
-    })();
-    
-    const matchesStock = selectedStock === 'all' ||
-                        (selectedStock === 'in-stock' && product.stock > 5) ||
-                        (selectedStock === 'low-stock' && product.stock > 0 && product.stock <= 5) ||
-                        (selectedStock === 'out-of-stock' && product.stock === 0);
-    return matchesCategory && matchesStock;
-  });
-
   // Pagination handlers
   const handlePageChange = (page) => {
     if (page >= 1 && page <= totalPages && page !== currentPage) {
@@ -706,7 +738,7 @@ const ProductManagement = () => {
               <>
                 {totalProducts} product{totalProducts !== 1 ? 's' : ''} total
                 {(searchTerm || selectedCategory || selectedStock !== 'all') && (
-                  <span>, showing {filteredProducts.length} filtered</span>
+                  <span>, showing {products.length} on this page</span>
                 )}
               </>
             ) : (
@@ -772,8 +804,8 @@ const ProductManagement = () => {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.length > 0 ? (
-          filteredProducts.map((product) => (
+        {products.length > 0 ? (
+          products.map((product) => (
             <div key={product._id} className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
               <img
                 src={getImageUrl(product.image)}
@@ -1487,15 +1519,33 @@ const ProductManagement = () => {
                 <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
                   <button
                     type="submit"
-                    className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center space-x-2 font-medium"
+                    disabled={isSubmitting}
+                    className={`flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 flex items-center justify-center space-x-2 font-medium ${
+                      isSubmitting ? 'opacity-75 cursor-not-allowed' : ''
+                    }`}
                   >
-                    <Save className="w-5 h-5" />
-                    <span>{editingProduct ? 'Update Product' : 'Add Product'}</span>
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>{editingProduct ? 'Updating...' : 'Adding...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-5 h-5" />
+                        <span>{editingProduct ? 'Update Product' : 'Add Product'}</span>
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                    disabled={isSubmitting}
+                    className={`px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium ${
+                      isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
                     Cancel
                   </button>

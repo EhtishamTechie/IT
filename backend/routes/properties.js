@@ -4,6 +4,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { authenticateToken } = require('../middleware/auth');
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
 const Property = require('../models/Property');
 const {
   submitProperty,
@@ -140,7 +141,12 @@ router.get('/public/:id', getPropertyDetails);
 
 // Protected Routes (Authentication required)
 // Submit new property listing
-router.post('/submit', authenticateToken, upload.array('images', 10), submitProperty);
+router.post('/submit', 
+  authenticateToken, 
+  upload.array('images', 10),
+  optimizeUploadedImages({ quality: 85, generateWebP: true }),
+  submitProperty
+);
 
 // Get user's own properties
 router.get('/user/my-listings', authenticateToken, getUserProperties);

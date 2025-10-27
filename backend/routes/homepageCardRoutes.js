@@ -4,9 +4,13 @@ const HomepageCard = require('../models/HomepageCard');
 const Category = require('../models/Category');
 const { authenticateAdmin } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/uploadMiddleware');
+const cacheService = require('../services/cacheService');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+
+// Cache duration constants (in seconds)
+const HOMEPAGE_CACHE = 3600; // 1 hour - homepage content changes infrequently
 
 // Configure multer for card images
 const storage = multer.diskStorage({
@@ -38,7 +42,7 @@ const upload = multer({
 });
 
 // GET /api/homepage/cards - Get all homepage cards
-router.get('/', async (req, res) => {
+router.get('/', cacheService.middleware(HOMEPAGE_CACHE), async (req, res) => {
   try {
     const cards = await HomepageCard.find({ isActive: true })
       .sort({ order: 1 })
@@ -215,6 +219,9 @@ router.post('/', authenticateAdmin, upload.fields([
     const newCard = new HomepageCard(cardData);
     await newCard.save();
 
+    // Clear homepage cache
+    cacheService.clearPattern('cache:*/homepage*');
+
     // Populate the response
     await newCard.populate('mainCategory', 'name');
     await newCard.populate('subcategoryItems.category', 'name');
@@ -334,6 +341,10 @@ router.put('/:id', authenticateAdmin, upload.fields([
     }
 
     await card.save();
+    
+    // Clear homepage cache
+    cacheService.clearPattern('cache:*/homepage*');
+    
     await card.populate('mainCategory', 'name');
     await card.populate('subcategoryItems.category', 'name');
 
@@ -385,6 +396,9 @@ router.delete('/:id', authenticateAdmin, async (req, res) => {
     }
 
     await HomepageCard.findByIdAndDelete(id);
+
+    // Clear homepage cache
+    cacheService.clearPattern('cache:*/homepage*');
 
     res.json({
       success: true,

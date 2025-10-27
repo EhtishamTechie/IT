@@ -6,6 +6,10 @@ const fs = require('fs');
 const HomepageCategory = require('../models/HomepageCategory');
 const Category = require('../models/Category');
 const authAdmin = require('../middleware/authAdmin');
+const cacheService = require('../services/cacheService');
+
+// Cache duration constants (in seconds)
+const HOMEPAGE_CACHE = 3600; // 1 hour - homepage content changes infrequently
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -34,7 +38,7 @@ const upload = multer({
 });
 
 // Get all homepage categories
-router.get('/', async (req, res) => {
+router.get('/', cacheService.middleware(HOMEPAGE_CACHE), async (req, res) => {
   try {
     const categories = await HomepageCategory.find()
       .sort({ displayOrder: 1 })
@@ -76,6 +80,10 @@ router.post('/', authAdmin, upload.single('image'), async (req, res) => {
     });
 
     await homepageCategory.save();
+    
+    // Clear homepage cache
+    cacheService.clearPattern('cache:*/homepage*');
+    
     res.status(201).json(homepageCategory);
   } catch (error) {
     console.error('Error adding homepage category:', error);
@@ -101,6 +109,10 @@ router.delete('/:id', authAdmin, async (req, res) => {
 
     // Use findByIdAndDelete instead of remove()
     await HomepageCategory.findByIdAndDelete(req.params.id);
+    
+    // Clear homepage cache
+    cacheService.clearPattern('cache:*/homepage*');
+    
     res.json({ 
       success: true,
       message: 'Category removed from homepage successfully' 
@@ -120,6 +132,9 @@ router.put('/reorder', authAdmin, async (req, res) => {
     await Promise.all(orderedIds.map((id, index) => 
       HomepageCategory.findByIdAndUpdate(id, { displayOrder: index })
     ));
+
+    // Clear homepage cache
+    cacheService.clearPattern('cache:*/homepage*');
 
     res.json({ message: 'Categories reordered successfully' });
   } catch (error) {

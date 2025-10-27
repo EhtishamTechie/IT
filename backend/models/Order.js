@@ -186,4 +186,15 @@ const orderSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
+// Indexes for better query performance
+orderSchema.index({ orderNumber: 1 });
+orderSchema.index({ email: 1 });
+orderSchema.index({ status: 1 });
+orderSchema.index({ vendor: 1 });
+orderSchema.index({ orderType: 1 });
+orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ createdAt: -1 });
+orderSchema.index({ 'cart.vendor': 1 }); // For vendor order queries
+orderSchema.index({ isForwardedToVendors: 1, orderType: 1 }); // For order forwarding
+
 module.exports = mongoose.model("Order", orderSchema);

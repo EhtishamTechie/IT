@@ -3,6 +3,7 @@
 
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
@@ -67,24 +68,31 @@ const ensureUploadDirectories = () => {
 // Initialize upload directories
 ensureUploadDirectories();
 
-// Serve homepage category images
+// Serve homepage category images with cache headers
 app.use('/uploads/homepage-categories', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'homepage-categories'), {
-    fallthrough: true
+    fallthrough: true,
+    maxAge: '1y', // 1 year cache
+    immutable: true
 }));
 
-// Serve homepage card images
+// Serve homepage card images with cache headers
 app.use('/uploads/homepage-cards', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'homepage-cards'), {
-    fallthrough: true
+    fallthrough: true,
+    maxAge: '1y',
+    immutable: true
 }));
 
-// Serve QR code images for payment accounts
+// Serve QR code images for payment accounts with cache headers
 app.use('/uploads/qr-codes', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'qr-codes'), {
-    fallthrough: true
+    fallthrough: true,
+    maxAge: '30d' // 30 days - QR codes may change occasionally
 }));
 
-// Serve payment receipt images for advance payment orders
+// Serve payment receipt images for advance payment orders with cache headers
 app.use('/uploads/payment-receipts', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'payment-receipts'), {
-    fallthrough: true
+    fallthrough: true,
+    maxAge: '1y',
+    immutable: true
 }));
 
 // Fix any misplaced product images
@@ -217,11 +225,17 @@ serveStatic('used-products', 'used-products');
 serveStatic('properties', 'properties');
 serveStatic('wholesale-suppliers', 'wholesale-suppliers');
 
-// Static file serving with caching for all upload directories
+// Static file serving with aggressive caching for all upload directories
 const staticOptions = {
     fallthrough: true,
-    setHeaders: (res) => {
-        res.set('Cache-Control', 'public, max-age=31536000'); // 1 year caching
+    maxAge: '1y', // 1 year caching for immutable assets
+    immutable: true,
+    setHeaders: (res, filePath) => {
+        // Set cache control headers for CDN optimization
+        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        // Add CORS headers
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Timing-Allow-Origin', '*'); // For performance monitoring
     }
 };
 
@@ -409,6 +423,20 @@ app.use(cors({
   ],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
   maxAge: 86400
+}));
+
+// Compression middleware - Gzip/Brotli for response compression
+app.use(compression({
+  level: 6, // Compression level (0-9, 6 is default and good balance)
+  threshold: 1024, // Only compress responses larger than 1KB
+  filter: (req, res) => {
+    // Don't compress if no-transform header is present
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    // Compress all responses by default
+    return compression.filter(req, res);
+  }
 }));
 
 app.use(express.json({ limit: '50mb' }));

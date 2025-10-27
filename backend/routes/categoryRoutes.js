@@ -3,9 +3,14 @@ const router = express.Router();
 const Category = require('../models/Category');
 const Product = require('../models/Product');
 const authAdmin = require('../middleware/authAdmin');
+const cacheService = require('../services/cacheService');
+
+// Cache durations (in seconds)
+const CATEGORY_CACHE = 3600; // 1 hour - categories change rarely
+const CATEGORY_PRODUCTS_CACHE = 600; // 10 minutes
 
 // Get all categories with populated parent categories
-router.get('/', async (req, res) => {
+router.get('/', cacheService.middleware(CATEGORY_CACHE), async (req, res) => {
   try {
     const categories = await Category.find({})
       .populate('parentCategory', 'name')
@@ -20,7 +25,7 @@ router.get('/', async (req, res) => {
 });
 
 // Get category by ID (legacy support)
-router.get('/id/:id', async (req, res) => {
+router.get('/id/:id', cacheService.middleware(CATEGORY_CACHE), async (req, res) => {
   try {
     const category = await Category.findById(req.params.id)
       .populate('parentCategory', 'name slug');
@@ -37,7 +42,7 @@ router.get('/id/:id', async (req, res) => {
 });
 
 // Get category by slug or ID (SEO-friendly unified endpoint)
-router.get('/:identifier', async (req, res) => {
+router.get('/:identifier', cacheService.middleware(CATEGORY_CACHE), async (req, res) => {
   try {
     const identifier = req.params.identifier;
     let category = null;
@@ -93,7 +98,7 @@ router.get('/:identifier', async (req, res) => {
 });
 
 // Get all products in a category
-router.get('/:categoryId/products', async (req, res) => {
+router.get('/:categoryId/products', cacheService.middleware(CATEGORY_PRODUCTS_CACHE), async (req, res) => {
   try {
     const { categoryId } = req.params;
     
@@ -138,6 +143,9 @@ router.post('/', authAdmin, async (req, res) => {
 
     await category.save();
     
+    // Invalidate category caches
+    await cacheService.clearPattern('cache:*/categories*');
+    
     // Populate the response
     const populatedCategory = await Category.findById(category._id)
       .populate('parentCategory', 'name');
@@ -180,6 +188,9 @@ router.put('/:id', authAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
+    // Invalidate category caches
+    await cacheService.clearPattern('cache:*/categories*');
+
     res.json(category);
   } catch (error) {
     console.error('Error updating category:', error);
@@ -204,6 +215,9 @@ router.delete('/:id', authAdmin, async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
+    // Invalidate category caches
+    await cacheService.clearPattern('cache:*/categories*');
+
     res.json({ message: 'Category and its subcategories deleted successfully' });
   } catch (error) {
     console.error('Error deleting category:', error);
@@ -212,7 +226,7 @@ router.delete('/:id', authAdmin, async (req, res) => {
 });
 
 // Get categories by parent (for building hierarchy)
-router.get('/parent/:parentId', async (req, res) => {
+router.get('/parent/:parentId', cacheService.middleware(CATEGORY_CACHE), async (req, res) => {
   try {
     const parentId = req.params.parentId === 'null' ? null : req.params.parentId;
     
@@ -228,7 +242,7 @@ router.get('/parent/:parentId', async (req, res) => {
 });
 
 // Get subcategories for a specific category
-router.get('/:categoryId/subcategories', async (req, res) => {
+router.get('/:categoryId/subcategories', cacheService.middleware(CATEGORY_CACHE), async (req, res) => {
   try {
     const { categoryId } = req.params;
     

@@ -12,16 +12,51 @@ export default defineConfig({
     },
   },
   build: {
+    // Optimize chunk splitting for better caching
     rollupOptions: {
-      external: [],
+      output: {
+        manualChunks: {
+          // Vendor chunks - these rarely change
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'mui-vendor': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          'charts-vendor': ['recharts'],
+          'query-vendor': ['@tanstack/react-query'],
+          'utils-vendor': ['axios', 'lodash', 'jwt-decode'],
+          'ui-vendor': ['framer-motion', 'react-toastify', 'react-hot-toast'],
+          'icons-vendor': ['lucide-react', 'react-icons', '@heroicons/react'],
+          // Admin and Vendor pages in separate chunks
+          'admin-pages': [
+            './src/pages/Admin/AdminPage.jsx',
+            './src/pages/Admin/ProductManagement.jsx',
+            './src/pages/Admin/OrderManagement.jsx',
+            './src/pages/Admin/UserManagement.jsx',
+            './src/pages/Admin/CategoryManagement.jsx',
+          ],
+          'vendor-pages': [
+            './src/pages/Vendor/VendorDashboardPage.jsx',
+            './src/pages/Vendor/VendorProductsPage_clean.jsx',
+            './src/pages/Vendor/VendorOrdersPage.jsx',
+          ],
+        },
+      },
     },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Enable CSS code splitting
+    cssCodeSplit: true,
+    // Minify for production - esbuild is faster than terser for Vite
+    minify: 'esbuild',
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
     },
+    // Enable source maps for debugging (can disable in production)
+    sourcemap: false,
   },
   optimizeDeps: {
-    include: ['react-is', 'recharts'],
+    include: ['react-is', 'recharts', 'react', 'react-dom', 'react-router-dom'],
+    // Exclude heavy dependencies that should be loaded on demand
+    exclude: [],
   },
   server: {
     proxy: {
@@ -31,5 +66,9 @@ export default defineConfig({
         secure: false,
       },
     },
+    // Enable HTTP/2 for faster loading
+    https: false,
   },
+  // Enable better caching
+  cacheDir: 'node_modules/.vite',
 })
