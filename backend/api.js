@@ -22,6 +22,7 @@ const { uploadMultipleProductImages } = require('./middleware/uploadMiddleware')
 // Routes
 const bannerRoutes = require('./routes/bannerRoutes');
 const homepageCardRoutes = require('./routes/homepageCardRoutes');
+const homepageCombinedRoutes = require('./routes/homepageCombinedRoutes');
 
 // Models
 const FeaturedProducts = require('./models/FeaturedProducts');
@@ -844,6 +845,8 @@ app.use('/api/products', ensureConnection, productRoutes);
 app.use('/api/categories', ensureConnection, categoryRoutes);
 app.use('/api/seo', ensureConnection, seoRoutes);
 app.use('/api/footer-categories', ensureConnection, require('./routes/publicFooterRoutes'));
+// Combined homepage route (single API call for all homepage data)
+app.use('/api/homepage', ensureConnection, homepageCombinedRoutes);
 app.use('/api/homepage/categories', ensureConnection, require('./routes/homepageCategoryRoutes'));
 app.use('/api/homepage/static-categories', ensureConnection, require('./routes/homepageStaticCategoryRoutes'));
 app.use('/api/homepage/cards', ensureConnection, homepageCardRoutes);
