@@ -1,7 +1,7 @@
 // Combined homepage data endpoint to reduce API calls
 const express = require('express');
 const router = express.Router();
-const HomepageBanner = require('../models/HomepageBanner');
+const Banner = require('../models/Banner');
 const HomepageCategory = require('../models/HomepageCategory');
 const HomepageCard = require('../models/HomepageCard');
 const HomepageStaticCategory = require('../models/HomepageStaticCategory');
@@ -30,8 +30,8 @@ router.get('/all', async (req, res) => {
     console.log('📡 Fetching fresh homepage data from database');
 
     // Fetch all data in parallel for maximum performance
-    const [bannerDoc, categories, cards, staticCategories] = await Promise.all([
-      HomepageBanner.findOne().lean(),
+    const [banners, categories, cards, staticCategories] = await Promise.all([
+      Banner.find({ isActive: true }).sort({ order: 1 }).lean(),
       HomepageCategory.find({ isActive: true }).sort({ order: 1 }).lean(),
       HomepageCard.find({ isActive: true }).sort({ order: 1 }).lean(),
       HomepageStaticCategory.find({ isActive: true })
@@ -40,11 +40,6 @@ router.get('/all', async (req, res) => {
         .populate('selectedProducts', 'title image images price')
         .lean()
     ]);
-
-    // Extract slides from banner document and sort by order
-    const banners = bannerDoc && bannerDoc.slides 
-      ? bannerDoc.slides.sort((a, b) => (a.order || 0) - (b.order || 0))
-      : [];
 
     const responseData = {
       banners: banners || [],
