@@ -1,13 +1,51 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getImageUrl } from '../config';
-import LazyImage from './LazyImage';
-import useHomepageData from '../hooks/useHomepageData';
+import API from '../api';
+import { getImageUrl, getApiUrl } from '../config';
+
+const CACHE_DURATION = 30000; // 30 seconds
 
 const DynamicHomepageCards = () => {
-  // Use combined homepage data hook (single API call)
-  const { cards, loading } = useHomepageData();
+  const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Cache
+  const cache = useRef({
+    cards: { data: null, timestamp: 0 }
+  });
+
+  useEffect(() => {
+    fetchCards();
+  }, []);
+
+  const fetchCards = async () => {
+    const now = Date.now();
+    if (cache.current.cards.data && now - cache.current.cards.timestamp < CACHE_DURATION) {
+      console.log('Using cached homepage cards data');
+      setCards(cache.current.cards.data);
+      setLoading(false);
+      return;
+    }
+
+    console.log('Fetching fresh homepage cards data');
+    try {
+      const response = await API.get(getApiUrl('homepage/cards'));
+      const data = response.data.cards || [];
+      setCards(data);
+      
+      // Update cache
+      cache.current.cards = {
+        data: data,
+        timestamp: now
+      };
+    } catch (err) {
+      console.error('Error fetching homepage cards:', err);
+      setCards([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getCardImageUrl = (card) => {
     if (card.type === 'main-category' && card.mainImage) {

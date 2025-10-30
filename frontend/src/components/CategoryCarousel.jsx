@@ -1,18 +1,53 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { getImageUrl } from '../config';
+import { config, getApiUrl, getImageUrl } from '../config';
 import { Link } from 'react-router-dom';
-import LazyImage from './LazyImage';
-import useHomepageData from '../hooks/useHomepageData';
+
+const CACHE_DURATION = 30000; // 30 seconds
 
 const CategoryCarousel = () => {
                           
   const [isPaused, setIsPaused] = useState(false);
   const [failedImages, setFailedImages] = useState(new Set());
   const [loadedImages, setLoadedImages] = useState(new Set());
+  const [homepageCategories, setHomepageCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  // Use combined homepage data hook (single API call)
-  const { categories: homepageCategories, loading } = useHomepageData();
+  // Cache
+  const cache = useRef({
+    homepageCategories: { data: null, timestamp: 0 }
+  });
+
+  // Fetch homepage categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const now = Date.now();
+      if (cache.current.homepageCategories.data && now - cache.current.homepageCategories.timestamp < CACHE_DURATION) {
+        console.log('Using cached homepage categories data');
+        setHomepageCategories(cache.current.homepageCategories.data);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fetching fresh homepage categories data');
+      try {
+        const response = await fetch(getApiUrl('homepage/categories'));
+        const data = await response.json();
+        setHomepageCategories(data);
+        
+        // Update cache
+        cache.current.homepageCategories = {
+          data: data,
+          timestamp: now
+        };
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Stats images
   const statsImages = {
@@ -188,7 +223,7 @@ const CategoryCarousel = () => {
                       {/* Image Container */}
                       <div className="relative h-36 sm:h-40 md:h-48 overflow-hidden bg-gray-100">
                         <Link to={`/category-group/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`} className="block w-full h-full">
-                          <LazyImage
+                          <img 
                             src={getImageUrl('homepageCategories', category.imageUrl)}
                             alt={category.name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"

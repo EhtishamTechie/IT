@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { getImageUrl } from '../config';
-import LazyImage from './LazyImage';
-import useHomepageData from '../hooks/useHomepageData';
+import API from '../api';
+import { getApiUrl, getImageUrl } from '../config';
 
-// Simple lazy loading hook (keep for product images)
+const CACHE_DURATION = 30000; // 30 seconds
+
+// Simple lazy loading hook
 const useLazyLoading = () => {
   const [inView, setInView] = useState(false);
   const ref = useRef();
@@ -31,29 +32,80 @@ const useLazyLoading = () => {
   return [ref, inView];
 };
 
+// Lazy loading image component
+const LazyImage = ({ src, alt, className, ...props }) => {
+  const [imageRef, inView] = useLazyLoading();
+  const [loaded, setLoaded] = useState(false);
+
+  return (
+    <div ref={imageRef} className={className}>
+      {inView && (
+        <img
+          src={src}
+          alt={alt}
+          className={`transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
+          onLoad={() => setLoaded(true)}
+          {...props}
+        />
+      )}
+    </div>
+  );
+};
+
 const AmazonStyleProductDisplay = () => {
   const navigate = useNavigate();
   const [scrollPositions, setScrollPositions] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [productSections, setProductSections] = useState([]);
   
-  // Use combined homepage data hook (single API call)
-  const { staticCategories, loading } = useHomepageData();
-  
-  // Transform static categories into product sections
-  const productSections = useMemo(() => {
-    if (!staticCategories || staticCategories.length === 0) return [];
-    
-    return staticCategories.map(cat => ({
-      id: cat._id,
-      _id: cat.category?._id,
-      title: cat.category?.name,
-      linkText: 'See all',
-      products: (cat.selectedProducts || []).map(product => ({
-        id: product._id,
-        title: product.title,
-        image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
-      }))
-    }));
-  }, [staticCategories]);
+  // Cache
+  const cache = useRef({
+    productSections: { data: null, timestamp: 0 }
+  });
+
+  useEffect(() => {
+    const fetchProductSections = async () => {
+      const now = Date.now();
+      if (cache.current.productSections.data && now - cache.current.productSections.timestamp < CACHE_DURATION) {
+        console.log('Using cached product sections data');
+        setProductSections(cache.current.productSections.data);
+        setLoading(false);
+        return;
+      }
+
+      console.log('Fetching fresh product sections data');
+      try {
+        const response = await API.get(getApiUrl('homepage/static-categories'));
+        if (response.data.success) {
+          const sortedCategories = response.data.categories.sort((a, b) => a.displayOrder - b.displayOrder);
+          const sections = sortedCategories.map(cat => ({
+            id: cat._id,
+            _id: cat.category._id,
+            title: cat.category.name,
+            linkText: 'See all',
+            products: cat.selectedProducts.map(product => ({
+              id: product._id,
+              title: product.title,
+              image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+            }))
+          }));
+          setProductSections(sections);
+          
+          // Update cache
+          cache.current.productSections = {
+            data: sections,
+            timestamp: now
+          };
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching product sections:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchProductSections();
+  }, []);
 
   // Initial product data for development
   const initialSections = [
