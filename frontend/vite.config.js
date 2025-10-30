@@ -16,20 +16,19 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Core React libraries
+          // Core React libraries - MUST be in same chunk to avoid undefined errors
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('react-is')) {
               return 'react-vendor';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'react-vendor'; // Keep with React to avoid undefined errors
             }
             if (id.includes('@mui') || id.includes('@emotion')) {
               return 'mui-vendor';
             }
-            if (id.includes('recharts')) {
-              return 'charts-vendor'; // Lazy load charts
-            }
-            if (id.includes('@tanstack/react-query')) {
-              return 'query-vendor';
-            }
+            // Remove charts from vendor splitting - let Vite handle it automatically
+            // This prevents React undefined errors in production
             if (id.includes('axios') || id.includes('lodash') || id.includes('jwt-decode')) {
               return 'utils-vendor';
             }
@@ -67,9 +66,8 @@ export default defineConfig({
     sourcemap: false,
   },
   optimizeDeps: {
-    include: ['react-is', 'react', 'react-dom', 'react-router-dom'],
-    // Exclude heavy dependencies that should be loaded on demand
-    exclude: ['recharts'], // Lazy load charts only when needed
+    include: ['react', 'react-dom', 'react-router-dom', 'react-is', '@tanstack/react-query'],
+    // Don't exclude recharts - let it be optimized normally
   },
   server: {
     proxy: {
