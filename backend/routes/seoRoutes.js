@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const UsedProduct = require('../models/UsedProduct');
+const Property = require('../models/Property');
 const { generateSitemapEntry, generateSlug } = require('../utils/seoUtils');
 
 // Generate XML sitemap for products and categories
@@ -10,6 +12,20 @@ router.get('/sitemap.xml', async (req, res) => {
     console.log('🗺️ [SITEMAP] Generating XML sitemap');
     
     const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
+    
+    // Helper function to validate and sanitize dates
+    const getValidDate = (date) => {
+      const now = new Date();
+      const inputDate = date ? new Date(date) : now;
+      
+      // If date is in the future or invalid, use current date
+      if (isNaN(inputDate.getTime()) || inputDate > now) {
+        console.warn(`⚠️ [SITEMAP] Invalid or future date detected: ${date}, using current date`);
+        return now.toISOString();
+      }
+      
+      return inputDate.toISOString();
+    };
     
     // Helper function to escape XML special characters
     const escapeXml = (unsafe) => {
@@ -23,18 +39,28 @@ router.get('/sitemap.xml', async (req, res) => {
         .replace(/'/g, '&apos;');
     };
     
-    // Get all active products with slugs
+    // Get all active products - include both slug and _id for flexibility
     const products = await Product.find({ 
       isActive: true, 
-      isVisible: true,
-      slug: { $exists: true, $ne: null }
-    }).select('slug title updatedAt images');
+      isVisible: true
+    }).select('_id slug title updatedAt images image');
     
     // Get all active categories with slugs
     const categories = await Category.find({ 
-      isActive: true,
-      slug: { $exists: true, $ne: null }
-    }).select('slug name updatedAt');
+      isActive: true
+    }).select('_id slug name updatedAt');
+    
+    // Get active used products
+    const usedProducts = await UsedProduct.find({
+      isApproved: true,
+      status: 'approved'
+    }).select('_id title updatedAt images');
+    
+    // Get active properties
+    const properties = await Property.find({
+      isApproved: true,
+      status: 'approved'
+    }).select('_id title updatedAt images');
     
     // Start XML sitemap
     let sitemap = `<?xml version="1.0" encoding="UTF-8"?>
@@ -43,27 +69,33 @@ router.get('/sitemap.xml', async (req, res) => {
 `;
 
     // Add homepage
+    const currentDate = getValidDate(new Date());
     sitemap += `  <url>
     <loc>${baseUrl}</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${currentDate}</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
 `;
 
-    // Add important static pages
+    // Add comprehensive static pages
     const staticPages = [
       { path: '/products', changefreq: 'daily', priority: '0.9' },
       { path: '/used-products', changefreq: 'daily', priority: '0.8' },
       { path: '/properties', changefreq: 'daily', priority: '0.8' },
+      { path: '/sell-used-product', changefreq: 'monthly', priority: '0.5' },
+      { path: '/sell-property', changefreq: 'monthly', priority: '0.5' },
       { path: '/contact-wholeseller', changefreq: 'monthly', priority: '0.6' },
-      { path: '/ContactUsPage', changefreq: 'monthly', priority: '0.6' }
+      { path: '/ContactUsPage', changefreq: 'monthly', priority: '0.6' },
+      { path: '/about', changefreq: 'monthly', priority: '0.6' },
+      { path: '/privacy', changefreq: 'yearly', priority: '0.3' },
+      { path: '/terms', changefreq: 'yearly', priority: '0.3' }
     ];
 
     staticPages.forEach(page => {
       sitemap += `  <url>
     <loc>${baseUrl}${page.path}</loc>
-    <lastmod>${new Date().toISOString()}</lastmod>
+    <lastmod>${currentDate}</lastmod>
     <changefreq>${page.changefreq}</changefreq>
     <priority>${page.priority}</priority>
   </url>
@@ -72,33 +104,102 @@ router.get('/sitemap.xml', async (req, res) => {
 
     // Add category pages
     categories.forEach(category => {
-      const entry = generateSitemapEntry(category, 'category');
+      // Use slug if available, otherwise use _id
+      const categoryPath = category.slug || category._id;
+      const lastmod = getValidDate(category.updatedAt);
+      
       sitemap += `  <url>
-    <loc>${escapeXml(entry.loc)}</loc>
-    <lastmod>${entry.lastmod}</lastmod>
-    <changefreq>${entry.changefreq}</changefreq>
-    <priority>${entry.priority}</priority>
+    <loc>${escapeXml(`${baseUrl}/category/${categoryPath}`)}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 `;
     });
 
-    // Add product pages
+    // Add product pages with images
     products.forEach(product => {
-      const entry = generateSitemapEntry(product, 'product');
+      // Use slug if available, otherwise fall back to _id
+      const productPath = product.slug || product._id;
+      const lastmod = getValidDate(product.updatedAt);
+      
       sitemap += `  <url>
-    <loc>${escapeXml(entry.loc)}</loc>
-    <lastmod>${entry.lastmod}</lastmod>
-    <changefreq>${entry.changefreq}</changefreq>
-    <priority>${entry.priority}</priority>`;
+    <loc>${escapeXml(`${baseUrl}/product/${productPath}`)}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>`;
     
-      // Add product images to sitemap
-      if (product.images && product.images.length > 0) {
-        product.images.forEach(image => {
-          sitemap += `
+      // Add ALL product images to sitemap (not just some)
+      const productImages = product.images && product.images.length > 0 
+        ? product.images 
+        : (product.image ? [product.image] : []);
+      
+      if (productImages.length > 0) {
+        productImages.forEach(image => {
+          // Skip if image is placeholder or empty
+          if (image && image !== 'placeholder-image.jpg') {
+            sitemap += `
     <image:image>
       <image:loc>${escapeXml(baseUrl + '/uploads/products/' + image)}</image:loc>
       <image:title>${escapeXml(product.title)}</image:title>
     </image:image>`;
+          }
+        });
+      }
+      
+      sitemap += `
+  </url>
+`;
+    });
+    
+    // Add used product pages
+    usedProducts.forEach(usedProduct => {
+      const lastmod = getValidDate(usedProduct.updatedAt);
+      
+      sitemap += `  <url>
+    <loc>${escapeXml(`${baseUrl}/used-product/${usedProduct._id}`)}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>`;
+    
+      // Add used product images
+      if (usedProduct.images && usedProduct.images.length > 0) {
+        usedProduct.images.forEach(image => {
+          if (image) {
+            sitemap += `
+    <image:image>
+      <image:loc>${escapeXml(baseUrl + '/uploads/used-products/' + image)}</image:loc>
+      <image:title>${escapeXml(usedProduct.title)}</image:title>
+    </image:image>`;
+          }
+        });
+      }
+      
+      sitemap += `
+  </url>
+`;
+    });
+    
+    // Add property pages
+    properties.forEach(property => {
+      const lastmod = getValidDate(property.updatedAt);
+      
+      sitemap += `  <url>
+    <loc>${escapeXml(`${baseUrl}/property/${property._id}`)}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>`;
+    
+      // Add property images
+      if (property.images && property.images.length > 0) {
+        property.images.forEach(image => {
+          if (image) {
+            sitemap += `
+    <image:image>
+      <image:loc>${escapeXml(baseUrl + '/uploads/properties/' + image)}</image:loc>
+      <image:title>${escapeXml(property.title)}</image:title>
+    </image:image>`;
+          }
         });
       }
       
@@ -121,7 +222,10 @@ router.get('/sitemap.xml', async (req, res) => {
     console.log('✅ [SITEMAP] Generated successfully:', {
       products: products.length,
       categories: categories.length,
-      total: products.length + categories.length + 1
+      usedProducts: usedProducts.length,
+      properties: properties.length,
+      staticPages: staticPages.length,
+      total: products.length + categories.length + usedProducts.length + properties.length + staticPages.length + 1
     });
     
   } catch (error) {
