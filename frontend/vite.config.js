@@ -15,28 +15,41 @@ export default defineConfig({
     // Optimize chunk splitting for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vendor chunks - these rarely change
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'mui-vendor': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          // Removed 'charts-vendor' - not used on homepage, will be lazy loaded only when needed
-          'query-vendor': ['@tanstack/react-query'],
-          'utils-vendor': ['axios', 'lodash', 'jwt-decode'],
-          'ui-vendor': ['framer-motion', 'react-toastify', 'react-hot-toast'],
-          'icons-vendor': ['lucide-react', 'react-icons', '@heroicons/react'],
-          // Admin and Vendor pages in separate chunks
-          'admin-pages': [
-            './src/pages/Admin/AdminPage.jsx',
-            './src/pages/Admin/ProductManagement.jsx',
-            './src/pages/Admin/OrderManagement.jsx',
-            './src/pages/Admin/UserManagement.jsx',
-            './src/pages/Admin/CategoryManagement.jsx',
-          ],
-          'vendor-pages': [
-            './src/pages/Vendor/VendorDashboardPage.jsx',
-            './src/pages/Vendor/VendorProductsPage_clean.jsx',
-            './src/pages/Vendor/VendorOrdersPage.jsx',
-          ],
+        manualChunks(id) {
+          // Core React libraries
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) {
+              return 'react-vendor';
+            }
+            if (id.includes('@mui') || id.includes('@emotion')) {
+              return 'mui-vendor';
+            }
+            if (id.includes('recharts')) {
+              return 'charts-vendor'; // Lazy load charts
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'query-vendor';
+            }
+            if (id.includes('axios') || id.includes('lodash') || id.includes('jwt-decode')) {
+              return 'utils-vendor';
+            }
+            if (id.includes('framer-motion') || id.includes('react-toastify') || id.includes('react-hot-toast')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('lucide-react') || id.includes('react-icons') || id.includes('@heroicons')) {
+              return 'icons-vendor';
+            }
+          }
+          
+          // Admin pages - only load when accessed
+          if (id.includes('/pages/Admin/')) {
+            return 'admin-pages';
+          }
+          
+          // Vendor pages - only load when accessed
+          if (id.includes('/pages/Vendor/')) {
+            return 'vendor-pages';
+          }
         },
       },
     },

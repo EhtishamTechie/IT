@@ -142,8 +142,9 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
 
       // Special products
       specialProducts: {
-        premium: premiumProducts?.products || [],
-        featured: featuredProducts?.products || [],
+        // Reverse arrays so newest products appear first
+        premium: premiumProducts?.products ? [...premiumProducts.products].reverse() : [],
+        featured: featuredProducts?.products ? [...featuredProducts.products].reverse() : [],
         newArrivals: newArrivals || []
       },
 
