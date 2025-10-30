@@ -171,6 +171,7 @@ const EnhancedProductCard = ({
           <img
             src={getImageSrc()}
             alt={product.title || 'Product'}
+            loading="lazy"
             className={`
               absolute inset-0 w-full h-full object-cover transition-all duration-500
               ${isHovered && product.video && !videoError 

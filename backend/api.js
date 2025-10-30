@@ -847,6 +847,8 @@ app.use('/api/footer-categories', ensureConnection, require('./routes/publicFoot
 app.use('/api/homepage/categories', ensureConnection, require('./routes/homepageCategoryRoutes'));
 app.use('/api/homepage/static-categories', ensureConnection, require('./routes/homepageStaticCategoryRoutes'));
 app.use('/api/homepage/cards', ensureConnection, homepageCardRoutes);
+// ⚡ OPTIMIZED: Single endpoint for all homepage data (reduces 6 API calls to 1)
+app.use('/api/homepage', ensureConnection, require('./routes/homepageOptimized'));
 app.use('/api/payments', ensureConnection, paymentRoutes);
 app.use('/api/status', ensureConnection, statusRoutes);
 app.use('/api/inventory', ensureConnection, inventoryRoutes);

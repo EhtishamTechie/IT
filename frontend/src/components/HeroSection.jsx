@@ -1,52 +1,14 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import API from '../api';
 import { getImageUrl } from '../config';
 import DynamicHomepageCards from './DynamicHomepageCards';
 
-const CACHE_DURATION = 30000; // 30 seconds
-
-const HeroSection = () => {
+const HeroSection = ({ banners = [] }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [bannerData, setBannerData] = useState([]);
-  
-  // Cache
-  const cache = useRef({
-    bannerData: { data: null, timestamp: 0 }
-  });
 
   // Colors for each slide
   const slideColors = ["#FF9900", "#146EB4", "#067D62"];
-
-  useEffect(() => {
-    fetchBanners();
-  }, []);
-
-  const fetchBanners = async () => {
-    const now = Date.now();
-    if (cache.current.bannerData.data && now - cache.current.bannerData.timestamp < CACHE_DURATION) {
-      console.log('Using cached banner data');
-      setBannerData(cache.current.bannerData.data);
-      return;
-    }
-
-    console.log('Fetching fresh banner data');
-    try {
-      const response = await API.get('/banner');
-      const data = response.data || [];
-      setBannerData(data);
-      
-      // Update cache
-      cache.current.bannerData = {
-        data: data,
-        timestamp: now
-      };
-    } catch (err) {
-      console.error('Error fetching banners:', err);
-      setBannerData([]); // Set empty array on error to prevent undefined errors
-    }
-  };
 
   const processProductImage = (product) => {
     if (!product) return null;
@@ -70,7 +32,7 @@ const HeroSection = () => {
   };
 
   const heroSlides = useMemo(() => {
-    return bannerData.length > 0 ? bannerData.map((slide, index) => {
+    return banners.length > 0 ? banners.map((slide, index) => {
       const mainProductImage = slide.primaryProduct ? processProductImage(slide.primaryProduct) : processProductImage(slide);
       
       return {
@@ -107,7 +69,7 @@ const HeroSection = () => {
         },
         secondaryProducts: []
       }];
-  }, [bannerData]);
+  }, [banners]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -177,6 +139,8 @@ const HeroSection = () => {
                       <img 
                         src={currentSlideData.mainProduct.image}
                         alt={currentSlideData.mainProduct.title}
+                        loading="eager"
+                        fetchpriority="high"
                         className="w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-cover rounded-lg shadow-xl hover:scale-105 transition-transform duration-200 cursor-pointer"
                         onError={(e) => {
                           e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">${currentSlideData.mainProduct.title}</text></svg>`;
@@ -187,15 +151,15 @@ const HeroSection = () => {
                     <img 
                       src={currentSlideData.mainProduct.image}
                       alt={currentSlideData.mainProduct.title}
+                      loading="eager"
+                      fetchpriority="high"
                       className="w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-cover rounded-lg shadow-xl"
                       onError={(e) => {
                         e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">${currentSlideData.mainProduct.title}</text></svg>`;
                       }}
                     />
                   )}
-                </div>
-                
-                {/* Secondary Products Stack - Each clickable - Responsive */}
+                </div>                {/* Secondary Products Stack - Each clickable - Responsive */}
                 <div className="flex flex-col space-y-1 sm:space-y-2">
                   {currentSlideData.secondaryProducts.slice(0, 3).map((productItem, index) => (
                     <div key={index} className="relative">

@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import API from '../api';
-import { getApiUrl, getImageUrl } from '../config';
-
-const CACHE_DURATION = 30000; // 30 seconds
+import { getImageUrl } from '../config';
 
 // Simple lazy loading hook
 const useLazyLoading = () => {
@@ -43,6 +40,7 @@ const LazyImage = ({ src, alt, className, ...props }) => {
         <img
           src={src}
           alt={alt}
+          loading="lazy"
           className={`transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
           onLoad={() => setLoaded(true)}
           {...props}
@@ -52,60 +50,46 @@ const LazyImage = ({ src, alt, className, ...props }) => {
   );
 };
 
-const AmazonStyleProductDisplay = () => {
+const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = [] }) => {
   const navigate = useNavigate();
   const [scrollPositions, setScrollPositions] = useState({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [productSections, setProductSections] = useState([]);
-  
-  // Cache
-  const cache = useRef({
-    productSections: { data: null, timestamp: 0 }
-  });
 
+  // Convert staticCategories prop to product sections format
   useEffect(() => {
-    const fetchProductSections = async () => {
-      const now = Date.now();
-      if (cache.current.productSections.data && now - cache.current.productSections.timestamp < CACHE_DURATION) {
-        console.log('Using cached product sections data');
-        setProductSections(cache.current.productSections.data);
-        setLoading(false);
-        return;
-      }
-
-      console.log('Fetching fresh product sections data');
-      try {
-        const response = await API.get(getApiUrl('homepage/static-categories'));
-        if (response.data.success) {
-          const sortedCategories = response.data.categories.sort((a, b) => a.displayOrder - b.displayOrder);
-          const sections = sortedCategories.map(cat => ({
-            id: cat._id,
-            _id: cat.category._id,
-            title: cat.category.name,
-            linkText: 'See all',
-            products: cat.selectedProducts.map(product => ({
-              id: product._id,
-              title: product.title,
-              image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
-            }))
-          }));
-          setProductSections(sections);
-          
-          // Update cache
-          cache.current.productSections = {
-            data: sections,
-            timestamp: now
-          };
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching product sections:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchProductSections();
-  }, []);
+    if (staticCategoriesProp && staticCategoriesProp.length > 0) {
+      const sections = staticCategoriesProp.map(cat => ({
+        id: cat._id,
+        _id: cat.category._id,
+        title: cat.category.name,
+        linkText: 'See all',
+        products: cat.selectedProducts.map(product => ({
+          id: product._id,
+          title: product.title,
+          image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+        }))
+      }));
+      setProductSections(sections);
+    }
+  }, [staticCategoriesProp]);
+  // Convert staticCategories prop to product sections format
+  useEffect(() => {
+    if (staticCategoriesProp && staticCategoriesProp.length > 0) {
+      const sections = staticCategoriesProp.map(cat => ({
+        id: cat._id,
+        _id: cat.category._id,
+        title: cat.category.name,
+        linkText: 'See all',
+        products: cat.selectedProducts.map(product => ({
+          id: product._id,
+          title: product.title,
+          image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+        }))
+      }));
+      setProductSections(sections);
+    }
+  }, [staticCategoriesProp]);
 
   // Initial product data for development
   const initialSections = [

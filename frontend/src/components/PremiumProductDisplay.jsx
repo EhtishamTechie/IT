@@ -8,7 +8,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getApiUrl, getImageUrl } from '../config';
 import EnhancedProductCard from './EnhancedProductCard';
 
-const PremiumProductDisplay = () => {
+const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], newArrivals = [] }) => {
   const navigate = useNavigate();
   const { addToCart, removeFromCart, cartItems } = useCart();
   const { user } = useAuth();
@@ -25,53 +25,17 @@ const PremiumProductDisplay = () => {
     trending: [],
     newArrivals: []
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Load products from backend
+  // Update products when props change
   useEffect(() => {
-    const loadProducts = async () => {
-      setLoading(true);
-      try {
-        // Load products from different endpoints in parallel
-        const [premiumResponse, featuredResponse, newArrivalsData] = await Promise.all([
-          axios.get(getApiUrl('special/premium')),
-          axios.get(getApiUrl('special/featured')),
-          ProductService.getTrendingProducts(20)  // Get up to 20 new arrivals
-        ]);
-
-        // Get products from our special endpoints
-        const premiumProducts = premiumResponse.data || [];
-        const featuredProducts = featuredResponse.data || [];
-        
-        // Get new arrivals from dedicated API (sorted by creation date)
-        const newArrivals = ProductService.formatProducts(newArrivalsData.products || []);
-        
-        console.log('📊 Product sections:', {
-          premium: { count: premiumProducts.length, products: premiumProducts },
-          newArrivals: { count: newArrivals.length, products: newArrivals },
-          featured: { count: featuredProducts.length, products: featuredProducts }
-        });
-
-        setProducts({
-          featured: premiumProducts,    // Premium products show in the Premium tab
-          trending: newArrivals,        // New arrivals in the middle tab
-          newArrivals: featuredProducts // Featured products show in the Featured tab
-        });
-      } catch (err) {
-        console.error('❌ Error loading products:', err);
-        setError('Unable to load products. Please try again later.');
-        // Fallback to static products in development environment
-        if (import.meta.env.DEV) {
-          setProducts(staticProducts);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProducts();
-  }, []);
+    setProducts({
+      featured: premiumProducts,    // Premium products show in the Premium tab
+      trending: newArrivals,        // New arrivals in the middle tab
+      newArrivals: featuredProducts // Featured products show in the Featured tab
+    });
+  }, [premiumProducts, featuredProducts, newArrivals]);
 
   // Fallback static product data for demo purposes
   const staticProducts = {

@@ -3,51 +3,20 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { config, getApiUrl, getImageUrl } from '../config';
 import { Link } from 'react-router-dom';
 
-const CACHE_DURATION = 30000; // 30 seconds
-
-const CategoryCarousel = () => {
+const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                           
   const [isPaused, setIsPaused] = useState(false);
   const [failedImages, setFailedImages] = useState(new Set());
   const [loadedImages, setLoadedImages] = useState(new Set());
-  const [homepageCategories, setHomepageCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [homepageCategories, setHomepageCategories] = useState(homepageCategoriesProp);
+  const [loading, setLoading] = useState(false);
   
-  // Cache
-  const cache = useRef({
-    homepageCategories: { data: null, timestamp: 0 }
-  });
-
-  // Fetch homepage categories
+  // Update categories when props change
   useEffect(() => {
-    const fetchCategories = async () => {
-      const now = Date.now();
-      if (cache.current.homepageCategories.data && now - cache.current.homepageCategories.timestamp < CACHE_DURATION) {
-        console.log('Using cached homepage categories data');
-        setHomepageCategories(cache.current.homepageCategories.data);
-        setLoading(false);
-        return;
-      }
-
-      console.log('Fetching fresh homepage categories data');
-      try {
-        const response = await fetch(getApiUrl('homepage/categories'));
-        const data = await response.json();
-        setHomepageCategories(data);
-        
-        // Update cache
-        cache.current.homepageCategories = {
-          data: data,
-          timestamp: now
-        };
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCategories();
-  }, []);
+    if (homepageCategoriesProp && homepageCategoriesProp.length > 0) {
+      setHomepageCategories(homepageCategoriesProp);
+    }
+  }, [homepageCategoriesProp]);
 
   // Stats images
   const statsImages = {
@@ -226,6 +195,7 @@ const CategoryCarousel = () => {
                           <img 
                             src={getImageUrl('homepageCategories', category.imageUrl)}
                             alt={category.name}
+                            loading="lazy"
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={() => handleImageError(category._id)}
                             onLoad={() => handleImageLoad(category._id)}

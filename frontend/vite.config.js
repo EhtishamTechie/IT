@@ -19,7 +19,7 @@ export default defineConfig({
           // Vendor chunks - these rarely change
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
           'mui-vendor': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          'charts-vendor': ['recharts'],
+          // Removed 'charts-vendor' - not used on homepage, will be lazy loaded only when needed
           'query-vendor': ['@tanstack/react-query'],
           'utils-vendor': ['axios', 'lodash', 'jwt-decode'],
           'ui-vendor': ['framer-motion', 'react-toastify', 'react-hot-toast'],
@@ -54,14 +54,14 @@ export default defineConfig({
     sourcemap: false,
   },
   optimizeDeps: {
-    include: ['react-is', 'recharts', 'react', 'react-dom', 'react-router-dom'],
+    include: ['react-is', 'react', 'react-dom', 'react-router-dom'],
     // Exclude heavy dependencies that should be loaded on demand
-    exclude: [],
+    exclude: ['recharts'], // Lazy load charts only when needed
   },
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
       },
