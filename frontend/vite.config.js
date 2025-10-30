@@ -16,27 +16,22 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Core React libraries - MUST be in same chunk to avoid undefined errors
+          // Simplified chunking strategy to avoid circular dependency issues
           if (id.includes('node_modules')) {
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom') || id.includes('react-is')) {
-              return 'react-vendor';
+            // Group all React-related libraries together
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || 
+                id.includes('react-is') || id.includes('@tanstack/react-query')) {
+              return 'vendor';
             }
-            if (id.includes('@tanstack/react-query')) {
-              return 'react-vendor'; // Keep with React to avoid undefined errors
-            }
+            // Group MUI with emotion to avoid initialization errors
             if (id.includes('@mui') || id.includes('@emotion')) {
-              return 'mui-vendor';
+              return 'vendor';
             }
-            // Remove charts from vendor splitting - let Vite handle it automatically
-            // This prevents React undefined errors in production
-            if (id.includes('axios') || id.includes('lodash') || id.includes('jwt-decode')) {
-              return 'utils-vendor';
-            }
-            if (id.includes('framer-motion') || id.includes('react-toastify') || id.includes('react-hot-toast')) {
-              return 'ui-vendor';
-            }
-            if (id.includes('lucide-react') || id.includes('react-icons') || id.includes('@heroicons')) {
-              return 'icons-vendor';
+            // Keep other libraries in vendor too for simplicity
+            if (id.includes('axios') || id.includes('lodash') || id.includes('jwt-decode') ||
+                id.includes('framer-motion') || id.includes('react-toastify') || id.includes('react-hot-toast') ||
+                id.includes('lucide-react') || id.includes('react-icons') || id.includes('@heroicons')) {
+              return 'vendor';
             }
           }
           
