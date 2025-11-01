@@ -109,7 +109,7 @@ router.get('/sitemap.xml', async (req, res) => {
       const lastmod = getValidDate(category.updatedAt);
       
       sitemap += `  <url>
-    <loc>${escapeXml(`${baseUrl}/category/${categoryPath}`)}</loc>
+    <loc>${escapeXml(`${baseUrl}/category-group/${categoryPath}`)}</loc>
     <lastmod>${lastmod}</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
@@ -260,7 +260,7 @@ Disallow: /private/
 
 # Allow important pages
 Allow: /product/
-Allow: /category/
+Allow: /category-group/
 Allow: /about
 Allow: /contact
 Allow: /privacy
