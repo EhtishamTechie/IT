@@ -10,7 +10,7 @@ const router = express.Router();
 const Product = require('../models/Product');
 const Category = require('../models/Category');
 const HomepageCategory = require('../models/HomepageCategory');
-const Banner = require('../models/Banner');
+const HomepageBanner = require('../models/HomepageBanner');
 
 // Helper to generate HTML for homepage
 const generateHomepageHTML = async () => {
@@ -19,7 +19,7 @@ const generateHomepageHTML = async () => {
     const [categories, products, banners] = await Promise.all([
       Category.find({ isActive: true }).limit(10).lean(),
       Product.find({ isActive: true, isVisible: true }).limit(20).select('title price images').lean(),
-      Banner.find({ isActive: true }).limit(3).lean()
+      HomepageBanner.find({ isActive: true }).limit(3).lean()
     ]);
 
     const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
