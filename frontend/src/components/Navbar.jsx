@@ -41,7 +41,6 @@ const LocationIcon = (props) => (
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false); // For secondary nav dropdown
-  const [searchCatOpen, setSearchCatOpen] = useState(false); // For search bar hover
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState({});
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -161,8 +160,7 @@ const Navbar = () => {
           <div className="hidden md:flex flex-1 max-w-xl mx-6 relative">
             <form onSubmit={handleSearch} className="flex w-full">
               <div 
-                className="bg-gray-700 border border-r-0 border-gray-600 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent cursor-pointer hover:bg-gray-600 transition-colors duration-200 relative"
-                onMouseEnter={() => setSearchCatOpen(true)}
+                className="bg-gray-700 border border-r-0 border-gray-600 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent hover:bg-gray-600 transition-colors duration-200 relative"
               >
                 <span className="text-gray-200">Main Categories</span>
               </div>
@@ -324,13 +322,8 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Horizontal Category Bar - Appears on Search Hover */}
-      {searchCatOpen && (
-        <div 
-          className="bg-gray-800 border-b border-gray-700 shadow-sm"
-          onMouseEnter={() => setSearchCatOpen(true)}
-          onMouseLeave={() => setSearchCatOpen(false)}
-        >
+      {/* Horizontal Category Bar - Always Visible */}
+      <div className="bg-gray-800 border-b border-gray-700 shadow-sm">
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
             <div className="hidden md:block">
               <div className="flex flex-wrap gap-1">
@@ -341,7 +334,6 @@ const Navbar = () => {
                     onClick={() => {
                       console.log(`Horizontal category bar - Navigating to main category: ${main}`);
                       console.log(`Horizontal category bar - URL: /category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`);
-                      setSearchCatOpen(false);
                     }}
                     className="px-3 py-1 text-sm font-medium text-gray-300 hover:text-orange-400 hover:bg-gray-700 rounded transition-colors duration-200"
                   >
@@ -352,7 +344,6 @@ const Navbar = () => {
             </div>
           </div>
         </div>
-      )}
 
       {/* Secondary Navigation Bar */}
       <div className="bg-gray-900 border-b border-gray-700 shadow-sm">

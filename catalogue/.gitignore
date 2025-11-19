@@ -1,0 +1,9 @@
+# Ignore generated CSV files
+*.csv
+
+# Keep the export summary for reference
+!export-summary.json
+
+# Ignore any temporary files
+*.tmp
+*.log
