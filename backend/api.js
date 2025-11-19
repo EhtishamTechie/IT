@@ -843,6 +843,7 @@ app.use('/api/auth', ensureConnection, authRoutes);
 app.use('/api/products', ensureConnection, productRoutes);
 app.use('/api/categories', ensureConnection, categoryRoutes);
 app.use('/api/seo', ensureConnection, seoRoutes);
+app.use('/api/prerender', ensureConnection, require('./routes/prerenderRoutes')); // SEO prerender routes
 app.use('/api/footer-categories', ensureConnection, require('./routes/publicFooterRoutes'));
 app.use('/api/homepage/categories', ensureConnection, require('./routes/homepageCategoryRoutes'));
 app.use('/api/homepage/static-categories', ensureConnection, require('./routes/homepageStaticCategoryRoutes'));

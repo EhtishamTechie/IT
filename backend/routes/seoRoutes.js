@@ -254,9 +254,14 @@ Crawl-delay: 1
 # Disallow admin areas
 Disallow: /admin/
 Disallow: /vendor/
-Disallow: /api/
 Disallow: /uploads/
 Disallow: /private/
+
+# Allow API endpoints for Googlebot
+User-agent: Googlebot
+Allow: /api/homepage/
+Allow: /api/categories
+Allow: /api/products/
 
 # Allow important pages
 Allow: /product/
