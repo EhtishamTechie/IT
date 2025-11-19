@@ -188,7 +188,7 @@ const generateHomepageHTML = async () => {
 };
 
 // Prerender homepage route
-router.get('/prerender/homepage', async (req, res) => {
+router.get('/homepage', async (req, res) => {
   try {
     const html = await generateHomepageHTML();
     res.set('Content-Type', 'text/html');
@@ -211,4 +211,6 @@ router.get('/prerender/homepage', async (req, res) => {
   }
 });
 
+// Export both router and function
+router.generateHomepageHTML = generateHomepageHTML;
 module.exports = router;

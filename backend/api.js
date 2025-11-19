@@ -872,6 +872,60 @@ app.get('/api/placeholder/:w/:h', (req, res) => {
   res.send(svg);
 });
 
+// Import bot detection
+const { isBotRequest } = require('./middleware/botDetection');
+const prerenderRoutes = require('./routes/prerenderRoutes');
+
+// Dynamic rendering: Serve prerendered HTML to bots, SPA to users
+app.get('/', async (req, res, next) => {
+  try {
+    const userAgent = req.get('user-agent') || '';
+    
+    if (isBotRequest(userAgent)) {
+      console.log(`🤖 Bot detected, serving prerendered HTML: ${userAgent.substring(0, 50)}...`);
+      const html = await prerenderRoutes.generateHomepageHTML();
+      res.set('Content-Type', 'text/html');
+      res.set('Cache-Control', 'public, max-age=3600');
+      return res.send(html);
+    }
+    
+    // Serve SPA for regular users
+    const frontendPath = path.join(__dirname, '../frontend/dist/index.html');
+    if (fs.existsSync(frontendPath)) {
+      return res.sendFile(frontendPath);
+    }
+    
+    // Fallback: serve a basic HTML that loads the SPA
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>International Tijarat</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script>window.location.href = 'https://internationaltijarat.com';</script>
+      </head>
+      <body>
+        <p>Loading... <a href="https://internationaltijarat.com">Click here if not redirected</a></p>
+      </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Error in dynamic rendering:', error);
+    next(error);
+  }
+});
+
+// Serve static frontend files for SPA
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath, {
+    maxAge: '1y',
+    immutable: true,
+    index: false // Don't auto-serve index.html
+  }));
+}
+
 // Error handler with enhanced logging
 app.use((error, req, res, next) => {
   console.error('🚨 Server error:', {
@@ -888,14 +942,24 @@ app.use((error, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  console.log(`❓ Route not found: ${req.method} ${req.originalUrl}`);
+// 404 handler for API routes only
+app.use('/api/*', (req, res) => {
+  console.log(`❓ API route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({ 
-    message: 'Route not found', 
+    message: 'API route not found', 
     path: req.originalUrl,
     timestamp: new Date().toISOString()
   });
+});
+
+// Catch-all for frontend routes (SPA)
+app.get('*', (req, res) => {
+  const frontendPath = path.join(__dirname, '../frontend/dist/index.html');
+  if (fs.existsSync(frontendPath)) {
+    res.sendFile(frontendPath);
+  } else {
+    res.status(404).send('Application not found. Please build the frontend first.');
+  }
 });
 
 // CRITICAL: Initialize database connection on module load for serverless
