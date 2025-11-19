@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Dynamic Rendering</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .test-box { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success { border-left: 4px solid #4CAF50; }
+        .error { border-left: 4px solid #f44336; }
+        .warning { border-left: 4px solid #ff9800; }
+        button { background: #2196F3; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #1976D2; }
+        pre { background: #263238; color: #aed581; padding: 15px; border-radius: 4px; overflow-x: auto; max-height: 400px; }
+        .loading { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Dynamic Rendering Test</h1>
+    <p>This page tests if your server correctly serves different content to bots vs. regular browsers.</p>
+    
+    <div class="test-box">
+        <h2>Test 1: Regular Browser Request</h2>
+        <button onclick="testRegularBrowser()">Run Test</button>
+        <div id="result-regular" class="loading">Click button to test...</div>
+    </div>
+    
+    <div class="test-box">
+        <h2>Test 2: Googlebot Request</h2>
+        <button onclick="testGooglebot()">Run Test</button>
+        <div id="result-googlebot" class="loading">Click button to test...</div>
+    </div>
+    
+    <div class="test-box">
+        <h2>Test 3: Prerender API Endpoint</h2>
+        <button onclick="testPrerenderAPI()">Run Test</button>
+        <div id="result-prerender" class="loading">Click button to test...</div>
+    </div>
+    
+    <div class="test-box warning">
+        <h2>⚠️ Important Notes</h2>
+        <ul>
+            <li><strong>CORS Limitation:</strong> These tests might be blocked by CORS when testing cross-origin. For accurate results, run from the same domain or use the diagnostic script on the server.</li>
+            <li><strong>User-Agent:</strong> Browsers don't allow JavaScript to set the User-Agent header, so Test 2 won't work perfectly from this HTML file. Use the production diagnostic script instead.</li>
+            <li><strong>Best Test Method:</strong> SSH to server and run: <code>curl -A "Googlebot" http://localhost:3001/</code></li>
+        </ul>
+    </div>
+
+    <script>
+        const SERVER_URL = 'https://internationaltijarat.com';
+        
+        async function testRegularBrowser() {
+            const resultDiv = document.getElementById('result-regular');
+            resultDiv.innerHTML = '<div class="loading">Testing...</div>';
+            
+            try {
+                const response = await fetch(SERVER_URL, {
+                    method: 'GET',
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+                
+                const html = await response.text();
+                const hasReactRoot = html.includes('id="root"');
+                const hasProducts = html.includes('product-item') || html.includes('Products');
+                
+                let result = `
+                    <div class="${hasReactRoot ? 'success' : 'error'}">
+                        <h3>Status: ${response.status}</h3>
+                        <p><strong>Has React Root:</strong> ${hasReactRoot ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Has Product HTML:</strong> ${hasProducts ? '⚠️ Yes (should be NO for SPA)' : '✅ No (correct)'}</p>
+                        <p><strong>Content Type:</strong> ${response.headers.get('content-type')}</p>
+                        <details>
+                            <summary>View First 1000 characters</summary>
+                            <pre>${html.substring(0, 1000).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                        </details>
+                    </div>
+                `;
+                
+                resultDiv.innerHTML = result;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error"><h3>❌ Error</h3><p>${error.message}</p></div>`;
+            }
+        }
+        
+        async function testGooglebot() {
+            const resultDiv = document.getElementById('result-googlebot');
+            resultDiv.innerHTML = '<div class="warning"><p><strong>⚠️ Browser Limitation:</strong> Cannot set User-Agent header from JavaScript. This test will show the same result as Test 1.</p><p>To properly test bot detection, use:</p><pre>curl -A "Googlebot" https://internationaltijarat.com/</pre></div>';
+        }
+        
+        async function testPrerenderAPI() {
+            const resultDiv = document.getElementById('result-prerender');
+            resultDiv.innerHTML = '<div class="loading">Testing...</div>';
+            
+            try {
+                const response = await fetch(SERVER_URL + '/api/prerender/homepage', {
+                    method: 'GET'
+                });
+                
+                const html = await response.text();
+                const hasProducts = html.includes('product-item') || html.includes('Products');
+                const hasCategories = html.includes('categories') || html.includes('Category');
+                const hasSchema = html.includes('application/ld+json');
+                
+                let result = `
+                    <div class="${hasProducts && hasCategories ? 'success' : 'error'}">
+                        <h3>Status: ${response.status}</h3>
+                        <p><strong>Has Products:</strong> ${hasProducts ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Has Categories:</strong> ${hasCategories ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Has Schema.org:</strong> ${hasSchema ? '✅ Yes' : '❌ No'}</p>
+                        <p><strong>Content Type:</strong> ${response.headers.get('content-type')}</p>
+                        <details>
+                            <summary>View First 1500 characters</summary>
+                            <pre>${html.substring(0, 1500).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+                        </details>
+                    </div>
+                `;
+                
+                resultDiv.innerHTML = result;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error"><h3>❌ Error</h3><p>${error.message}</p><p>The prerender endpoint might not be accessible or CORS is blocking the request.</p></div>`;
+            }
+        }
+    </script>
+</body>
+</html>
