@@ -212,10 +212,14 @@ const serveStatic = (prefix, dir) => {
   
   // Set up routes with detailed logging
   app.use(`/uploads/${prefix}`, handler);
-  app.use(`/${prefix}`, (req, res) => {
-    console.log('🔄 [STATIC] Redirecting to /uploads prefix');
-    res.redirect(301, `/uploads/${prefix}${req.path}`);
-  });
+  
+  // Don't create redirect for 'products' as it conflicts with /products page route
+  if (prefix !== 'products') {
+    app.use(`/${prefix}`, (req, res) => {
+      console.log('🔄 [STATIC] Redirecting to /uploads prefix');
+      res.redirect(301, `/uploads/${prefix}${req.path}`);
+    });
+  }
 };
 
 // Set up static serving for each directory
@@ -952,13 +956,54 @@ app.use('/api/*', (req, res) => {
   });
 });
 
-// Catch-all for frontend routes (SPA)
-app.get('*', (req, res) => {
-  const frontendPath = path.join(__dirname, '../frontend/dist/index.html');
-  if (fs.existsSync(frontendPath)) {
-    res.sendFile(frontendPath);
-  } else {
-    res.status(404).send('Application not found. Please build the frontend first.');
+// Catch-all for frontend routes (SPA) with bot detection
+app.get('*', async (req, res) => {
+  try {
+    const userAgent = req.get('user-agent') || '';
+    
+    // If bot detected, serve prerendered HTML
+    if (isBotRequest(userAgent)) {
+      console.log(`🤖 Bot detected on ${req.path}, serving prerendered HTML: ${userAgent.substring(0, 50)}...`);
+      
+      // For products page, generate products HTML
+      if (req.path === '/products' || req.path.startsWith('/products/')) {
+        const html = await prerenderRoutes.generateProductsPageHTML(req.path);
+        res.set('Content-Type', 'text/html');
+        res.set('Cache-Control', 'public, max-age=3600');
+        return res.send(html);
+      }
+      
+      // For homepage, use homepage HTML
+      if (req.path === '/' || req.path === '') {
+        const html = await prerenderRoutes.generateHomepageHTML();
+        res.set('Content-Type', 'text/html');
+        res.set('Cache-Control', 'public, max-age=3600');
+        return res.send(html);
+      }
+      
+      // For other routes, serve a basic SEO-friendly page
+      const html = prerenderRoutes.generateBasicHTML(req.path);
+      res.set('Content-Type', 'text/html');
+      res.set('Cache-Control', 'public, max-age=3600');
+      return res.send(html);
+    }
+    
+    // Serve SPA for regular users
+    const frontendPath = path.join(__dirname, '../frontend/dist/index.html');
+    if (fs.existsSync(frontendPath)) {
+      res.sendFile(frontendPath);
+    } else {
+      res.status(404).send('Application not found. Please build the frontend first.');
+    }
+  } catch (error) {
+    console.error('Error in catch-all route:', error);
+    // Fallback to serving SPA
+    const frontendPath = path.join(__dirname, '../frontend/dist/index.html');
+    if (fs.existsSync(frontendPath)) {
+      res.sendFile(frontendPath);
+    } else {
+      res.status(500).send('Server error');
+    }
   }
 });
 
