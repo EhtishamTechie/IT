@@ -15,20 +15,79 @@ const HomepageBanner = require('../models/HomepageBanner');
 // Helper to generate HTML for homepage
 const generateHomepageHTML = async () => {
   try {
-    // Fetch basic data
-    const [categories, products, banners] = await Promise.all([
-      Category.find({ isActive: true }).limit(10).lean(),
-      Product.find({ isActive: true, isVisible: true }).limit(20).select('title price images').lean(),
-      HomepageBanner.find({ isActive: true }).limit(3).lean()
+    // Fetch ALL homepage data - same as the API endpoint
+    const [categories, banners, premium, featured, newArrivals] = await Promise.all([
+      Category.find({ isActive: true }).limit(20).lean(),
+      HomepageBanner.find({ isActive: true }).limit(5).lean(),
+      Product.find({ isActive: true, isVisible: true, isPremium: true })
+        .limit(24)
+        .select('title price images stock slug')
+        .lean(),
+      Product.find({ isActive: true, isVisible: true, isFeatured: true })
+        .limit(16)
+        .select('title price images stock slug')
+        .lean(),
+      Product.find({ isActive: true, isVisible: true })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .select('title price images stock slug createdAt')
+        .lean()
     ]);
 
     const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
+    const allProducts = [...premium, ...featured, ...newArrivals];
 
-    // Generate product list HTML
-    const productsHTML = products.map(product => `
+    const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
+    const allProducts = [...premium, ...featured, ...newArrivals];
+
+    // Generate banners HTML
+    const bannersHTML = banners.map(banner => `
+      <div class="banner-item" style="margin-bottom: 20px;">
+        <img src="${baseUrl}${banner.image}" alt="${banner.title}" style="width: 100%; max-height: 400px; object-fit: cover; border-radius: 10px;" loading="eager" />
+      </div>
+    `).join('');
+
+    // Generate premium products HTML
+    const premiumHTML = premium.map(product => `
+      <div class="product-card" style="display: inline-block; width: 220px; margin: 10px; vertical-align: top; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; background: white;">
+        <a href="${baseUrl}/product/${product.slug || product._id}" style="text-decoration: none; color: inherit;">
+          ${product.images && product.images[0] ? `<img src="${baseUrl}/uploads/${product.images[0]}" alt="${product.title}" style="width: 100%; height: 220px; object-fit: cover; border-radius: 6px;" loading="lazy" />` : ''}
+          <h3 style="font-size: 14px; margin: 12px 0 8px; height: 40px; overflow: hidden; color: #333;">${product.title}</h3>
+          <p style="font-weight: bold; color: #e67e22; font-size: 18px; margin: 8px 0;">Rs. ${product.price}</p>
+          ${product.stock > 0 ? '<span style="color: #27ae60; font-size: 12px;">In Stock</span>' : '<span style="color: #e74c3c; font-size: 12px;">Out of Stock</span>'}
+        </a>
+      </div>
+    `).join('');
+
+    // Generate featured products HTML
+    const featuredHTML = featured.map(product => `
+      <div class="product-card" style="display: inline-block; width: 220px; margin: 10px; vertical-align: top; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; background: white;">
+        <a href="${baseUrl}/product/${product.slug || product._id}" style="text-decoration: none; color: inherit;">
+          ${product.images && product.images[0] ? `<img src="${baseUrl}/uploads/${product.images[0]}" alt="${product.title}" style="width: 100%; height: 220px; object-fit: cover; border-radius: 6px;" loading="lazy" />` : ''}
+          <h3 style="font-size: 14px; margin: 12px 0 8px; height: 40px; overflow: hidden; color: #333;">${product.title}</h3>
+          <p style="font-weight: bold; color: #e67e22; font-size: 18px; margin: 8px 0;">Rs. ${product.price}</p>
+          ${product.stock > 0 ? '<span style="color: #27ae60; font-size: 12px;">In Stock</span>' : '<span style="color: #e74c3c; font-size: 12px;">Out of Stock</span>'}
+        </a>
+      </div>
+    `).join('');
+
+    // Generate new arrivals HTML
+    const newArrivalsHTML = newArrivals.map(product => `
+      <div class="product-card" style="display: inline-block; width: 220px; margin: 10px; vertical-align: top; border: 1px solid #e0e0e0; border-radius: 8px; padding: 12px; background: white;">
+        <a href="${baseUrl}/product/${product.slug || product._id}" style="text-decoration: none; color: inherit;">
+          ${product.images && product.images[0] ? `<img src="${baseUrl}/uploads/${product.images[0]}" alt="${product.title}" style="width: 100%; height: 220px; object-fit: cover; border-radius: 6px;" loading="lazy" />` : ''}
+          <h3 style="font-size: 14px; margin: 12px 0 8px; height: 40px; overflow: hidden; color: #333;">${product.title}</h3>
+          <p style="font-weight: bold; color: #e67e22; font-size: 18px; margin: 8px 0;">Rs. ${product.price}</p>
+          <span style="background: #3498db; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">NEW</span>
+        </a>
+      </div>
+    `).join('');
+
+    // Generate product list HTML (for backward compatibility)
+    const productsHTML = allProducts.slice(0, 20).map(product => `
       <div class="product-item" style="display: inline-block; width: 200px; margin: 10px; vertical-align: top;">
-        <a href="${baseUrl}/product/${product._id}" style="text-decoration: none; color: inherit;">
-          ${product.images && product.images[0] ? `<img src="${baseUrl}/uploads/products/${product.images[0]}" alt="${product.title}" style="width: 100%; height: 200px; object-fit: cover;" loading="lazy" />` : ''}
+        <a href="${baseUrl}/product/${product.slug || product._id}" style="text-decoration: none; color: inherit;">
+          ${product.images && product.images[0] ? `<img src="${baseUrl}/uploads/${product.images[0]}" alt="${product.title}" style="width: 100%; height: 200px; object-fit: cover;" loading="lazy" />` : ''}
           <h3 style="font-size: 14px; margin: 10px 0;">${product.title}</h3>
           <p style="font-weight: bold; color: #e67e22;">Rs. ${product.price}</p>
         </a>
@@ -92,18 +151,18 @@ const generateHomepageHTML = async () => {
       "@context": "https://schema.org",
       "@type": "ItemList",
       "itemListElement": [
-        ${products.slice(0, 10).map((product, index) => `{
+        ${allProducts.slice(0, 10).map((product, index) => `{
           "@type": "ListItem",
           "position": ${index + 1},
           "item": {
             "@type": "Product",
             "name": "${product.title.replace(/"/g, '\\"')}",
-            "url": "${baseUrl}/product/${product._id}",
+            "url": "${baseUrl}/product/${product.slug || product._id}",
             "offers": {
               "@type": "Offer",
               "price": "${product.price}",
               "priceCurrency": "PKR",
-              "availability": "https://schema.org/InStock"
+              "availability": "${product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock'}"
             }
           }
         }`).join(',')}
@@ -129,20 +188,54 @@ const generateHomepageHTML = async () => {
     </header>
     
     <div class="container">
-        <div class="note">
-            <strong>Note:</strong> This is a simplified version for search engines. 
-            <a href="${baseUrl}" style="color: #3498db;">Click here for the full interactive experience</a>
-        </div>
+        <!-- Banners Section -->
+        ${banners.length > 0 ? `
+        <section style="margin: 30px 0;">
+            <h2>Featured Collections</h2>
+            ${bannersHTML}
+        </section>
+        ` : ''}
         
-        <h2>Browse Categories</h2>
-        <div class="categories">
-            ${categoriesHTML}
-        </div>
+        <!-- Categories Section -->
+        <section style="margin: 40px 0;">
+            <h2>Shop by Category</h2>
+            <div class="categories">
+                ${categoriesHTML}
+            </div>
+        </section>
         
-        <h2>Featured Products</h2>
-        <div class="products">
-            ${productsHTML}
-        </div>
+        <!-- Premium Products Section -->
+        ${premium.length > 0 ? `
+        <section style="margin: 40px 0;">
+            <h2>Premium Products</h2>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Discover our hand-picked premium collection</p>
+            <div class="products">
+                ${premiumHTML}
+            </div>
+        </section>
+        ` : ''}
+        
+        <!-- Featured Products Section -->
+        ${featured.length > 0 ? `
+        <section style="margin: 40px 0;">
+            <h2>Featured Products</h2>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Best selling products loved by our customers</p>
+            <div class="products">
+                ${featuredHTML}
+            </div>
+        </section>
+        ` : ''}
+        
+        <!-- New Arrivals Section -->
+        ${newArrivals.length > 0 ? `
+        <section style="margin: 40px 0;">
+            <h2>New Arrivals</h2>
+            <p style="color: #7f8c8d; margin-bottom: 20px;">Check out our latest additions</p>
+            <div class="products">
+                ${newArrivalsHTML}
+            </div>
+        </section>
+        ` : ''}
         
         <div style="margin-top: 40px; padding: 20px; background: white; border-radius: 10px;">
             <h2>About International Tijarat</h2>
