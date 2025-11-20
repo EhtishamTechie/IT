@@ -16,26 +16,31 @@ const HomepageBanner = require('../models/HomepageBanner');
 const generateHomepageHTML = async () => {
   try {
     // Fetch ALL homepage data - same as the API endpoint
-    const [categories, banners, premium, featured, newArrivals] = await Promise.all([
+    const [categories, banners, allProducts] = await Promise.all([
       Category.find({ isActive: true }).limit(20).lean(),
       HomepageBanner.find({ isActive: true }).limit(5).lean(),
-      Product.find({ isActive: true, isVisible: true, isPremium: true })
-        .limit(24)
-        .select('title price images stock slug')
-        .lean(),
-      Product.find({ isActive: true, isVisible: true, isFeatured: true })
-        .limit(16)
-        .select('title price images stock slug')
-        .lean(),
       Product.find({ isActive: true, isVisible: true })
         .sort({ createdAt: -1 })
-        .limit(20)
-        .select('title price images stock slug createdAt')
+        .limit(60)
+        .select('title price images stock slug isPremium isFeatured createdAt')
         .lean()
     ]);
 
+    // Split products into different sections
+    const premium = allProducts.filter(p => p.isPremium).slice(0, 24);
+    const featured = allProducts.filter(p => p.isFeatured).slice(0, 16);
+    const newArrivals = allProducts.slice(0, 20);
+    
+    // If no premium/featured, use regular products
+    if (premium.length === 0) {
+      premium.push(...allProducts.slice(0, 24));
+    }
+    if (featured.length === 0) {
+      featured.push(...allProducts.slice(0, 16));
+    }
+
     const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
-    const allProducts = [...premium, ...featured, ...newArrivals];
+    const allProductsForSchema = [...new Set([...premium, ...featured, ...newArrivals])];
 
     // Generate banners HTML
     const bannersHTML = banners.map(banner => `
@@ -148,7 +153,7 @@ const generateHomepageHTML = async () => {
       "@context": "https://schema.org",
       "@type": "ItemList",
       "itemListElement": [
-        ${allProducts.slice(0, 10).map((product, index) => `{
+        ${allProductsForSchema.slice(0, 10).map((product, index) => `{
           "@type": "ListItem",
           "position": ${index + 1},
           "item": {
