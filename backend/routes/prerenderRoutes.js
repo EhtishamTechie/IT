@@ -37,9 +37,6 @@ const generateHomepageHTML = async () => {
     const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
     const allProducts = [...premium, ...featured, ...newArrivals];
 
-    const baseUrl = process.env.FRONTEND_URL || 'https://internationaltijarat.com';
-    const allProducts = [...premium, ...featured, ...newArrivals];
-
     // Generate banners HTML
     const bannersHTML = banners.map(banner => `
       <div class="banner-item" style="margin-bottom: 20px;">
