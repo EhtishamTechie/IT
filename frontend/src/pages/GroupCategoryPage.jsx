@@ -205,7 +205,7 @@ const GroupCategoryPage = () => {
     setQuantities(prev => ({ ...prev, [productId]: newQuantity }));
   }, []);
 
-  const addToCart = useCallback(async (product) => {
+  const addToCart = useCallback(async (product, quantity = null, selectedSize = null) => {
     // Clear any previous error messages for this product
     setErrorMessages(prev => ({ ...prev, [product._id]: null }));
     
@@ -214,8 +214,8 @@ const GroupCategoryPage = () => {
       setAddingToCart(prev => ({ ...prev, [product._id]: true }));
       
       // Call addToCart and wait for result
-      const quantityToAdd = quantities[product._id] || 1;
-      const result = await addToCartContext(product, quantityToAdd);
+      const quantityToAdd = quantity || quantities[product._id] || 1;
+      const result = await addToCartContext(product, quantityToAdd, selectedSize);
       
       if (result && result.success) {
         // Success - the cart state will automatically update to show "In Cart"
@@ -249,7 +249,7 @@ const GroupCategoryPage = () => {
     }
   }, [quantities, addToCartContext]);
 
-  const handleBuyNow = useCallback(async (product) => {
+  const handleBuyNow = useCallback(async (product, quantity = null, selectedSize = null) => {
     try {
       // Check if user is authenticated first
       if (!user) {
@@ -259,9 +259,10 @@ const GroupCategoryPage = () => {
 
       // Store product in localStorage for buy now checkout
       // IMPORTANT: Use standardized structure matching cart items
-      const quantityToAdd = quantities[product._id] || 1;
+      const quantityToAdd = quantity || quantities[product._id] || 1;
       const buyNowItem = {
         quantity: quantityToAdd,
+        selectedSize: selectedSize || null,
         productData: {
           _id: product._id,
           title: product.title,

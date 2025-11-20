@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Eye, ShoppingBag } from 'lucide-react';
 import { getImageUrl } from '../config';
@@ -25,6 +26,9 @@ const EnhancedProductCard = ({
   const [isFavorite, setIsFavorite] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [showSizeModal, setShowSizeModal] = useState(false);
+  const [selectedSize, setSelectedSize] = useState('');
+  const [sizeAction, setSizeAction] = useState(null); // 'cart' or 'buy'
   const videoRef = useRef(null);
 
   // Handle video playback on hover
@@ -56,16 +60,58 @@ const EnhancedProductCard = ({
 
   const handleAddToCart = (e) => {
     e.stopPropagation();
+    
+    // Check if product has sizes
+    if (product.hasSizes && product.availableSizes && product.availableSizes.length > 0) {
+      setSizeAction('cart');
+      setShowSizeModal(true);
+      return;
+    }
+    
     if (onAddToCart) {
-      onAddToCart(product);
+      onAddToCart(product, 1, null);
     }
   };
 
   const handleBuyNow = (e) => {
     e.stopPropagation();
-    if (onBuyNow) {
-      onBuyNow(product);
+    
+    // Check if product has sizes
+    if (product.hasSizes && product.availableSizes && product.availableSizes.length > 0) {
+      setSizeAction('buy');
+      setShowSizeModal(true);
+      return;
     }
+    
+    if (onBuyNow) {
+      onBuyNow(product, 1, null);
+    }
+  };
+
+  const handleSizeSelect = () => {
+    if (!selectedSize) {
+      alert('Please select a size');
+      return;
+    }
+    
+    setShowSizeModal(false);
+    
+    if (sizeAction === 'cart' && onAddToCart) {
+      onAddToCart(product, 1, selectedSize);
+    } else if (sizeAction === 'buy' && onBuyNow) {
+      onBuyNow(product, 1, selectedSize);
+    }
+    
+    // Reset
+    setSelectedSize('');
+    setSizeAction(null);
+  };
+
+  const closeSizeModal = (e) => {
+    e?.stopPropagation();
+    setShowSizeModal(false);
+    setSelectedSize('');
+    setSizeAction(null);
   };
 
   const handleQuickView = (e) => {
@@ -407,6 +453,79 @@ const EnhancedProductCard = ({
           )}
         </div>
       </div>
+      
+      {/* Size Selection Modal - Rendered via Portal to be completely outside card DOM */}
+      {showSizeModal && createPortal(
+        <div 
+          className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4"
+          onClick={closeSizeModal}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl w-full max-w-sm mx-auto p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Select Size</h3>
+              <button
+                onClick={closeSizeModal}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mb-4">
+              <p className="text-sm text-gray-600 mb-3">
+                {product.title || 'Product'}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {product.availableSizes?.map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => setSelectedSize(size)}
+                    className={`
+                      py-2.5 px-3 rounded-lg border-2 font-semibold text-sm transition-all
+                      ${selectedSize === size
+                        ? 'border-orange-500 bg-orange-50 text-orange-600 scale-105'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50'
+                      }
+                    `}
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={closeSizeModal}
+                className="flex-1 py-2.5 px-4 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSizeSelect}
+                disabled={!selectedSize}
+                className={`
+                  flex-1 py-2.5 px-4 rounded-lg font-medium transition-colors
+                  ${selectedSize
+                    ? sizeAction === 'buy' 
+                      ? 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white'
+                      : 'bg-orange-500 text-white hover:bg-orange-600'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }
+                `}
+              >
+                {sizeAction === 'cart' ? 'Add to Cart' : 'Buy Now'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

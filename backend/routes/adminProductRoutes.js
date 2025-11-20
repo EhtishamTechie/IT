@@ -30,6 +30,24 @@ router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
     const subCategory = req.body['subCategory[]'] || req.body.subCategory;
     const category = req.body['category[]'] || req.body.category || mainCategory;
 
+    // Process size data
+    let parsedAvailableSizes = [];
+    const hasSizes = req.body.hasSizes === true || req.body.hasSizes === 'true';
+    if (hasSizes && req.body.availableSizes) {
+      if (typeof req.body.availableSizes === 'string') {
+        try {
+          const parsed = JSON.parse(req.body.availableSizes);
+          parsedAvailableSizes = Array.isArray(parsed) ? parsed : [parsed];
+          console.log('➕ [ADMIN PRODUCT CREATE] Parsed availableSizes:', parsedAvailableSizes);
+        } catch (e) {
+          parsedAvailableSizes = req.body.availableSizes.split(',').map(s => s.trim());
+          console.log('➕ [ADMIN PRODUCT CREATE] CSV parsed availableSizes:', parsedAvailableSizes);
+        }
+      } else if (Array.isArray(req.body.availableSizes)) {
+        parsedAvailableSizes = req.body.availableSizes;
+      }
+    }
+
     console.log('📸 [ADMIN PRODUCT CREATE] Image processing:', {
       primaryImage,
       multipleImagesCount: images.length,
@@ -59,7 +77,9 @@ router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
       vendor: null, // This is an admin product
       mainCategory: mainCategory ? [mainCategory] : [],
       subCategory: subCategory ? [subCategory] : [],
-      category: category ? [category] : mainCategory ? [mainCategory] : [] // Fallback to mainCategory
+      category: category ? [category] : mainCategory ? [mainCategory] : [], // Fallback to mainCategory
+      hasSizes: hasSizes,
+      availableSizes: parsedAvailableSizes
     };
 
     const product = new Product(productData);
@@ -427,6 +447,31 @@ router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
     const subCategory = req.body['subCategory[]'] || req.body.subCategory;
     const category = req.body['category[]'] || req.body.category || mainCategory;
 
+    // Process size data
+    let parsedAvailableSizes = undefined;
+    const hasSizes = req.body.hasSizes;
+    if (hasSizes !== undefined) {
+      if (hasSizes === true || hasSizes === 'true') {
+        parsedAvailableSizes = [];
+        if (req.body.availableSizes) {
+          if (typeof req.body.availableSizes === 'string') {
+            try {
+              const parsed = JSON.parse(req.body.availableSizes);
+              parsedAvailableSizes = Array.isArray(parsed) ? parsed : [parsed];
+              console.log('🔄 [ADMIN UPDATE] Parsed availableSizes:', parsedAvailableSizes);
+            } catch (e) {
+              parsedAvailableSizes = req.body.availableSizes.split(',').map(s => s.trim());
+              console.log('🔄 [ADMIN UPDATE] CSV parsed availableSizes:', parsedAvailableSizes);
+            }
+          } else if (Array.isArray(req.body.availableSizes)) {
+            parsedAvailableSizes = req.body.availableSizes;
+          }
+        }
+      } else {
+        parsedAvailableSizes = [];
+      }
+    }
+
     // Prepare update data
     const updateData = {
       ...req.body,
@@ -434,6 +479,12 @@ router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
       subCategory: subCategory ? [subCategory] : undefined,
       category: category ? [category] : mainCategory ? [mainCategory] : undefined
     };
+
+    // Add size fields if present
+    if (hasSizes !== undefined) {
+      updateData.hasSizes = hasSizes === true || hasSizes === 'true';
+      updateData.availableSizes = parsedAvailableSizes;
+    }
 
     // Only update files if new ones were uploaded
     if (primaryImage || (images && images.length > 0)) {

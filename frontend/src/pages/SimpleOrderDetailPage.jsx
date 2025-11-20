@@ -437,6 +437,7 @@ const SimpleOrderDetailPage = () => {
               title: item.productName || item.title || item.name,
               name: item.productName || item.title || item.name,
               quantity: item.quantity,
+              selectedSize: item.selectedSize || null,
               price: item.price,
               image: item.image,
               itemTotal: item.price * item.quantity,
@@ -484,6 +485,7 @@ const SimpleOrderDetailPage = () => {
               title: item.productName,
               name: item.productName,
               quantity: item.quantity,
+              selectedSize: item.selectedSize || null,
               price: item.price,
               image: item.image,
               itemTotal: item.subtotal,
@@ -496,6 +498,7 @@ const SimpleOrderDetailPage = () => {
               title: item.productName,
               name: item.productName,
               quantity: item.quantity,
+              selectedSize: item.selectedSize || null,
               price: item.price,
               image: item.image,
               shipping: item.shipping || 0 // Include shipping from items
@@ -1054,6 +1057,9 @@ const SimpleOrderDetailPage = () => {
                                 </h5>
                                 <p className="text-sm text-gray-500">
                                   Quantity: {item.quantity} × PKR {item.price}
+                                  {item.selectedSize && (
+                                    <span className="ml-2 text-gray-700 font-medium">• Size: {item.selectedSize}</span>
+                                  )}
                                 </p>
                               </div>
                               <div className="text-right">
@@ -1093,7 +1099,12 @@ const SimpleOrderDetailPage = () => {
                         </div>
                         <div className="flex-1">
                           <h4 className="text-sm font-medium text-gray-900">{item.title || item.name}</h4>
-                          <p className="text-sm text-gray-500">Quantity: {item.quantity}</p>
+                          <p className="text-sm text-gray-500">
+                            Quantity: {item.quantity}
+                            {item.selectedSize && (
+                              <span className="ml-2 text-gray-700 font-medium">• Size: {item.selectedSize}</span>
+                            )}
+                          </p>
                           <p className="text-sm font-medium text-gray-900">PKR {item.price} each</p>
                           
                           {/* Individual Item Status */}

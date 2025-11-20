@@ -724,6 +724,7 @@ const CheckoutPage = () => {
             price: productData?.price || item.price,
             shipping: productData?.shipping || item.shipping || 0,
             quantity: item.quantity,
+            selectedSize: item.selectedSize || null,
             image: productData?.image || item.image,
             // Include vendor information for proper order processing
             vendor: productData?.vendor?._id || item.vendor?._id,
@@ -1604,7 +1605,12 @@ const CheckoutPage = () => {
                         <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
                           {productData.title || productData.name || 'Unknown Product'}
                         </h4>
-                        <p className="text-sm text-gray-500">Qty: {item.quantity || 1}</p>
+                        <p className="text-sm text-gray-500">
+                          Qty: {item.quantity || 1}
+                          {item.selectedSize && (
+                            <span className="ml-2 text-gray-700 font-medium">• Size: {item.selectedSize}</span>
+                          )}
+                        </p>
                       </div>
                       <div className="text-sm font-medium text-gray-900">
                         PKR {((productData.price || 0) * (item.quantity || 1)).toFixed(2)}

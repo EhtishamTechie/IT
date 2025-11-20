@@ -50,6 +50,7 @@ const ProductDetailPage = () => {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [selectedSize, setSelectedSize] = useState('');
   
   // Use cart and auth contexts
   const { addToCart, isInCart, getCartItem } = useCart();
@@ -180,6 +181,14 @@ const ProductDetailPage = () => {
   const handleAddToCart = async () => {
     if (!product) return;
     
+    // Check if product has sizes and validate selection
+    if (product.hasSizes && product.availableSizes && product.availableSizes.length > 0) {
+      if (!selectedSize) {
+        showError('Please select a size before adding to cart.');
+        return;
+      }
+    }
+    
     // Check stock availability for the requested quantity
     const availableStock = product.stock || 0;
     if (availableStock <= 0) {
@@ -194,7 +203,7 @@ const ProductDetailPage = () => {
     
     setIsAddingToCart(true);
     try {
-      await addToCart(product, quantity);
+      await addToCart(product, quantity, selectedSize);
       console.log('Product added to cart successfully');
       
       // Track add to cart event for analytics
@@ -253,6 +262,14 @@ const ProductDetailPage = () => {
   const handleBuyNow = async () => {
     if (!product) return;
     
+    // Check if product has sizes and validate selection
+    if (product.hasSizes && product.availableSizes && product.availableSizes.length > 0) {
+      if (!selectedSize) {
+        showError('Please select a size before buying.');
+        return;
+      }
+    }
+    
     // Check stock availability for the requested quantity
     const availableStock = product.stock || 0;
     if (availableStock <= 0) {
@@ -277,6 +294,7 @@ const ProductDetailPage = () => {
       // IMPORTANT: Match the exact structure used by cart items for consistency
       const buyNowItem = {
         quantity: quantity,
+        selectedSize: selectedSize || null, // Include selected size
         productData: {
           _id: product._id,
           title: product.title,
@@ -520,6 +538,8 @@ const ProductDetailPage = () => {
                 product={product}
                 discountedPrice={discountedPrice}
                 quantity={quantity}
+                selectedSize={selectedSize}
+                setSelectedSize={setSelectedSize}
                 handleQuantityDecrease={handleQuantityDecrease}
                 handleQuantityChange={handleQuantityChange}
                 handleQuantityIncrease={handleQuantityIncrease}

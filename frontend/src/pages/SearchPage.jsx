@@ -237,13 +237,13 @@ const SearchPage = () => {
   };
 
   // Cart functionality
-  const handleAddToCart = async (product) => {
+  const handleAddToCart = async (product, quantity = 1, selectedSize = null) => {
     const productId = product._id;
     setAddingToCart(prev => ({ ...prev, [productId]: true }));
     setCartErrors(prev => ({ ...prev, [productId]: null }));
 
     try {
-      const result = await addToCart(product, 1);
+      const result = await addToCart(product, quantity, selectedSize);
       // CartContext already handles notifications, no need to show here
       if (!result.success) {
         setCartErrors(prev => ({ ...prev, [productId]: result.error }));
@@ -259,7 +259,7 @@ const SearchPage = () => {
   };
 
   // Handle buy now with authentication check
-  const handleBuyNow = async (product) => {
+  const handleBuyNow = async (product, quantity = 1, selectedSize = null) => {
     try {
       // Check if user is authenticated first
       if (!user) {
@@ -271,7 +271,8 @@ const SearchPage = () => {
       // Store product in localStorage for buy now checkout
       // IMPORTANT: Use standardized structure matching cart items
       const buyNowItem = {
-        quantity: 1,
+        quantity: quantity,
+        selectedSize: selectedSize || null,
         productData: {
           _id: product._id,
           title: product.title,

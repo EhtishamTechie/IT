@@ -357,6 +357,28 @@ const addVendorProduct = async (req, res) => {
       }
     }
     
+    // Handle size fields
+    let parsedAvailableSizes = [];
+    const hasSizes = productData.hasSizes === true || productData.hasSizes === 'true';
+    if (hasSizes && productData.availableSizes) {
+      if (typeof productData.availableSizes === 'string') {
+        try {
+          const parsed = JSON.parse(productData.availableSizes);
+          parsedAvailableSizes = Array.isArray(parsed) ? parsed : [parsed];
+          console.log('📏 [VENDOR PRODUCT] Parsed availableSizes:', parsedAvailableSizes);
+        } catch (e) {
+          parsedAvailableSizes = productData.availableSizes.split(',').map(s => s.trim());
+          console.log('📏 [VENDOR PRODUCT] CSV parsed availableSizes:', parsedAvailableSizes);
+        }
+      } else if (Array.isArray(productData.availableSizes)) {
+        parsedAvailableSizes = productData.availableSizes;
+        console.log('📏 [VENDOR PRODUCT] Array availableSizes:', parsedAvailableSizes);
+      }
+    }
+    
+    productData.hasSizes = hasSizes;
+    productData.availableSizes = parsedAvailableSizes;
+    
     // Add vendor and default values
     productData.vendor = vendorId;
     productData.isActive = true;
@@ -648,6 +670,32 @@ const updateVendorProduct = async (req, res) => {
         // If empty or invalid, set to empty array
         updateData.subCategory = [];
         console.log('🔍 [UPDATE] Setting subCategory to empty array');
+      }
+    }
+    
+    // Handle size fields
+    if (updateData.hasSizes !== undefined) {
+      const hasSizes = updateData.hasSizes === true || updateData.hasSizes === 'true';
+      updateData.hasSizes = hasSizes;
+      
+      if (hasSizes && updateData.availableSizes) {
+        let parsedAvailableSizes = [];
+        if (typeof updateData.availableSizes === 'string') {
+          try {
+            const parsed = JSON.parse(updateData.availableSizes);
+            parsedAvailableSizes = Array.isArray(parsed) ? parsed : [parsed];
+            console.log('📏 [VENDOR UPDATE] Parsed availableSizes:', parsedAvailableSizes);
+          } catch (e) {
+            parsedAvailableSizes = updateData.availableSizes.split(',').map(s => s.trim());
+            console.log('📏 [VENDOR UPDATE] CSV parsed availableSizes:', parsedAvailableSizes);
+          }
+        } else if (Array.isArray(updateData.availableSizes)) {
+          parsedAvailableSizes = updateData.availableSizes;
+          console.log('📏 [VENDOR UPDATE] Array availableSizes:', parsedAvailableSizes);
+        }
+        updateData.availableSizes = parsedAvailableSizes;
+      } else {
+        updateData.availableSizes = [];
       }
     }
     

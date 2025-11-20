@@ -72,7 +72,10 @@ const ProductManagement = () => {
     metaDescription: '',
     altText: '',
     seoKeywords: '',
-    canonicalUrl: ''
+    canonicalUrl: '',
+    // Size fields
+    hasSizes: false,
+    availableSizes: []
   });
 
   // Create mappings for category IDs to names and vice versa
@@ -329,6 +332,12 @@ const ProductManagement = () => {
       if (formData.seoKeywords) submitData.append('seoKeywords', formData.seoKeywords);
       if (formData.canonicalUrl) submitData.append('canonicalUrl', formData.canonicalUrl);
       
+      // Add size fields
+      submitData.append('hasSizes', formData.hasSizes);
+      if (formData.hasSizes && formData.availableSizes.length > 0) {
+        submitData.append('availableSizes', JSON.stringify(formData.availableSizes));
+      }
+      
       // Send categories as arrays with proper IDs
       if (formData.mainCategory) {
         submitData.append('mainCategory', formData.mainCategory);
@@ -577,7 +586,10 @@ const ProductManagement = () => {
         metaDescription: product.metaDescription || '',
         altText: product.altText || '',
         seoKeywords: Array.isArray(product.seoKeywords) ? product.seoKeywords.join(', ') : product.seoKeywords || '',
-        canonicalUrl: product.canonicalUrl || ''
+        canonicalUrl: product.canonicalUrl || '',
+        // Size fields
+        hasSizes: product.hasSizes || false,
+        availableSizes: Array.isArray(product.availableSizes) ? product.availableSizes : []
       });
 
       // Show the form
@@ -612,7 +624,10 @@ const ProductManagement = () => {
       metaDescription: '',
       altText: '',
       seoKeywords: '',
-      canonicalUrl: ''
+      canonicalUrl: '',
+      // Size fields
+      hasSizes: false,
+      availableSizes: []
     });
     setEditingProduct(null);
     setShowAddForm(false);
@@ -1015,6 +1030,53 @@ const ProductManagement = () => {
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                       />
                       <p className="text-xs text-gray-500 mt-1">Separate keywords with commas</p>
+                    </div>
+                    
+                    {/* Size Management Section */}
+                    <div className="lg:col-span-2">
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                        <label className="flex items-center space-x-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.hasSizes}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev, 
+                              hasSizes: e.target.checked,
+                              availableSizes: e.target.checked ? prev.availableSizes : []
+                            }))}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-sm font-medium text-gray-900">
+                            This product has size options
+                          </span>
+                        </label>
+                        
+                        {formData.hasSizes && (
+                          <div className="mt-4">
+                            <p className="text-sm text-gray-700 mb-3">Select available sizes:</p>
+                            <div className="grid grid-cols-4 gap-3">
+                              {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
+                                <label key={size} className="flex items-center space-x-2 cursor-pointer bg-white p-2 rounded border border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.availableSizes.includes(size)}
+                                    onChange={(e) => {
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        availableSizes: e.target.checked
+                                          ? [...prev.availableSizes, size]
+                                          : prev.availableSizes.filter(s => s !== size)
+                                      }));
+                                    }}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  />
+                                  <span className="text-sm font-medium text-gray-700">{size}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

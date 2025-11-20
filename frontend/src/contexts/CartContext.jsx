@@ -156,8 +156,8 @@ export const CartProvider = ({ children }) => {
   };
 
   // Cart actions
-  const addToCart = async (product, quantity = 1) => {
-    console.log('CartContext addToCart called with:', product._id, quantity);
+  const addToCart = async (product, quantity = 1, selectedSize = null) => {
+    console.log('CartContext addToCart called with:', product._id, quantity, selectedSize);
     console.log('Current state.items:', state.items);
     console.log('IsAuthenticated:', isAuthenticated);
     
@@ -173,7 +173,7 @@ export const CartProvider = ({ children }) => {
     try {
       dispatch({ type: CART_ACTIONS.SET_LOADING, payload: true });
       
-      const result = await CartService.addToCart(product._id, quantity);
+      const result = await CartService.addToCart(product._id, quantity, selectedSize);
       if (result.success) {
         console.log('Backend cart result:', result.cart.items);
         dispatch({ 
@@ -181,9 +181,10 @@ export const CartProvider = ({ children }) => {
           payload: result.cart.items 
         });
         
-        // Show success notification
+        // Show success notification with size if applicable
+        const sizeInfo = selectedSize ? ` (Size: ${selectedSize})` : '';
         showSuccess(
-          `${product.title || product.name} ${quantity > 1 ? `(x${quantity})` : ''} added to cart!`,
+          `${product.title || product.name}${sizeInfo} ${quantity > 1 ? `(x${quantity})` : ''} added to cart!`,
           { title: 'Added to Cart' }
         );
         

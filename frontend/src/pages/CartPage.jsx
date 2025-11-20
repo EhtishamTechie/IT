@@ -366,6 +366,12 @@ const CartPage = () => {
               {item.brand && <span>{item.brand}</span>}
               {item.brand && item.category && <span className="mx-2">•</span>}
               {item.category && <span>{item.category}</span>}
+              {item.selectedSize && (
+                <>
+                  {(item.brand || item.category) && <span className="mx-2">•</span>}
+                  <span className="font-medium text-gray-700">Size: {item.selectedSize}</span>
+                </>
+              )}
             </div>
 
             {/* Stock Status - Default to In Stock since we're adding items to cart */}

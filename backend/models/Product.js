@@ -149,6 +149,16 @@ const productSchema = new mongoose.Schema({
     width: Number,
     height: Number
   },
+  // Size functionality - Optional for products
+  hasSizes: {
+    type: Boolean,
+    default: false
+  },
+  availableSizes: [{
+    type: String,
+    enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
+    trim: true
+  }],
   vendor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor',

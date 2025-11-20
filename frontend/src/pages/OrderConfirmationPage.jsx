@@ -140,9 +140,11 @@ const OrderConfirmationPage = () => {
         title: item.title,
         price: item.price,
         quantity: item.quantity,
+        selectedSize: item.selectedSize || null,
         image: item.image,
         productId: item.productId,
-        shipping: item.shipping || item.productData?.shipping || 0
+        shipping: item.shipping || item.productData?.shipping || 0,
+        vendor: item.vendor || null
       })) : [],
       
       // Calculate totals with actual shipping
@@ -226,7 +228,12 @@ const OrderConfirmationPage = () => {
                     />
                     <div className="flex-1">
                       <h3 className="font-medium text-gray-900">{item.name || item.title}</h3>
-                      <p className="text-gray-600">Quantity: {item.quantity}</p>
+                      <p className="text-gray-600">
+                        Quantity: {item.quantity}
+                        {item.selectedSize && (
+                          <span className="ml-2 text-gray-700 font-medium">• Size: {item.selectedSize}</span>
+                        )}
+                      </p>
                       {/* Vendor Information */}
                       {item.vendor && (
                         <div className="flex items-center mt-1">

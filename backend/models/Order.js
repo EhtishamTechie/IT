@@ -41,6 +41,7 @@ const orderItemSchema = new mongoose.Schema({
   price: Number,
   shipping: { type: Number, default: 0 }, // Add shipping cost for each product
   quantity: Number,
+  selectedSize: { type: String, default: null }, // Optional size selection for products
   itemTotal: { type: Number, default: 0 }, // New field: item total amount
   image: String,
   mainCategory: String,

@@ -160,8 +160,8 @@ const AllProductsPage = () => {
     setFilters(prev => ({ ...prev, category }));
   }, []);
 
-  const handleAddToCart = async (product) => {
-    console.log('Adding product to cart:', product._id, product.title);
+  const handleAddToCart = async (product, quantity = 1, selectedSize = null) => {
+    console.log('Adding product to cart:', product._id, product.title, 'Quantity:', quantity, 'Size:', selectedSize);
     console.log('Current cartItems before add:', cartItems);
     
     // Clear any previous error messages for this product
@@ -172,7 +172,7 @@ const AllProductsPage = () => {
       setAddingToCart(prev => ({ ...prev, [product._id]: true }));
       
       // Call addToCart and wait for result
-      const result = await addToCart(product);
+      const result = await addToCart(product, quantity, selectedSize);
       console.log('AddToCart result:', result);
       
       if (result && result.success) {
@@ -194,7 +194,7 @@ const AllProductsPage = () => {
   };
 
   // Handle buy now with authentication check
-  const handleBuyNow = async (product) => {
+  const handleBuyNow = async (product, quantity = 1, selectedSize = null) => {
     try {
       // Check if user is authenticated first
       if (!user) {
@@ -206,7 +206,8 @@ const AllProductsPage = () => {
       // Store product in localStorage for buy now checkout
       // IMPORTANT: Use standardized structure matching cart items
       const buyNowItem = {
-        quantity: 1,
+        quantity: quantity,
+        selectedSize: selectedSize || null,
         productData: {
           _id: product._id,
           title: product.title,

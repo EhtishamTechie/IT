@@ -113,9 +113,9 @@ const addToCart = async (req, res) => {
   try {
     // Since authentication is required by middleware, req.user will always exist
     const userId = req.user.userId || req.user.id; // Handle both userId and id from JWT
-    const { productId, quantity = 1 } = req.body;
+    const { productId, quantity = 1, selectedSize = null } = req.body;
 
-    console.log('Add to cart request:', { userId, productId, quantity });
+    console.log('Add to cart request:', { userId, productId, quantity, selectedSize });
 
     if (!productId) {
       return res.status(400).json({
@@ -186,6 +186,7 @@ const addToCart = async (req, res) => {
         
         // Update existing item data
         cart.items[existingItemIndex].quantity = newQuantity;
+        cart.items[existingItemIndex].selectedSize = selectedSize; // Update size if provided
         cart.items[existingItemIndex].productData = {
           ...cart.items[existingItemIndex].productData,
           stock: product.stock || 0,
@@ -216,6 +217,7 @@ const addToCart = async (req, res) => {
         
         cart.items.push({
           product: product._id,
+          selectedSize: selectedSize || null, // Add selected size
           productData: {
             _id: product._id,
             title: product.title,

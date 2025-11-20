@@ -130,6 +130,7 @@ const createOrder = async (req, res) => {
         title: product.title,
         price: product.price,
         quantity: item.quantity,
+        selectedSize: item.selectedSize || null, // Include selected size if provided
         itemTotal: itemTotal,
         total: itemTotal,
         image: product.image,

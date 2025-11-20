@@ -31,7 +31,10 @@ const EditProductPage = () => {
     mainCategory: '',
     subCategory: '',
     brand: '',
-    keywords: ''
+    keywords: '',
+    // Size fields
+    hasSizes: false,
+    availableSizes: []
   });
 
   // Get main categories (categories without parent) and subcategories based on actual database structure
@@ -136,7 +139,10 @@ const EditProductPage = () => {
           mainCategory: mainCategoryValue,
           subCategory: subCategoryValue,
           brand: product.brand || '',
-          keywords: Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || '')
+          keywords: Array.isArray(product.tags) ? product.tags.join(', ') : (product.tags || ''),
+          // Size fields
+          hasSizes: product.hasSizes || false,
+          availableSizes: Array.isArray(product.availableSizes) ? product.availableSizes : []
         });
         
         console.log('📝 Form data set:', {
@@ -255,6 +261,12 @@ const EditProductPage = () => {
       submitData.append('stock', formData.stock);
       submitData.append('brand', formData.brand);
       submitData.append('tags', formData.keywords);
+      
+      // Add size fields
+      submitData.append('hasSizes', formData.hasSizes);
+      if (formData.hasSizes && formData.availableSizes.length > 0) {
+        submitData.append('availableSizes', JSON.stringify(formData.availableSizes));
+      }
       
       // Handle categories - ensure they're arrays for backend compatibility
       const mainCategory = formData.mainCategory ? [formData.mainCategory] : [];
@@ -586,6 +598,53 @@ const EditProductPage = () => {
                       placeholder="Enter keywords separated by commas"
                     />
                     <p className="text-xs text-gray-500 mt-1">Separate keywords with commas (e.g., electronics, phone, mobile)</p>
+                  </div>
+                  
+                  {/* Size Management Section */}
+                  <div className="lg:col-span-2">
+                    <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.hasSizes}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev, 
+                            hasSizes: e.target.checked,
+                            availableSizes: e.target.checked ? prev.availableSizes : []
+                          }))}
+                          className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <span className="text-sm font-semibold text-gray-900">
+                          This product has size options
+                        </span>
+                      </label>
+                      
+                      {formData.hasSizes && (
+                        <div className="mt-4">
+                          <p className="text-sm text-gray-700 mb-3">Select available sizes:</p>
+                          <div className="grid grid-cols-4 gap-3">
+                            {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
+                              <label key={size} className="flex items-center space-x-2 cursor-pointer bg-white p-2 rounded border border-gray-300 hover:border-orange-400 hover:bg-orange-50 transition-colors">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.availableSizes.includes(size)}
+                                  onChange={(e) => {
+                                    setFormData(prev => ({
+                                      ...prev,
+                                      availableSizes: e.target.checked
+                                        ? [...prev.availableSizes, size]
+                                        : prev.availableSizes.filter(s => s !== size)
+                                    }));
+                                  }}
+                                  className="w-4 h-4 text-orange-600 border-gray-300 rounded focus:ring-orange-500"
+                                />
+                                <span className="text-sm font-medium text-gray-700">{size}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

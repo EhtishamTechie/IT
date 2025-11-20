@@ -559,6 +559,29 @@ const addProduct = async (req, res) => {
     const parsedKeywords = typeof keywords === 'string' ? keywords.split(',').map(k => k.trim()) : keywords;
     const parsedTags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;
     
+    // Handle size fields
+    const { hasSizes, availableSizes } = req.body;
+    let parsedAvailableSizes = [];
+    if (hasSizes === true || hasSizes === 'true') {
+      if (availableSizes) {
+        if (typeof availableSizes === 'string') {
+          try {
+            const parsed = JSON.parse(availableSizes);
+            // Ensure it's an array of strings, not an array containing a stringified array
+            parsedAvailableSizes = Array.isArray(parsed) ? parsed : [parsed];
+            console.log('➕ [PRODUCT CREATE] Parsed availableSizes:', parsedAvailableSizes);
+          } catch (e) {
+            // If JSON parse fails, try comma-separated string
+            parsedAvailableSizes = availableSizes.split(',').map(s => s.trim());
+            console.log('➕ [PRODUCT CREATE] CSV parsed availableSizes:', parsedAvailableSizes);
+          }
+        } else if (Array.isArray(availableSizes)) {
+          parsedAvailableSizes = availableSizes;
+          console.log('➕ [PRODUCT CREATE] Array availableSizes:', parsedAvailableSizes);
+        }
+      }
+    }
+    
     let parsedSpecs;
     if (specifications !== undefined) {
       if (typeof specifications === 'string') {
@@ -586,6 +609,12 @@ const addProduct = async (req, res) => {
       specifications: parsedSpecs || [],
       isActive: true
     };
+
+    // Add size fields if enabled
+    if (hasSizes === true || hasSizes === 'true') {
+      productData.hasSizes = true;
+      productData.availableSizes = parsedAvailableSizes || [];
+    }
 
     // If this is a vendor request, assign the vendor to the product
     if (req.vendor) {
@@ -773,6 +802,37 @@ const updateProduct = async (req, res) => {
     if (updates.tags && typeof updates.tags === 'string') {
       updates.tags = updates.tags.split(',').map(t => t.trim());
     }
+    
+    // Handle size fields
+    if (updates.hasSizes !== undefined) {
+      if (updates.hasSizes === true || updates.hasSizes === 'true') {
+        updates.hasSizes = true;
+        // Parse availableSizes
+        if (updates.availableSizes) {
+          if (typeof updates.availableSizes === 'string') {
+            try {
+              const parsed = JSON.parse(updates.availableSizes);
+              // Ensure it's an array of strings, not an array containing a stringified array
+              updates.availableSizes = Array.isArray(parsed) ? parsed : [parsed];
+              console.log('🔄 [PRODUCT UPDATE] Parsed availableSizes:', updates.availableSizes);
+            } catch (e) {
+              // If JSON parse fails, try comma-separated string
+              updates.availableSizes = updates.availableSizes.split(',').map(s => s.trim());
+              console.log('🔄 [PRODUCT UPDATE] CSV parsed availableSizes:', updates.availableSizes);
+            }
+          } else if (Array.isArray(updates.availableSizes)) {
+            updates.availableSizes = updates.availableSizes;
+            console.log('🔄 [PRODUCT UPDATE] Array availableSizes:', updates.availableSizes);
+          }
+        } else {
+          updates.availableSizes = [];
+        }
+      } else {
+        updates.hasSizes = false;
+        updates.availableSizes = [];
+      }
+    }
+    
     if (updates.specifications && typeof updates.specifications === 'string') {
       try {
         updates.specifications = JSON.parse(updates.specifications);

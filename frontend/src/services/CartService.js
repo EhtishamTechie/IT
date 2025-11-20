@@ -19,12 +19,19 @@ class CartService {
   }
 
   // Add item to cart
-  static async addToCart(productId, quantity = 1) {
+  static async addToCart(productId, quantity = 1, selectedSize = null) {
     try {
-      const response = await API.post('/cart/add', {
+      const payload = {
         productId,
         quantity
-      });
+      };
+      
+      // Only include selectedSize if it's provided
+      if (selectedSize) {
+        payload.selectedSize = selectedSize;
+      }
+      
+      const response = await API.post('/cart/add', payload);
       return {
         success: true,
         cart: response.data.cart,

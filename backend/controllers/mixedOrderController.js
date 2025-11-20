@@ -426,6 +426,7 @@ const getSplitOrderDetails = async (req, res) => {
           originalItems: (mainOrder.cart || []).map(item => ({
             productName: item.productId?.title || item.title,
             quantity: item.quantity,
+            selectedSize: item.selectedSize || null,
             price: item.price,
             image: item.productId?.image || item.image,
             subtotal: item.price * item.quantity
@@ -491,6 +492,7 @@ const getSplitOrderDetails = async (req, res) => {
         originalItems: (mainOrder.cart || []).map(item => ({
           productName: item.productId?.title || item.title || 'Unknown Product',
           quantity: item.quantity,
+          selectedSize: item.selectedSize || null,
           price: item.price,
           image: constructImageUrl(item),
           subtotal: item.price * item.quantity,
@@ -562,6 +564,7 @@ const getSplitOrderDetails = async (req, res) => {
         originalItems: (mainOrder.cart || []).map(item => ({
           productName: item.productId?.title || item.title || 'Unknown Product',
           quantity: item.quantity,
+          selectedSize: item.selectedSize || null,
           price: item.price,
           image: constructImageUrl(item),
           subtotal: item.price * item.quantity,
@@ -808,6 +811,7 @@ const getSplitOrderDetails = async (req, res) => {
           return {
             productName: item.productName,
             quantity: item.quantity,
+            selectedSize: originalCartItem?.selectedSize || item.selectedSize || null,
             price: item.price,
             image: item.image,
             subtotal: item.subtotal,
@@ -851,6 +855,7 @@ const getSplitOrderDetails = async (req, res) => {
           return {
             productName: item.productName,
             quantity: item.quantity,
+            selectedSize: originalCartItem?.selectedSize || item.selectedSize || null,
             price: item.price,
             image: item.image,
             subtotal: item.subtotal,
@@ -939,6 +944,7 @@ const getSplitOrderDetails = async (req, res) => {
         return {
           productName: item.productId?.title || item.title || 'Unknown Product',
           quantity: item.quantity,
+          selectedSize: item.selectedSize || null,
           price: item.price,
           image: constructImageUrl(item),
           subtotal: item.price * item.quantity,

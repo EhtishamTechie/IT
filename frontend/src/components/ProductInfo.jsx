@@ -3,7 +3,9 @@ import React from 'react';
 const ProductInfo = ({ 
   product, 
   discountedPrice, 
-  quantity, 
+  quantity,
+  selectedSize,
+  setSelectedSize,
   handleQuantityDecrease, 
   handleQuantityChange, 
   handleQuantityIncrease, 
@@ -99,6 +101,31 @@ const ProductInfo = ({
             : product?.vendor?.name || 'International Tijarat'}
         </span>
       </div>
+
+      {/* Size Selection - Conditional */}
+      {product?.hasSizes && product?.availableSizes && product.availableSizes.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Select Size</h3>
+          <div className="flex flex-wrap gap-2">
+            {product.availableSizes.map((size) => (
+              <button
+                key={size}
+                onClick={() => setSelectedSize(size)}
+                className={`px-4 py-2 border-2 rounded-lg font-medium transition-all ${
+                  selectedSize === size
+                    ? 'border-orange-500 bg-orange-500 text-white'
+                    : 'border-gray-300 bg-white text-gray-700 hover:border-orange-400 hover:bg-orange-50'
+                }`}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+          {!selectedSize && (
+            <p className="text-sm text-red-500 mt-2">Please select a size</p>
+          )}
+        </div>
+      )}
 
       {/* Quantity and Action Buttons */}
       <div className="space-y-4">

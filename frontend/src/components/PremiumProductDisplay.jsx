@@ -228,13 +228,13 @@ const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], ne
   };
 
   // Cart functionality
-  const handleAddToCart = async (product) => {
+  const handleAddToCart = async (product, quantity = 1, selectedSize = null) => {
     setErrorMessages(prev => ({ ...prev, [product._id]: null }));
     
     try {
       setAddingToCart(prev => ({ ...prev, [product._id]: true }));
       
-      const result = await addToCart(product);
+      const result = await addToCart(product, quantity, selectedSize);
       
       if (result && result.success) {
         console.log(`${product.title || product.name} added to cart successfully`);
@@ -250,7 +250,7 @@ const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], ne
   };
 
   // Handle buy now with authentication check
-  const handleBuyNow = async (product) => {
+  const handleBuyNow = async (product, quantity = 1, selectedSize = null) => {
     try {
       // Check if user is authenticated first
       if (!user) {
@@ -262,7 +262,8 @@ const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], ne
       // Store product in localStorage for buy now checkout
       // IMPORTANT: Use standardized structure matching cart items
       const buyNowItem = {
-        quantity: 1,
+        quantity: quantity,
+        selectedSize: selectedSize || null,
         productData: {
           _id: product._id,
           title: product.title,
