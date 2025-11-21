@@ -82,32 +82,28 @@ const upload = multer({
 const getAllProducts = async (req, res) => {
   try {
     const startTime = Date.now();
-    console.log('🔍 [PRODUCTS FETCH] Request received:', {
-      query: req.query,
-      path: req.path,
-      headers: {
-        'content-type': req.headers['content-type'],
-        'accept': req.headers['accept']
-      }
-    });
+    
+    // Only log in development mode
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔍 [PRODUCTS FETCH] Request received:', {
+        query: req.query,
+        path: req.path
+      });
+    }
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
     
-    console.log('📊 [PRODUCTS FETCH] Pagination params:', { page, limit, skip });
-    
     // Build filter conditions
     const filter = {}; // Show all products (admin and vendor products)
-    console.log('🎯 [PRODUCTS FETCH] Filter:', filter);
     
     if (req.query.category) {
-      console.log('🏷️ [PRODUCTS FETCH] Category filter requested:', req.query.category);
       // Find category by name to get ObjectId for filtering
       const Category = require('../models/Category');
       
       // First try exact match
-      let categoryDoc = await Category.findOne({ name: req.query.category });
+      let categoryDoc = await Category.findOne({ name: req.query.category }).lean();
       
       // If exact match not found, try case-insensitive search
       if (!categoryDoc) {
@@ -129,10 +125,8 @@ const getAllProducts = async (req, res) => {
           { subCategory: { $in: [categoryDoc._id] } },
           { category: { $in: [categoryDoc._id] } }
         ];
-        console.log(`✅ Category filter applied: "${req.query.category}" -> "${categoryDoc.name}"`);
       } else {
         // If no category found in database, try direct string matching on product fields
-        console.log(`⚠️ Category not found in database: "${req.query.category}", trying direct product matching`);
         const categoryRegex = new RegExp(req.query.category.replace(/[-\s&]/g, '.*'), 'i');
         
         // Try multiple variations of the category name
@@ -155,14 +149,12 @@ const getAllProducts = async (req, res) => {
           { 'subCategory.name': categoryRegex },
           { 'category.name': categoryRegex }
         ];
-        
-        console.log(`🔍 Trying category variations:`, categoryVariations);
       }
     }
     
     if (req.query.subCategory) {
       const Category = require('../models/Category');
-      const categoryDoc = await Category.findOne({ name: req.query.subCategory });
+      const categoryDoc = await Category.findOne({ name: req.query.subCategory }).lean();
       if (categoryDoc) {
         // Add to existing filter or create new one
         if (filter.$or) {
@@ -228,23 +220,18 @@ const getAllProducts = async (req, res) => {
       }
     }
 
-    // Add debug logging
-    console.log('🔍 Executing product query with filter:', JSON.stringify(filter));
-    console.log('🔍 Sort option:', sortOption);
-    console.log('🔍 Skip:', skip, 'Limit:', limit);
-
-    console.log('🔍 [PRODUCTS FETCH] Executing query with:', {
-      filter,
-      sortOption,
-      skip,
-      limit,
-      populate: ['vendor', 'mainCategory', 'subCategory', 'category']
-    });
+    // ⚡ OPTIMIZED: Reduce logging in production
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔍 Executing product query with filter:', JSON.stringify(filter));
+      console.log('🔍 Sort option:', sortOption);
+      console.log('🔍 Skip:', skip, 'Limit:', limit);
+    }
 
     const queryStartTime = Date.now();
     
-    // Build and execute the query with lean() for better performance
+    // ⚡ OPTIMIZED: Use lean() for better performance + field selection to reduce data transfer
     const products = await Product.find(filter)
+      .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug createdAt approvalStatus isActive')
       .populate('vendor', 'businessName email contactPhone rating')
       .populate('mainCategory', 'name')
       .populate('subCategory', 'name')
@@ -253,7 +240,7 @@ const getAllProducts = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .lean()
-      .exec(); // Add timeout and cache control
+      .exec();
 
     const queryTime = Date.now() - queryStartTime;
     console.log(`⚡ [PRODUCTS FETCH] Query executed in ${queryTime}ms`);
@@ -351,12 +338,14 @@ const getProductById = async (req, res) => {
     const isValidObjectId = mongoose.Types.ObjectId.isValid(productId) && productId.length === 24;
     
     if (isValidObjectId) {
-      // Try database lookup only if it's a valid ObjectId
+      // ⚡ OPTIMIZED: Try database lookup with field selection
       product = await Product.findById(productId)
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name')
         .populate('subCategory', 'name')
-        .populate('category', 'name');
+        .populate('category', 'name')
+        .lean();
     }
     
     if (!product) {
@@ -367,10 +356,13 @@ const getProductById = async (req, res) => {
     }
 
     // Increment view count for database products
-    await Product.findByIdAndUpdate(productId, { $inc: { views: 1 } });
+    if (product._id) {
+      // Use updateOne instead of findByIdAndUpdate for better performance
+      await Product.updateOne({ _id: productId }, { $inc: { views: 1 } });
+    }
 
     // Transform image URLs for database products
-    const transformedProduct = transformProductImages(product.toObject());
+    const transformedProduct = transformProductImages(product);
 
     res.json({
       success: true,
@@ -399,21 +391,25 @@ const getProduct = async (req, res) => {
     const isValidObjectId = mongoose.Types.ObjectId.isValid(identifier) && identifier.length === 24;
     
     if (isValidObjectId) {
-      // Try by ID first for backward compatibility
+      // ⚡ OPTIMIZED: Try by ID first with field selection
       product = await Product.findById(identifier)
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
-        .populate('category', 'name slug');
+        .populate('category', 'name slug')
+        .lean();
       
       console.log('📋 [PRODUCT FETCH] Found by ID:', !!product);
     } else {
-      // Try by slug for SEO URLs
+      // ⚡ OPTIMIZED: Try by slug with field selection
       product = await Product.findOne({ slug: identifier })
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
-        .populate('category', 'name slug');
+        .populate('category', 'name slug')
+        .lean();
       
       console.log('🔗 [PRODUCT FETCH] Found by slug:', !!product);
     }
@@ -426,10 +422,13 @@ const getProduct = async (req, res) => {
     }
 
     // Increment view count
-    await Product.findByIdAndUpdate(product._id, { $inc: { views: 1 } });
+    if (product._id) {
+      // ⚡ OPTIMIZED: Use updateOne for better performance
+      await Product.updateOne({ _id: product._id }, { $inc: { views: 1 } });
+    }
 
     // Transform image URLs
-    const transformedProduct = transformProductImages(product.toObject());
+    const transformedProduct = transformProductImages(product);
 
     // Add SEO data to response
     const seoData = {

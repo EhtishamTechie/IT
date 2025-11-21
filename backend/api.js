@@ -99,217 +99,32 @@ app.use('/uploads/payment-receipts', express.static(path.join(UPLOADS_ABSOLUTE_P
 const fixProductImages = require('./utils/fixProductImages');
 fixProductImages();
 
-// Configure CORS for static file serving with standardized paths
-app.use([
-    `/${UPLOADS_BASE_DIR}`,
-    ...Object.values(UPLOAD_DIRS).map(dir => `/${UPLOADS_BASE_DIR}/${dir}`)
-], (req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-    if (req.method === 'OPTIONS') {
-        return res.sendStatus(200);
-    }
-    next();
-});
-
-// Unified file serving handler with standardized paths
-const handleImageRequest = (req, res, next) => {
-    // Clean the path and get relative path
-    const cleanPath = path.normalize(req.path)
-        .replace(/^(\.\.[\/\\])+/, '')
-        .replace(/^\/+/, '');
-    
-    console.log('🎯 [IMAGE] Request received:', {
-        originalUrl: req.originalUrl,
-        url: req.url,
-        path: req.path,
-        cleanPath
-    });
-    
-    // Get just the filename without path
-    const filename = path.basename(cleanPath);
-    
-    // Determine file type based on filename pattern and use standardized paths
-    let targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.products); // Default to products
-    
-    // Use standardized directory structure
-    if (filename.startsWith('property-')) {
-        targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.properties);
-    } else if (filename.startsWith('vendor-')) {
-        targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.vendorLogos);
-    } else if (filename.startsWith('profile-')) {
-        targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.profiles);
-    } else if (filename.startsWith('supplier-')) {
-        targetDir = path.join(UPLOADS_BASE_DIR, UPLOAD_DIRS.wholesaleSuppliers);
-    }
-  
-  console.log('📁 [IMAGE] Target directory determined:', {
-    filename,
-    targetDir,
-    pattern: filename.match(/^\d{13,}\.[a-zA-Z]+$/) ? 'timestamp' : 
-            filename.startsWith('image-') ? 'image-prefix' :
-            filename.startsWith('property-') ? 'property-prefix' : 'unknown'
-  });
-  
-  // Define possible locations to look for the file
-  const possiblePaths = [
-    path.join(__dirname, targetDir, filename),                      // In specific folder
-    path.join(__dirname, 'uploads', 'products', filename),         // Try products
-    path.join(__dirname, 'uploads', 'properties', filename),       // Try properties
-    path.join(__dirname, 'uploads', 'vendor-logos', filename),     // Try vendor logos
-    path.join(__dirname, 'uploads', 'wholesale-suppliers', filename), // Try wholesale suppliers
-    path.join(__dirname, 'uploads', filename)                      // Try root uploads
-  ];
-  
-  console.log('📸 Image request:', {
-    url: req.url,
-    path: req.path,
-    cleanPath,
-    filename,
-    targetDir,
-    possiblePaths
-  });
-  
-  // Try each path
-  for (const tryPath of possiblePaths) {
-    if (fs.existsSync(tryPath)) {
-      console.log('✅ Found image at:', tryPath);
-      return res.sendFile(tryPath);
-    }
-  }
-  
-  next();
-};
-
-// Static file serving for all upload directories
-const serveStatic = (prefix, dir) => {
-  const targetPath = path.join(__dirname, 'uploads', prefix);
-  console.log('📂 [STATIC] Setting up static serving for:', {
-    prefix,
-    targetPath,
-    exists: fs.existsSync(targetPath)
-  });
-  
-  // Handle all possible paths for this prefix
-  const handler = (req, res, next) => {
-    const filepath = path.join(targetPath, req.path.replace(/^\/+/, ''));
-    console.log('🔍 [STATIC] Checking file:', {
-      url: req.url,
-      path: req.path,
-      filepath,
-      exists: fs.existsSync(filepath)
-    });
-    
-    if (fs.existsSync(filepath)) {
-      console.log('✅ [STATIC] Serving file:', filepath);
-      res.sendFile(filepath);
-    } else {
-      console.log('❌ [STATIC] File not found:', filepath);
-      next();
-    }
-  };
-  
-  // Set up routes with detailed logging
-  app.use(`/uploads/${prefix}`, handler);
-  
-  // Don't create redirect for 'products' as it conflicts with /products page route
-  if (prefix !== 'products') {
-    app.use(`/${prefix}`, (req, res) => {
-      console.log('🔄 [STATIC] Redirecting to /uploads prefix');
-      res.redirect(301, `/uploads/${prefix}${req.path}`);
-    });
-  }
-};
-
-// Set up static serving for each directory
-serveStatic('products', 'products');
-serveStatic('vendor-logos', 'vendor-logos');
-serveStatic('used-products', 'used-products');
-serveStatic('properties', 'properties');
-serveStatic('wholesale-suppliers', 'wholesale-suppliers');
-
-// Static file serving with aggressive caching for all upload directories
+// ⚡ OPTIMIZED: Unified static file serving with caching for all upload directories
 const staticOptions = {
-    fallthrough: true,
-    maxAge: '1y', // 1 year caching for immutable assets
+    maxAge: '365d', // 1 year caching for immutable assets
     immutable: true,
+    index: false, // Disable directory indexing for security
     setHeaders: (res, filePath) => {
         // Set cache control headers for CDN optimization
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
         // Add CORS headers
         res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
         res.set('Timing-Allow-Origin', '*'); // For performance monitoring
     }
 };
 
-// Serve product images from a single dedicated directory without fallback
-app.use('/uploads/products', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'products'), {
-    ...staticOptions,
-    fallthrough: false,  // Don't fall through to next middleware
-    index: false        // Disable directory indexing for security
-}));
-
-// Serve each specialized upload directory type (except products)
+// Serve all upload directories with consistent configuration
 Object.entries(UPLOAD_DIRS).forEach(([key, dir]) => {
-    if (dir !== 'products') {  // Skip products as it's handled separately above
-        const urlPath = `/${UPLOADS_BASE_DIR}/${dir}`;
-        const dirPath = path.join(UPLOADS_ABSOLUTE_PATH, dir);
-        app.use(urlPath, express.static(dirPath, {
-            ...staticOptions,
-            fallthrough: false,  // Don't fall through
-            index: false        // Disable directory indexing
-        }));
+    const urlPath = `/${UPLOADS_BASE_DIR}/${dir}`;
+    const dirPath = path.join(UPLOADS_ABSOLUTE_PATH, dir);
+    
+    // Single static middleware per directory - no conflicts
+    app.use(urlPath, express.static(dirPath, staticOptions));
+    
+    if (process.env.NODE_ENV !== 'production') {
         console.log(`📁 Serving ${key} at ${urlPath} from ${dirPath}`);
     }
-});
-
-// Logging middleware for static files
-app.use('/uploads/products', (req, res, next) => {
-  const cleanPath = path.normalize(req.path).replace(/^(\.\.[\/\\])+/, '');
-  const filePath = path.join(UPLOADS_ABSOLUTE_PATH, 'products', path.basename(cleanPath));
-  
-  console.log('🔍 [STATIC] Checking file:', {
-    url: req.path,
-    path: cleanPath,
-    filepath: filePath,
-    exists: fs.existsSync(filePath)
-  });
-  
-  if (fs.existsSync(filePath)) {
-    console.log('✅ [STATIC] Serving file:', filePath);
-  } else {
-    console.log('❌ [STATIC] File not found:', filePath);
-  }
-
-  console.log('📁 Static file request:', {
-    url: req.path,
-    cleanPath,
-    filePath,
-    isVendorLogo,
-    exists: fs.existsSync(filePath)
-  });
-
-  // For vendor logos that weren't found, try serving the file directly
-  if (isVendorLogo && !res.headersSent && fs.existsSync(filePath)) {
-    return res.sendFile(filePath);
-  }
-  
-  next();
-});
-
-// Add property image serving with logging
-app.use('/properties', (req, res, next) => {
-  // Look in the properties subfolder
-  const filePath = path.join(__dirname, 'uploads', 'properties', req.url);
-  console.log('🏠 Property image request:', {
-    url: req.url,
-    filePath: filePath,
-    exists: fs.existsSync(filePath)
-  });
-  
-  // Try to serve from uploads/properties directory
-  express.static(path.join(__dirname, 'uploads', 'properties'))(req, res, next);
 });
 
 // CORS headers for all upload routes
@@ -429,7 +244,7 @@ app.use(cors({
   maxAge: 86400
 }));
 
-// Compression middleware - Gzip/Brotli for response compression
+// ⚡ OPTIMIZED: Compression middleware - Gzip for response compression
 app.use(compression({
   level: 6, // Compression level (0-9, 6 is default and good balance)
   threshold: 1024, // Only compress responses larger than 1KB
@@ -438,7 +253,11 @@ app.use(compression({
     if (req.headers['x-no-compression']) {
       return false;
     }
-    // Compress all responses by default
+    // Don't compress images (already compressed)
+    if (req.path.startsWith('/uploads/')) {
+      return false;
+    }
+    // Compress all other responses
     return compression.filter(req, res);
   }
 }));
@@ -847,18 +666,21 @@ app.use('/api/auth', ensureConnection, authRoutes);
 app.use('/api/products', ensureConnection, productRoutes);
 app.use('/api/categories', ensureConnection, categoryRoutes);
 app.use('/api/seo', ensureConnection, seoRoutes);
-app.use('/api/prerender', ensureConnection, require('./routes/prerenderRoutes')); // SEO prerender routes
-app.use('/api/footer-categories', ensureConnection, require('./routes/publicFooterRoutes'));
+// ⚡ OPTIMIZED ROUTE ORDER: Homepage routes - most specific first
+// Place the optimized all-data endpoint FIRST to prevent route conflicts
+app.use('/api/homepage', ensureConnection, require('./routes/homepageOptimized'));
 app.use('/api/homepage/categories', ensureConnection, require('./routes/homepageCategoryRoutes'));
 app.use('/api/homepage/static-categories', ensureConnection, require('./routes/homepageStaticCategoryRoutes'));
 app.use('/api/homepage/cards', ensureConnection, homepageCardRoutes);
-// ⚡ OPTIMIZED: Single endpoint for all homepage data (reduces 6 API calls to 1)
-app.use('/api/homepage', ensureConnection, require('./routes/homepageOptimized'));
+app.use('/api/homepage/banners', ensureConnection, bannerRoutes);
+
+// Other API routes
+app.use('/api/prerender', ensureConnection, require('./routes/prerenderRoutes')); // SEO prerender routes
+app.use('/api/footer-categories', ensureConnection, require('./routes/publicFooterRoutes'));
 app.use('/api/payments', ensureConnection, paymentRoutes);
 app.use('/api/status', ensureConnection, statusRoutes);
 app.use('/api/inventory', ensureConnection, inventoryRoutes);
 app.use('/api/wholesale', ensureConnection, wholesaleRoutes);
-app.use('/api/homepage/banners', ensureConnection, bannerRoutes);
 
 // Placeholder route to match frontend requests
 app.get('/api/placeholder/:w/:h', (req, res) => {
