@@ -99,6 +99,20 @@ app.use('/uploads/payment-receipts', express.static(path.join(UPLOADS_ABSOLUTE_P
 const fixProductImages = require('./utils/fixProductImages');
 fixProductImages();
 
+// CORS Configuration - MUST be before static file serving
+const constants = require('./config/constants');
+
+// CORS headers for all upload routes - BEFORE static middleware
+app.use(['/uploads', '/uploads/products', '/uploads/used-products', '/uploads/vendor-logos', '/uploads/homepage-categories', '/uploads/homepage-cards', '/uploads/properties', '/uploads/qr-codes', '/uploads/payment-receipts'], (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 // ⚡ OPTIMIZED: Unified static file serving with caching for all upload directories
 const staticOptions = {
     maxAge: '365d', // 1 year caching for immutable assets
@@ -107,10 +121,8 @@ const staticOptions = {
     setHeaders: (res, filePath) => {
         // Set cache control headers for CDN optimization
         res.set('Cache-Control', 'public, max-age=31536000, immutable');
-        // Add CORS headers
-        res.set('Access-Control-Allow-Origin', '*');
-        res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        res.set('Timing-Allow-Origin', '*'); // For performance monitoring
+        // Timing headers for performance monitoring
+        res.set('Timing-Allow-Origin', '*');
     }
 };
 
@@ -119,34 +131,13 @@ Object.entries(UPLOAD_DIRS).forEach(([key, dir]) => {
     const urlPath = `/${UPLOADS_BASE_DIR}/${dir}`;
     const dirPath = path.join(UPLOADS_ABSOLUTE_PATH, dir);
     
-    // Single static middleware per directory - no conflicts
+    // Single static middleware per directory
     app.use(urlPath, express.static(dirPath, staticOptions));
     
     if (process.env.NODE_ENV !== 'production') {
         console.log(`📁 Serving ${key} at ${urlPath} from ${dirPath}`);
     }
 });
-
-// CORS headers for all upload routes
-app.use(['/uploads', '/uploads/products', '/uploads/used-products', '/uploads/vendor-logos', '/uploads/homepage-categories'], (req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = constants.ALLOWED_ORIGINS;
-  if (allowedOrigins && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else {
-    res.header('Access-Control-Allow-Origin', '*'); // Allow any origin for images
-  }
-  res.header('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, x-admin-token, x-admin-impersonation');
-  res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range');
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  next();
-});
-
-// CORS Configuration
-const constants = require('./config/constants');
 
 const corsOptions = {
   origin: constants.ALLOWED_ORIGINS,
