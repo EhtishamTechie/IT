@@ -19,8 +19,8 @@ const normalizePropertyData = (property) => {
                          .replace(/^uploads\/+/, '')     // Remove uploads/ prefix
                          .replace(/^properties\/+/, ''); // Remove properties/ prefix
       
-      // Always use the properties directory for consistency
-      return `uploads/properties/${filename}`;
+      // Always use the properties directory for consistency with leading slash
+      return `/uploads/properties/${filename}`;
     });
   }
   
@@ -339,9 +339,12 @@ const getPublicProperties = async (req, res) => {
     const total = await Property.countDocuments(filter);
     const totalPages = Math.ceil(total / limit);
 
+    // Normalize all properties
+    const normalizedProperties = properties.map(normalizePropertyData);
+
     res.json({
       success: true,
-      data: properties,
+      data: normalizedProperties,
       pagination: {
         page,
         pages: totalPages,

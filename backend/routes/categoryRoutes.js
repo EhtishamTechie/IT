@@ -116,7 +116,14 @@ router.get('/:categoryId/products', cacheService.middleware(CATEGORY_PRODUCTS_CA
     .select('name price images category description') // Select needed fields
     .populate('category', 'name');
 
-    res.json(products);
+    // Add image paths to products
+    const productsWithPaths = products.map(product => ({
+      ...product.toObject(),
+      image: product.image ? `/uploads/products/${product.image}` : null,
+      images: (product.images || []).map(img => `/uploads/products/${img}`)
+    }));
+
+    res.json(productsWithPaths);
   } catch (err) {
     console.error('Error fetching category products:', err);
     res.status(500).json({ message: 'Failed to fetch category products' });

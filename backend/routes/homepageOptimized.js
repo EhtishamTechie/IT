@@ -111,6 +111,16 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
     const queryTime = Date.now() - startTime;
     console.log(`✅ All homepage queries completed in ${queryTime}ms`);
 
+    // Helper function to add image paths to products
+    const addImagePaths = (product) => {
+      if (!product) return null;
+      return {
+        ...product,
+        image: product.image ? `/uploads/products/${product.image}` : null,
+        images: (product.images || []).map(img => `/uploads/products/${img}`)
+      };
+    };
+
     // Construct optimized response
     const responseData = {
       // Banner slides
@@ -118,7 +128,7 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
         _id: slide._id,
         title: slide.title,
         category: slide.category,
-        image: slide.image,
+        image: slide.image ? `/uploads/banner-slides/${slide.image}` : null,
         primaryProduct: slide.primaryProduct,
         secondaryProducts: slide.secondaryProducts
       })) || [],
@@ -127,7 +137,7 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
       categories: categories.map(cat => ({
         _id: cat._id,
         name: cat.name || cat.categoryId?.name,
-        imageUrl: cat.imageUrl,
+        imageUrl: cat.imageUrl ? `/uploads/homepage-categories/${cat.imageUrl}` : null,
         displayOrder: cat.displayOrder,
         description: cat.description
       })),
@@ -136,16 +146,16 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
       staticCategories: staticCategories.map(section => ({
         _id: section._id,
         category: section.category,
-        selectedProducts: section.selectedProducts || [],
+        selectedProducts: (section.selectedProducts || []).map(addImagePaths),
         displayOrder: section.displayOrder
       })),
 
       // Special products
       specialProducts: {
         // Reverse arrays so newest products appear first
-        premium: premiumProducts?.products ? [...premiumProducts.products].reverse() : [],
-        featured: featuredProducts?.products ? [...featuredProducts.products].reverse() : [],
-        newArrivals: newArrivals || []
+        premium: premiumProducts?.products ? [...premiumProducts.products].reverse().map(addImagePaths) : [],
+        featured: featuredProducts?.products ? [...featuredProducts.products].reverse().map(addImagePaths) : [],
+        newArrivals: (newArrivals || []).map(addImagePaths)
       },
 
       // Metadata

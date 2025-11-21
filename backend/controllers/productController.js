@@ -29,8 +29,8 @@ const transformProductImages = (product) => {
     
     const transformed = {
       ...product,
-      image: product.image || null,  // Just return the filename
-      images: images.map(img => img) // Just return the filenames
+      image: product.image ? `/uploads/products/${product.image}` : null,
+      images: images.map(img => `/uploads/products/${img}`)
     };
     
     console.log('✅ [TRANSFORM] Image paths updated:', {
@@ -1207,8 +1207,8 @@ const getProductsByCategory = async (req, res) => {
 
     const transformedProducts = products.map(product => ({
       ...product,
-      image: product.image ? getImageUrl(product.image) : null,
-      images: product.images ? product.images.map(img => getImageUrl(img)) : []
+      image: product.image ? `/uploads/products/${product.image}` : null,
+      images: product.images ? product.images.map(img => `/uploads/products/${img}`) : []
     }));
 
     res.json({
