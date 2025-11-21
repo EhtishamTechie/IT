@@ -74,11 +74,19 @@ export const getImageUrl = (type, originalFilename) => {
       return filename;
     }
 
-    // Clean up any prefixes and get just the filename
+    // ✅ NEW: If backend already returned full path with /uploads/, use it as-is
+    if (filename.startsWith('/uploads/')) {
+      // For development, use the full URL
+      if (import.meta.env.DEV) {
+        return `${config.BASE_URL}${filename}`;
+      }
+      // In production, use relative URL
+      return filename;
+    }
+
+    // For old data without /uploads/ prefix, clean up and add it
     const cleanFilename = filename
-      .replace(/^\/uploads\/products\//, '')
       .replace(/^uploads\/products\//, '')
-      .replace(/^\/uploads\//, '')
       .replace(/^uploads\//, '')
       .replace(/^products\//, '')
       .replace(/^\/products\//, '')
