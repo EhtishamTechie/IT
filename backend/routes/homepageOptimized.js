@@ -114,10 +114,18 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
     // Helper function to add image paths to products
     const addImagePaths = (product) => {
       if (!product) return null;
+      
+      const addUploadPrefix = (imagePath) => {
+        if (!imagePath) return null;
+        if (imagePath.startsWith('/uploads/')) return imagePath;
+        if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+        return `/uploads/products/${imagePath}`;
+      };
+      
       return {
         ...product,
-        image: product.image ? `/uploads/products/${product.image}` : null,
-        images: (product.images || []).map(img => `/uploads/products/${img}`)
+        image: addUploadPrefix(product.image),
+        images: (product.images || []).map(img => addUploadPrefix(img))
       };
     };
 

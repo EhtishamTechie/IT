@@ -24,13 +24,24 @@ const transformProductImages = (product) => {
       rawImages: product.images
     });
 
+    // Helper to add prefix only if needed
+    const addUploadPrefix = (imagePath) => {
+      if (!imagePath) return null;
+      // If already has /uploads/ prefix, return as-is
+      if (imagePath.startsWith('/uploads/')) return imagePath;
+      // If has uploads/ prefix (no leading slash), add slash
+      if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+      // Otherwise add /uploads/products/ prefix
+      return `/uploads/products/${imagePath}`;
+    };
+
     // Ensure we have arrays even if empty
     const images = Array.isArray(product.images) ? product.images : [];
     
     const transformed = {
       ...product,
-      image: product.image ? `/uploads/products/${product.image}` : null,
-      images: images.map(img => `/uploads/products/${img}`)
+      image: addUploadPrefix(product.image),
+      images: images.map(img => addUploadPrefix(img))
     };
     
     console.log('✅ [TRANSFORM] Image paths updated:', {
@@ -274,10 +285,18 @@ const getAllProducts = async (req, res) => {
           return null;
         }
         
+        // Helper to add prefix only if needed
+        const addUploadPrefix = (imagePath) => {
+          if (!imagePath) return null;
+          if (imagePath.startsWith('/uploads/')) return imagePath;
+          if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+          return `/uploads/products/${imagePath}`;
+        };
+        
         const transformedProduct = {
           ...product, // product is already a plain object due to .lean()
-          image: product.image ? `/uploads/products/${product.image}` : null,
-          images: (product.images || []).map(img => `/uploads/products/${img}`),
+          image: addUploadPrefix(product.image),
+          images: (product.images || []).map(img => addUploadPrefix(img)),
           // Handle populated category fields (they're already plain objects from .lean())
           mainCategoryName: product.mainCategory?.[0]?.name || '',
           subCategoryName: product.subCategory?.[0]?.name || '',
@@ -628,7 +647,7 @@ const addProduct = async (req, res) => {
     console.log('🔍 [DEBUG] req.files?.image:', req.files?.image);
     console.log('🔍 [DEBUG] req.files?.images:', req.files?.images);
     
-    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : [];
+    const images = req.files?.images ? req.files.images.map(file => file.filename) : [];
     const video = req.files?.video ? `products/${req.files.video[0].filename}` : null;
     const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : null;
 
@@ -852,7 +871,7 @@ const updateProduct = async (req, res) => {
     console.log('🔍 [DEBUG UPDATE] req.files?.image:', req.files?.image);
     console.log('🔍 [DEBUG UPDATE] req.files?.images:', req.files?.images);
     
-    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : undefined;
+    const images = req.files?.images ? req.files.images.map(file => file.filename) : undefined;
     const video = req.files?.video ? `products/${req.files.video[0].filename}` : undefined;
     const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : undefined;
 
@@ -1205,10 +1224,18 @@ const getProductsByCategory = async (req, res) => {
 
     const totalProducts = await Product.countDocuments(filter);
 
+    // Helper to add prefix only if needed
+    const addUploadPrefix = (imagePath) => {
+      if (!imagePath) return null;
+      if (imagePath.startsWith('/uploads/')) return imagePath;
+      if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+      return `/uploads/products/${imagePath}`;
+    };
+
     const transformedProducts = products.map(product => ({
       ...product,
-      image: product.image ? `/uploads/products/${product.image}` : null,
-      images: product.images ? product.images.map(img => `/uploads/products/${img}`) : []
+      image: addUploadPrefix(product.image),
+      images: product.images ? product.images.map(img => addUploadPrefix(img)) : []
     }));
 
     res.json({

@@ -116,11 +116,19 @@ router.get('/:categoryId/products', cacheService.middleware(CATEGORY_PRODUCTS_CA
     .select('name price images category description') // Select needed fields
     .populate('category', 'name');
 
+    // Helper to add prefix only if needed
+    const addUploadPrefix = (imagePath) => {
+      if (!imagePath) return null;
+      if (imagePath.startsWith('/uploads/')) return imagePath;
+      if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+      return `/uploads/products/${imagePath}`;
+    };
+
     // Add image paths to products
     const productsWithPaths = products.map(product => ({
       ...product.toObject(),
-      image: product.image ? `/uploads/products/${product.image}` : null,
-      images: (product.images || []).map(img => `/uploads/products/${img}`)
+      image: addUploadPrefix(product.image),
+      images: (product.images || []).map(img => addUploadPrefix(img))
     }));
 
     res.json(productsWithPaths);

@@ -405,7 +405,7 @@ const addVendorProduct = async (req, res) => {
           }
           else if (fieldName === 'images') {
             // Handle multiple images
-            productData.images = processedFiles.map(file => `products/${file.filename}`);
+            productData.images = processedFiles.map(file => file.filename);
             console.log(`🖼️ Set additional images from '${fieldName}':`, productData.images);
             
             // If no primary image set yet, use first additional image as primary
@@ -440,7 +440,7 @@ const addVendorProduct = async (req, res) => {
           console.log('🖼️ Image field found:', req.files.image);
           if (Array.isArray(req.files.image)) {
             productData.image = `products/${req.files.image[0].filename}`;
-            productData.images = req.files.image.map(file => `products/${file.filename}`);
+            productData.images = req.files.image.map(file => file.filename);
             console.log('🖼️ Array of images, using first as main with products/ prefix:', productData.image);
           } else {
             productData.image = `products/${req.files.image.filename}`;
@@ -488,7 +488,7 @@ const addVendorProduct = async (req, res) => {
             const firstFieldFiles = req.files[fileKeys[0]];
             if (Array.isArray(firstFieldFiles) && firstFieldFiles.length > 0) {
               productData.image = `products/${firstFieldFiles[0].filename}`;
-              productData.images = firstFieldFiles.map(file => `products/${file.filename}`);
+              productData.images = firstFieldFiles.map(file => file.filename);
             } else if (firstFieldFiles && firstFieldFiles.filename) {
               productData.image = `products/${firstFieldFiles.filename}`;
             }
@@ -727,7 +727,7 @@ const updateVendorProduct = async (req, res) => {
             }
             else if (fieldName === 'images') {
               // Handle multiple images
-              updateData.images = processedFiles.map(file => `products/${file.filename}`);
+              updateData.images = processedFiles.map(file => file.filename);
               console.log(`🖼️ Set additional images from '${fieldName}':`, updateData.images);
               
               // If no primary image set yet, use first additional image as primary
@@ -755,7 +755,7 @@ const updateVendorProduct = async (req, res) => {
           if (Array.isArray(req.files.image)) {
             // Multiple files upload
             updateData.image = `products/${req.files.image[0].filename}`;
-            updateData.images = req.files.image.map(file => `products/${file.filename}`);
+            updateData.images = req.files.image.map(file => file.filename);
             console.log('🖼️ Multiple files update with products/ prefix:', {
               main: updateData.image,
               additional: updateData.images

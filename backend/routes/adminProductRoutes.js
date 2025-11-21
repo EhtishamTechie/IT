@@ -19,11 +19,11 @@ router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
     console.log('🔍 [ADMIN PRODUCT DEBUG] req.files?.image:', req.files?.image);
     console.log('🔍 [ADMIN PRODUCT DEBUG] req.files?.images:', req.files?.images);
     
-    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : [];
-    const video = req.files?.video ? `products/${req.files.video[0].filename}` : null;
+    const images = req.files?.images ? req.files.images.map(file => file.filename) : [];
+    const video = req.files?.video ? req.files.video[0].filename : null;
     
     // Handle PRIMARY image field (dedicated primary image upload)
-    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : null;
+    const primaryImage = req.files?.image ? req.files.image[0].filename : null;
     
     // Process category data - ensure arrays for all category fields
     const mainCategory = req.body['mainCategory[]'] || req.body.mainCategory;
@@ -438,9 +438,9 @@ router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
     console.log('🔍 [ADMIN UPDATE DEBUG] req.files?.image:', req.files?.image);
     console.log('🔍 [ADMIN UPDATE DEBUG] req.files?.images:', req.files?.images);
     
-    const images = req.files?.images ? req.files.images.map(file => `products/${file.filename}`) : undefined;
-    const video = req.files?.video ? `products/${req.files.video[0].filename}` : undefined;
-    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : undefined;
+    const images = req.files?.images ? req.files.images.map(file => file.filename) : undefined;
+    const video = req.files?.video ? req.files.video[0].filename : undefined;
+    const primaryImage = req.files?.image ? req.files.image[0].filename : undefined;
     
     // Process category data - ensure arrays for all category fields
     const mainCategory = req.body['mainCategory[]'] || req.body.mainCategory;
