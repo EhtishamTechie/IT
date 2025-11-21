@@ -129,6 +129,21 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
       };
     };
 
+    // Helper function to add image prefix (banner/category images)
+    const addBannerImagePath = (imagePath) => {
+      if (!imagePath) return null;
+      if (imagePath.startsWith('/uploads/')) return imagePath;
+      if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+      return `/uploads/banner-slides/${imagePath}`;
+    };
+
+    const addCategoryImagePath = (imagePath) => {
+      if (!imagePath) return null;
+      if (imagePath.startsWith('/uploads/')) return imagePath;
+      if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+      return `/uploads/homepage-categories/${imagePath}`;
+    };
+
     // Construct optimized response
     const responseData = {
       // Banner slides
@@ -136,7 +151,7 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
         _id: slide._id,
         title: slide.title,
         category: slide.category,
-        image: slide.image ? `/uploads/banner-slides/${slide.image}` : null,
+        image: addBannerImagePath(slide.image),
         primaryProduct: slide.primaryProduct,
         secondaryProducts: slide.secondaryProducts
       })) || [],
@@ -145,7 +160,7 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
       categories: categories.map(cat => ({
         _id: cat._id,
         name: cat.name || cat.categoryId?.name,
-        imageUrl: cat.imageUrl ? `/uploads/homepage-categories/${cat.imageUrl}` : null,
+        imageUrl: addCategoryImagePath(cat.imageUrl),
         displayOrder: cat.displayOrder,
         description: cat.description
       })),
