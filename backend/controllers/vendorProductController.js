@@ -359,7 +359,9 @@ const addVendorProduct = async (req, res) => {
     
     // Handle size fields
     let parsedAvailableSizes = [];
+    let parsedSizeStock = new Map();
     const hasSizes = productData.hasSizes === true || productData.hasSizes === 'true';
+    
     if (hasSizes && productData.availableSizes) {
       if (typeof productData.availableSizes === 'string') {
         try {
@@ -374,10 +376,27 @@ const addVendorProduct = async (req, res) => {
         parsedAvailableSizes = productData.availableSizes;
         console.log('📏 [VENDOR PRODUCT] Array availableSizes:', parsedAvailableSizes);
       }
+      
+      // Parse sizeStock and convert to Map
+      if (productData.sizeStock) {
+        if (typeof productData.sizeStock === 'string') {
+          try {
+            const parsed = JSON.parse(productData.sizeStock);
+            parsedSizeStock = new Map(Object.entries(parsed));
+            console.log('📏 [VENDOR PRODUCT] Parsed sizeStock:', parsedSizeStock);
+          } catch (e) {
+            console.warn('📏 [VENDOR PRODUCT] Failed to parse sizeStock');
+          }
+        } else if (typeof productData.sizeStock === 'object' && !(productData.sizeStock instanceof Map)) {
+          parsedSizeStock = new Map(Object.entries(productData.sizeStock));
+          console.log('📏 [VENDOR PRODUCT] Object sizeStock converted to Map:', parsedSizeStock);
+        }
+      }
     }
     
     productData.hasSizes = hasSizes;
     productData.availableSizes = parsedAvailableSizes;
+    productData.sizeStock = parsedSizeStock;
     
     // Add vendor and default values
     productData.vendor = vendorId;
@@ -694,8 +713,28 @@ const updateVendorProduct = async (req, res) => {
           console.log('📏 [VENDOR UPDATE] Array availableSizes:', parsedAvailableSizes);
         }
         updateData.availableSizes = parsedAvailableSizes;
+        
+        // Parse sizeStock and convert to Map
+        if (updateData.sizeStock) {
+          if (typeof updateData.sizeStock === 'string') {
+            try {
+              const parsed = JSON.parse(updateData.sizeStock);
+              updateData.sizeStock = new Map(Object.entries(parsed));
+              console.log('📏 [VENDOR UPDATE] Parsed sizeStock:', updateData.sizeStock);
+            } catch (e) {
+              console.warn('📏 [VENDOR UPDATE] Failed to parse sizeStock');
+              updateData.sizeStock = new Map();
+            }
+          } else if (typeof updateData.sizeStock === 'object' && !(updateData.sizeStock instanceof Map)) {
+            updateData.sizeStock = new Map(Object.entries(updateData.sizeStock));
+            console.log('📏 [VENDOR UPDATE] Object sizeStock converted to Map:', updateData.sizeStock);
+          }
+        } else {
+          updateData.sizeStock = new Map();
+        }
       } else {
         updateData.availableSizes = [];
+        updateData.sizeStock = new Map();
       }
     }
     
