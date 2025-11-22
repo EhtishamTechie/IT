@@ -38,10 +38,17 @@ const transformProductImages = (product) => {
     // Ensure we have arrays even if empty
     const images = Array.isArray(product.images) ? product.images : [];
     
+    // Convert sizeStock Map to plain object if needed (for lean queries)
+    let sizeStock = product.sizeStock;
+    if (sizeStock && typeof sizeStock === 'object' && sizeStock.constructor.name === 'Map') {
+      sizeStock = Object.fromEntries(sizeStock);
+    }
+    
     const transformed = {
       ...product,
       image: addUploadPrefix(product.image),
-      images: images.map(img => addUploadPrefix(img))
+      images: images.map(img => addUploadPrefix(img)),
+      sizeStock: sizeStock
     };
     
     console.log('✅ [TRANSFORM] Image paths updated:', {
@@ -242,7 +249,7 @@ const getAllProducts = async (req, res) => {
     
     // ⚡ OPTIMIZED: Use lean() for better performance + field selection to reduce data transfer
     const products = await Product.find(filter)
-      .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug createdAt approvalStatus isActive')
+      .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug createdAt approvalStatus isActive hasSizes availableSizes sizeStock')
       .populate('vendor', 'businessName email contactPhone rating')
       .populate('mainCategory', 'name')
       .populate('subCategory', 'name')
@@ -359,7 +366,7 @@ const getProductById = async (req, res) => {
     if (isValidObjectId) {
       // ⚡ OPTIMIZED: Try database lookup with field selection
       product = await Product.findById(productId)
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name')
         .populate('subCategory', 'name')
@@ -412,7 +419,7 @@ const getProduct = async (req, res) => {
     if (isValidObjectId) {
       // ⚡ OPTIMIZED: Try by ID first with field selection
       product = await Product.findById(identifier)
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
@@ -423,7 +430,7 @@ const getProduct = async (req, res) => {
     } else {
       // ⚡ OPTIMIZED: Try by slug with field selection
       product = await Product.findOne({ slug: identifier })
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
@@ -578,8 +585,10 @@ const addProduct = async (req, res) => {
     const parsedTags = typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : tags;
     
     // Handle size fields
-    const { hasSizes, availableSizes } = req.body;
+    const { hasSizes, availableSizes, sizeStock } = req.body;
     let parsedAvailableSizes = [];
+    let parsedSizeStock = {};
+    
     if (hasSizes === true || hasSizes === 'true') {
       if (availableSizes) {
         if (typeof availableSizes === 'string') {
@@ -596,6 +605,26 @@ const addProduct = async (req, res) => {
         } else if (Array.isArray(availableSizes)) {
           parsedAvailableSizes = availableSizes;
           console.log('➕ [PRODUCT CREATE] Array availableSizes:', parsedAvailableSizes);
+        }
+      }
+      
+      // Parse sizeStock and convert to Map
+      if (sizeStock) {
+        if (typeof sizeStock === 'string') {
+          try {
+            const parsed = JSON.parse(sizeStock);
+            // Convert plain object to Map
+            parsedSizeStock = new Map(Object.entries(parsed));
+            console.log('➕ [PRODUCT CREATE] Parsed sizeStock:', parsedSizeStock);
+          } catch (e) {
+            console.warn('➕ [PRODUCT CREATE] Failed to parse sizeStock');
+          }
+        } else if (typeof sizeStock === 'object' && !(sizeStock instanceof Map)) {
+          // Convert plain object to Map
+          parsedSizeStock = new Map(Object.entries(sizeStock));
+          console.log('➕ [PRODUCT CREATE] Object sizeStock converted to Map:', parsedSizeStock);
+        } else {
+          parsedSizeStock = sizeStock;
         }
       }
     }
@@ -632,6 +661,7 @@ const addProduct = async (req, res) => {
     if (hasSizes === true || hasSizes === 'true') {
       productData.hasSizes = true;
       productData.availableSizes = parsedAvailableSizes || [];
+      productData.sizeStock = parsedSizeStock || {};
     }
 
     // If this is a vendor request, assign the vendor to the product
@@ -845,9 +875,31 @@ const updateProduct = async (req, res) => {
         } else {
           updates.availableSizes = [];
         }
+        
+        // Parse sizeStock and convert to Map
+        if (updates.sizeStock) {
+          if (typeof updates.sizeStock === 'string') {
+            try {
+              const parsed = JSON.parse(updates.sizeStock);
+              // Convert plain object to Map
+              updates.sizeStock = new Map(Object.entries(parsed));
+              console.log('🔄 [PRODUCT UPDATE] Parsed sizeStock:', updates.sizeStock);
+            } catch (e) {
+              console.warn('🔄 [PRODUCT UPDATE] Failed to parse sizeStock');
+              updates.sizeStock = new Map();
+            }
+          } else if (typeof updates.sizeStock === 'object' && !(updates.sizeStock instanceof Map)) {
+            // Convert plain object to Map
+            updates.sizeStock = new Map(Object.entries(updates.sizeStock));
+            console.log('🔄 [PRODUCT UPDATE] Object sizeStock converted to Map:', updates.sizeStock);
+          }
+        } else {
+          updates.sizeStock = new Map();
+        }
       } else {
         updates.hasSizes = false;
         updates.availableSizes = [];
+        updates.sizeStock = new Map();
       }
     }
     

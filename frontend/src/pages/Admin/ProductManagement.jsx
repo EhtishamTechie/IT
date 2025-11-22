@@ -75,7 +75,8 @@ const ProductManagement = () => {
     canonicalUrl: '',
     // Size fields
     hasSizes: false,
-    availableSizes: []
+    availableSizes: [],
+    sizeStock: {} // {XS: 10, S: 20, M: 15, ...}
   });
 
   // Create mappings for category IDs to names and vice versa
@@ -336,6 +337,7 @@ const ProductManagement = () => {
       submitData.append('hasSizes', formData.hasSizes);
       if (formData.hasSizes && formData.availableSizes.length > 0) {
         submitData.append('availableSizes', JSON.stringify(formData.availableSizes));
+        submitData.append('sizeStock', JSON.stringify(formData.sizeStock));
       }
       
       // Send categories as arrays with proper IDs
@@ -589,7 +591,8 @@ const ProductManagement = () => {
         canonicalUrl: product.canonicalUrl || '',
         // Size fields
         hasSizes: product.hasSizes || false,
-        availableSizes: Array.isArray(product.availableSizes) ? product.availableSizes : []
+        availableSizes: Array.isArray(product.availableSizes) ? product.availableSizes : [],
+        sizeStock: product.sizeStock || {}
       });
 
       // Show the form
@@ -627,7 +630,8 @@ const ProductManagement = () => {
       canonicalUrl: '',
       // Size fields
       hasSizes: false,
-      availableSizes: []
+      availableSizes: [],
+      sizeStock: {}
     });
     setEditingProduct(null);
     setShowAddForm(false);
@@ -1053,27 +1057,40 @@ const ProductManagement = () => {
                         
                         {formData.hasSizes && (
                           <div className="mt-4">
-                            <p className="text-sm text-gray-700 mb-3">Select available sizes:</p>
-                            <div className="grid grid-cols-4 gap-3">
+                            <p className="text-sm text-gray-700 mb-3">Enter stock quantity for each size (sizes with stock &gt; 0 will be shown):</p>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                               {['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map(size => (
-                                <label key={size} className="flex items-center space-x-2 cursor-pointer bg-white p-2 rounded border border-gray-300 hover:border-blue-400 hover:bg-blue-50 transition-colors">
+                                <div key={size} className="bg-white p-3 rounded-lg border border-gray-300">
+                                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    {size}
+                                  </label>
                                   <input
-                                    type="checkbox"
-                                    checked={formData.availableSizes.includes(size)}
+                                    type="number"
+                                    min="0"
+                                    value={formData.sizeStock[size] || 0}
                                     onChange={(e) => {
-                                      setFormData(prev => ({
-                                        ...prev,
-                                        availableSizes: e.target.checked
-                                          ? [...prev.availableSizes, size]
-                                          : prev.availableSizes.filter(s => s !== size)
-                                      }));
+                                      const value = parseInt(e.target.value) || 0;
+                                      setFormData(prev => {
+                                        const newSizeStock = {...prev.sizeStock, [size]: value};
+                                        // Update availableSizes based on stock
+                                        const newAvailableSizes = Object.keys(newSizeStock).filter(s => newSizeStock[s] > 0);
+                                        return {
+                                          ...prev,
+                                          sizeStock: newSizeStock,
+                                          availableSizes: newAvailableSizes
+                                        };
+                                      });
                                     }}
-                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                    onWheel={(e) => e.target.blur()}
+                                    placeholder="0"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                                   />
-                                  <span className="text-sm font-medium text-gray-700">{size}</span>
-                                </label>
+                                </div>
                               ))}
                             </div>
+                            <p className="text-xs text-gray-500 mt-3">
+                              Only sizes with stock greater than 0 will be available for customers to select.
+                            </p>
                           </div>
                         )}
                       </div>

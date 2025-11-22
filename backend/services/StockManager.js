@@ -5,7 +5,7 @@ class StockManager {
   
   /**
    * Check if products are available in stock
-   * @param {Array} cartItems - Array of {productId, quantity}
+   * @param {Array} cartItems - Array of {productId, quantity, selectedSize}
    * @returns {Object} - {success: boolean, message: string, unavailable: Array}
    */
   static async checkStockAvailability(cartItems) {
@@ -14,7 +14,7 @@ class StockManager {
       const stockChecks = [];
 
       for (const item of cartItems) {
-        console.log(`🔍 Checking product: ${item.productId}`);
+        console.log(`🔍 Checking product: ${item.productId}, size: ${item.selectedSize || 'N/A'}`);
         const product = await Product.findById(item.productId);
         
         if (!product) {
@@ -26,7 +26,7 @@ class StockManager {
           continue;
         }
         
-        console.log(`✅ Product found: ${product.title} (Stock: ${product.stock}, Active: ${product.isActive})`)
+        console.log(`✅ Product found: ${product.title} (Stock: ${product.stock}, Active: ${product.isActive}, HasSizes: ${product.hasSizes})`)
 
         if (!product.isActive) {
           unavailableItems.push({
@@ -37,22 +37,44 @@ class StockManager {
           continue;
         }
 
-        if (product.stock < item.quantity) {
-          unavailableItems.push({
-            productId: item.productId,
-            title: product.title,
-            requested: item.quantity,
-            available: product.stock,
-            reason: `Insufficient stock. Only ${product.stock} available`
-          });
-          continue;
+        // Check size-specific stock if product has sizes
+        if (product.hasSizes && item.selectedSize) {
+          const sizeStock = product.sizeStock?.get?.(item.selectedSize) || product.sizeStock?.[item.selectedSize] || 0;
+          console.log(`📏 Size stock check for ${item.selectedSize}: ${sizeStock}`);
+          
+          if (sizeStock < item.quantity) {
+            unavailableItems.push({
+              productId: item.productId,
+              title: product.title,
+              size: item.selectedSize,
+              requested: item.quantity,
+              available: sizeStock,
+              reason: `Insufficient stock for size ${item.selectedSize}. Only ${sizeStock} available`
+            });
+            continue;
+          }
+        } else {
+          // Regular stock check for products without sizes
+          if (product.stock < item.quantity) {
+            unavailableItems.push({
+              productId: item.productId,
+              title: product.title,
+              requested: item.quantity,
+              available: product.stock,
+              reason: `Insufficient stock. Only ${product.stock} available`
+            });
+            continue;
+          }
         }
 
         stockChecks.push({
           productId: item.productId,
           title: product.title,
           quantity: item.quantity,
-          available: product.stock
+          size: item.selectedSize,
+          available: product.hasSizes && item.selectedSize 
+            ? (product.sizeStock?.get?.(item.selectedSize) || product.sizeStock?.[item.selectedSize] || 0)
+            : product.stock
         });
       }
 
@@ -77,7 +99,7 @@ class StockManager {
 
   /**
    * Reserve stock when order is placed (decrease stock)
-   * @param {Array} cartItems - Array of {productId, quantity}
+   * @param {Array} cartItems - Array of {productId, quantity, selectedSize}
    * @param {String} orderId - Order ID for tracking
    * @returns {Object} - {success: boolean, message: string}
    */
@@ -98,7 +120,7 @@ class StockManager {
       
       // Reserve stock for each item (without transactions for development)
       for (const item of cartItems) {
-        console.log(`📦 Processing item: ${item.productId} (quantity: ${item.quantity})`);
+        console.log(`📦 Processing item: ${item.productId} (quantity: ${item.quantity}, size: ${item.selectedSize || 'N/A'})`);
         
         const product = await Product.findById(item.productId);
         
@@ -107,24 +129,50 @@ class StockManager {
           throw new Error(`Product ${item.productId} not found`);
         }
 
-        console.log(`📦 Product found: ${product.title} (current stock: ${product.stock})`);
+        console.log(`📦 Product found: ${product.title} (current stock: ${product.stock}, hasSizes: ${product.hasSizes})`);
 
-        if (product.stock < item.quantity) {
-          console.log(`❌ Insufficient stock for ${product.title}. Available: ${product.stock}, Requested: ${item.quantity}`);
-          throw new Error(`Insufficient stock for ${product.title}. Available: ${product.stock}, Requested: ${item.quantity}`);
+        // Handle size-specific stock
+        if (product.hasSizes && item.selectedSize) {
+          const sizeStock = product.sizeStock?.get?.(item.selectedSize) || product.sizeStock?.[item.selectedSize] || 0;
+          
+          if (sizeStock < item.quantity) {
+            console.log(`❌ Insufficient stock for ${product.title} size ${item.selectedSize}. Available: ${sizeStock}, Requested: ${item.quantity}`);
+            throw new Error(`Insufficient stock for ${product.title} size ${item.selectedSize}. Available: ${sizeStock}, Requested: ${item.quantity}`);
+          }
+
+          // Store original stock for logging
+          const originalSizeStock = sizeStock;
+          
+          // Decrease size-specific stock
+          if (!product.sizeStock) {
+            product.sizeStock = new Map();
+          }
+          product.sizeStock.set(item.selectedSize, sizeStock - item.quantity);
+          product.soldCount = (product.soldCount || 0) + item.quantity;
+          
+          // Save only the modified fields to avoid validation errors on other fields
+          await product.save({ validateModifiedOnly: true });
+          
+          console.log(`📉 ${product.title} (${item.selectedSize}): Stock reduced by ${item.quantity} (${originalSizeStock} → ${sizeStock - item.quantity})`);
+        } else {
+          // Regular stock management for products without sizes
+          if (product.stock < item.quantity) {
+            console.log(`❌ Insufficient stock for ${product.title}. Available: ${product.stock}, Requested: ${item.quantity}`);
+            throw new Error(`Insufficient stock for ${product.title}. Available: ${product.stock}, Requested: ${item.quantity}`);
+          }
+
+          // Store original stock for logging
+          const originalStock = product.stock;
+          
+          // Decrease stock
+          product.stock -= item.quantity;
+          product.soldCount = (product.soldCount || 0) + item.quantity;
+          
+          // Save only the modified fields to avoid validation errors on other fields
+          await product.save({ validateModifiedOnly: true });
+          
+          console.log(`📉 ${product.title}: Stock reduced by ${item.quantity} (${originalStock} → ${product.stock})`);
         }
-
-        // Store original stock for logging
-        const originalStock = product.stock;
-        
-        // Decrease stock
-        product.stock -= item.quantity;
-        product.soldCount = (product.soldCount || 0) + item.quantity;
-        
-        // Save only the modified fields to avoid validation errors on other fields
-        await product.save({ validateModifiedOnly: true });
-        
-        console.log(`📉 ${product.title}: Stock reduced by ${item.quantity} (${originalStock} → ${product.stock})`);
       }
       
       return {
@@ -170,14 +218,30 @@ class StockManager {
           continue;
         }
 
-        // Increase stock back
-        product.stock += item.quantity;
-        product.soldCount = Math.max(0, (product.soldCount || 0) - item.quantity);
-        
-        // Save only the modified fields to avoid validation errors on other fields
-        await product.save({ validateModifiedOnly: true });
-        
-        console.log(`📈 ${product.title}: Stock increased by ${item.quantity} (${product.stock - item.quantity} → ${product.stock})`);
+        // Handle size-specific stock release
+        if (product.hasSizes && item.selectedSize) {
+          const currentSizeStock = product.sizeStock?.get?.(item.selectedSize) || product.sizeStock?.[item.selectedSize] || 0;
+          
+          if (!product.sizeStock) {
+            product.sizeStock = new Map();
+          }
+          product.sizeStock.set(item.selectedSize, currentSizeStock + item.quantity);
+          product.soldCount = Math.max(0, (product.soldCount || 0) - item.quantity);
+          
+          // Save only the modified fields to avoid validation errors on other fields
+          await product.save({ validateModifiedOnly: true });
+          
+          console.log(`📈 ${product.title} (${item.selectedSize}): Stock increased by ${item.quantity} (${currentSizeStock} → ${currentSizeStock + item.quantity})`);
+        } else {
+          // Regular stock release for products without sizes
+          product.stock += item.quantity;
+          product.soldCount = Math.max(0, (product.soldCount || 0) - item.quantity);
+          
+          // Save only the modified fields to avoid validation errors on other fields
+          await product.save({ validateModifiedOnly: true });
+          
+          console.log(`📈 ${product.title}: Stock increased by ${item.quantity} (${product.stock - item.quantity} → ${product.stock})`);
+        }
       }
       
       return {
@@ -200,11 +264,12 @@ class StockManager {
    * Restore stock for individual items when cancelling parts of an order
    * @param {String} productId - Product ID
    * @param {Number} quantity - Quantity to restore
+   * @param {String} selectedSize - Size to restore (optional)
    * @returns {Object} - {success: boolean, message: string}
    */
-  static async restoreStock(productId, quantity) {
+  static async restoreStock(productId, quantity, selectedSize = null) {
     try {
-      console.log(`📦 Restoring stock for product: ${productId}, quantity: ${quantity}`);
+      console.log(`📦 Restoring stock for product: ${productId}, quantity: ${quantity}, size: ${selectedSize || 'N/A'}`);
       
       const product = await Product.findById(productId);
       if (!product) {
@@ -215,14 +280,30 @@ class StockManager {
         };
       }
 
-      // Increase stock back
-      product.stock += quantity;
-      product.soldCount = Math.max(0, (product.soldCount || 0) - quantity);
-      
-      // Save only the modified fields to avoid validation errors on other fields
-      await product.save({ validateModifiedOnly: true });
-      
-      console.log(`📈 ${product.title}: Stock increased by ${quantity} (${product.stock - quantity} → ${product.stock})`);
+      // Handle size-specific stock restoration
+      if (product.hasSizes && selectedSize) {
+        const currentSizeStock = product.sizeStock?.get?.(selectedSize) || product.sizeStock?.[selectedSize] || 0;
+        
+        if (!product.sizeStock) {
+          product.sizeStock = new Map();
+        }
+        product.sizeStock.set(selectedSize, currentSizeStock + quantity);
+        product.soldCount = Math.max(0, (product.soldCount || 0) - quantity);
+        
+        // Save only the modified fields to avoid validation errors on other fields
+        await product.save({ validateModifiedOnly: true });
+        
+        console.log(`📈 ${product.title} (${selectedSize}): Stock increased by ${quantity} (${currentSizeStock} → ${currentSizeStock + quantity})`);
+      } else {
+        // Regular stock restoration for products without sizes
+        product.stock += quantity;
+        product.soldCount = Math.max(0, (product.soldCount || 0) - quantity);
+        
+        // Save only the modified fields to avoid validation errors on other fields
+        await product.save({ validateModifiedOnly: true });
+        
+        console.log(`📈 ${product.title}: Stock increased by ${quantity} (${product.stock - quantity} → ${product.stock})`);
+      }
       
       return {
         success: true,

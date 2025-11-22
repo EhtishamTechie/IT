@@ -32,7 +32,9 @@ router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
 
     // Process size data
     let parsedAvailableSizes = [];
+    let parsedSizeStock = new Map();
     const hasSizes = req.body.hasSizes === true || req.body.hasSizes === 'true';
+    
     if (hasSizes && req.body.availableSizes) {
       if (typeof req.body.availableSizes === 'string') {
         try {
@@ -45,6 +47,22 @@ router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
         }
       } else if (Array.isArray(req.body.availableSizes)) {
         parsedAvailableSizes = req.body.availableSizes;
+      }
+      
+      // Parse sizeStock and convert to Map
+      if (req.body.sizeStock) {
+        if (typeof req.body.sizeStock === 'string') {
+          try {
+            const parsed = JSON.parse(req.body.sizeStock);
+            parsedSizeStock = new Map(Object.entries(parsed));
+            console.log('➕ [ADMIN PRODUCT CREATE] Parsed sizeStock:', parsedSizeStock);
+          } catch (e) {
+            console.warn('➕ [ADMIN PRODUCT CREATE] Failed to parse sizeStock');
+          }
+        } else if (typeof req.body.sizeStock === 'object' && !(req.body.sizeStock instanceof Map)) {
+          parsedSizeStock = new Map(Object.entries(req.body.sizeStock));
+          console.log('➕ [ADMIN PRODUCT CREATE] Object sizeStock converted to Map:', parsedSizeStock);
+        }
       }
     }
 
@@ -79,7 +97,8 @@ router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
       subCategory: subCategory ? [subCategory] : [],
       category: category ? [category] : mainCategory ? [mainCategory] : [], // Fallback to mainCategory
       hasSizes: hasSizes,
-      availableSizes: parsedAvailableSizes
+      availableSizes: parsedAvailableSizes,
+      sizeStock: parsedSizeStock
     };
 
     const product = new Product(productData);
@@ -449,7 +468,9 @@ router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
 
     // Process size data
     let parsedAvailableSizes = undefined;
+    let parsedSizeStock = undefined;
     const hasSizes = req.body.hasSizes;
+    
     if (hasSizes !== undefined) {
       if (hasSizes === true || hasSizes === 'true') {
         parsedAvailableSizes = [];
@@ -467,8 +488,25 @@ router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
             parsedAvailableSizes = req.body.availableSizes;
           }
         }
+        
+        // Parse sizeStock and convert to Map
+        if (req.body.sizeStock) {
+          if (typeof req.body.sizeStock === 'string') {
+            try {
+              const parsed = JSON.parse(req.body.sizeStock);
+              parsedSizeStock = new Map(Object.entries(parsed));
+              console.log('🔄 [ADMIN UPDATE] Parsed sizeStock:', parsedSizeStock);
+            } catch (e) {
+              console.warn('🔄 [ADMIN UPDATE] Failed to parse sizeStock');
+            }
+          } else if (typeof req.body.sizeStock === 'object' && !(req.body.sizeStock instanceof Map)) {
+            parsedSizeStock = new Map(Object.entries(req.body.sizeStock));
+            console.log('🔄 [ADMIN UPDATE] Object sizeStock converted to Map:', parsedSizeStock);
+          }
+        }
       } else {
         parsedAvailableSizes = [];
+        parsedSizeStock = new Map();
       }
     }
 
@@ -484,6 +522,9 @@ router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
     if (hasSizes !== undefined) {
       updateData.hasSizes = hasSizes === true || hasSizes === 'true';
       updateData.availableSizes = parsedAvailableSizes;
+      if (parsedSizeStock !== undefined) {
+        updateData.sizeStock = parsedSizeStock;
+      }
     }
 
     // Only update files if new ones were uploaded

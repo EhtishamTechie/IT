@@ -102,26 +102,38 @@ const ProductInfo = ({
         </span>
       </div>
 
-      {/* Size Selection - Conditional */}
+      {/* Size Selection - Conditional - Only show sizes with stock > 0 */}
       {product?.hasSizes && product?.availableSizes && product.availableSizes.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3">Select Size</h3>
           <div className="flex flex-wrap gap-2">
-            {product.availableSizes.map((size) => (
-              <button
-                key={size}
-                onClick={() => setSelectedSize(size)}
-                className={`px-4 py-2 border-2 rounded-lg font-medium transition-all ${
-                  selectedSize === size
-                    ? 'border-orange-500 bg-orange-500 text-white'
-                    : 'border-gray-300 bg-white text-gray-700 hover:border-orange-400 hover:bg-orange-50'
-                }`}
-              >
-                {size}
-              </button>
-            ))}
+            {product.availableSizes.filter(size => {
+              const stock = product.sizeStock?.[size] || 0;
+              return stock > 0;
+            }).map((size) => {
+              const stock = product.sizeStock?.[size] || 0;
+              return (
+                <button
+                  key={size}
+                  onClick={() => setSelectedSize(size)}
+                  className={`px-4 py-2 border-2 rounded-lg font-medium transition-all relative ${
+                    selectedSize === size
+                      ? 'border-orange-500 bg-orange-500 text-white'
+                      : 'border-gray-300 bg-white text-gray-700 hover:border-orange-400 hover:bg-orange-50'
+                  }`}
+                >
+                  <div>{size}</div>
+                  <div className={`text-xs mt-1 ${selectedSize === size ? 'text-orange-100' : 'text-gray-500'}`}>
+                    Stock: {stock}
+                  </div>
+                </button>
+              );
+            })}
           </div>
-          {!selectedSize && (
+          {product.availableSizes.filter(size => (product.sizeStock?.[size] || 0) > 0).length === 0 && (
+            <p className="text-sm text-red-500 mt-2">All sizes are out of stock</p>
+          )}
+          {!selectedSize && product.availableSizes.filter(size => (product.sizeStock?.[size] || 0) > 0).length > 0 && (
             <p className="text-sm text-red-500 mt-2">Please select a size</p>
           )}
         </div>

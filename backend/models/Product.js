@@ -159,6 +159,12 @@ const productSchema = new mongoose.Schema({
     enum: ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL'],
     trim: true
   }],
+  // Stock per size (only used when hasSizes is true)
+  sizeStock: {
+    type: Map,
+    of: Number,
+    default: new Map()
+  },
   vendor: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Vendor',
@@ -202,8 +208,26 @@ const productSchema = new mongoose.Schema({
   }
 }, {
   timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
+  toJSON: { 
+    virtuals: true,
+    transform: function(doc, ret) {
+      // Convert Map to plain object for JSON serialization
+      if (ret.sizeStock instanceof Map) {
+        ret.sizeStock = Object.fromEntries(ret.sizeStock);
+      }
+      return ret;
+    }
+  },
+  toObject: { 
+    virtuals: true,
+    transform: function(doc, ret) {
+      // Convert Map to plain object
+      if (ret.sizeStock instanceof Map) {
+        ret.sizeStock = Object.fromEntries(ret.sizeStock);
+      }
+      return ret;
+    }
+  }
 });
 
 // Virtual for product source identification

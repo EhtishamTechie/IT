@@ -61,11 +61,18 @@ const EnhancedProductCard = ({
   const handleAddToCart = (e) => {
     e.stopPropagation();
     
-    // Check if product has sizes
+    // Check if product has sizes - filter only sizes with stock > 0
     if (product.hasSizes && product.availableSizes && product.availableSizes.length > 0) {
-      setSizeAction('cart');
-      setShowSizeModal(true);
-      return;
+      const sizesWithStock = product.availableSizes.filter(size => {
+        const stock = product.sizeStock?.[size] || 0;
+        return stock > 0;
+      });
+      
+      if (sizesWithStock.length > 0) {
+        setSizeAction('cart');
+        setShowSizeModal(true);
+        return;
+      }
     }
     
     if (onAddToCart) {
@@ -76,11 +83,18 @@ const EnhancedProductCard = ({
   const handleBuyNow = (e) => {
     e.stopPropagation();
     
-    // Check if product has sizes
+    // Check if product has sizes - filter only sizes with stock > 0
     if (product.hasSizes && product.availableSizes && product.availableSizes.length > 0) {
-      setSizeAction('buy');
-      setShowSizeModal(true);
-      return;
+      const sizesWithStock = product.availableSizes.filter(size => {
+        const stock = product.sizeStock?.[size] || 0;
+        return stock > 0;
+      });
+      
+      if (sizesWithStock.length > 0) {
+        setSizeAction('buy');
+        setShowSizeModal(true);
+        return;
+      }
     }
     
     if (onBuyNow) {
@@ -481,22 +495,32 @@ const EnhancedProductCard = ({
                 {product.title || 'Product'}
               </p>
               <div className="grid grid-cols-3 gap-2">
-                {product.availableSizes?.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`
-                      py-2.5 px-3 rounded-lg border-2 font-semibold text-sm transition-all
-                      ${selectedSize === size
-                        ? 'border-orange-500 bg-orange-50 text-orange-600 scale-105'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50'
-                      }
-                    `}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {product.availableSizes?.filter(size => {
+                  const stock = product.sizeStock?.[size] || 0;
+                  return stock > 0;
+                }).map((size) => {
+                  const stock = product.sizeStock?.[size] || 0;
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`
+                        py-2.5 px-3 rounded-lg border-2 font-semibold text-sm transition-all relative
+                        ${selectedSize === size
+                          ? 'border-orange-500 bg-orange-50 text-orange-600 scale-105'
+                          : 'border-gray-200 bg-white text-gray-700 hover:border-orange-300 hover:bg-orange-50'
+                        }
+                      `}
+                    >
+                      <div>{size}</div>
+                      <div className="text-xs text-gray-500 font-normal">Stock: {stock}</div>
+                    </button>
+                  );
+                })}
               </div>
+              {product.availableSizes?.filter(size => (product.sizeStock?.[size] || 0) > 0).length === 0 && (
+                <p className="text-sm text-red-500 mt-2">All sizes are out of stock</p>
+              )}
             </div>
 
             <div className="flex gap-2">
