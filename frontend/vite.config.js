@@ -16,78 +16,26 @@ export default defineConfig({
     // Aggressive optimization for fastest initial load
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // Keep React unified to prevent module conflicts
-          if (id.includes('node_modules')) {
-            // All React-related modules together - CRITICAL for avoiding conflicts
-            if (id.includes('react') || id.includes('react-dom') || 
-                id.includes('scheduler') || id.includes('react-is') ||
-                id.includes('prop-types') || id.includes('react-error-boundary')) {
-              return 'react-vendor';
-            }
-            
-            // Router separate but after React loads
-            if (id.includes('react-router')) {
-              return 'router';
-            }
-            
-            // Query - can load slightly after
-            if (id.includes('@tanstack/react-query')) {
-              return 'query';
-            }
-            
-            // Heavy UI libraries - lazy load aggressively
-            if (id.includes('@mui') || id.includes('@emotion')) {
-              return 'mui';
-            }
-            
-            // Icons - very lazy
-            if (id.includes('react-icons') || id.includes('@heroicons') || id.includes('lucide-react')) {
-              return 'icons';
-            }
-            
-            // Animations - lazy
-            if (id.includes('framer-motion')) {
-              return 'motion';
-            }
-            
-            // Charts - only for analytics
-            if (id.includes('recharts')) {
-              return 'charts';
-            }
-            
-            // Utilities
-            if (id.includes('axios')) {
-              return 'http';
-            }
-            
-            if (id.includes('lodash')) {
-              return 'lodash';
-            }
-            
-            // Everything else
-            return 'vendor';
-          }
-          
-          // Admin pages - never load for customers
-          if (id.includes('/pages/Admin/')) {
-            return 'admin';
-          }
-          
-          // Vendor pages - never load for customers
-          if (id.includes('/pages/Vendor/')) {
-            return 'vendor-pages';
-          }
-          
-          // Heavy components
-          if (id.includes('/components/Admin/')) {
-            return 'admin-comp';
-          }
-          
-          if (id.includes('/components/Vendor/')) {
-            return 'vendor-comp';
-          }
-        },
+        format: 'es',
+        // Simplified chunking to prevent React conflicts
+        manualChunks: {
+          // Keep ALL React ecosystem together
+          'react-vendor': [
+            'react',
+            'react/jsx-runtime',
+            'react-dom',
+            'react-dom/client',
+            'scheduler',
+            'react-is',
+            'prop-types'
+          ],
+          // Router
+          'router': ['react-router-dom'],
+          // Query
+          'query': ['@tanstack/react-query'],
+          // Utils (NO React)
+          'utils': ['axios', 'lodash', 'jwt-decode', 'clsx']
+        }
       },
     },
     // Maximum optimization
