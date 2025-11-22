@@ -12,57 +12,116 @@ export default defineConfig({
     },
   },
   build: {
-    // Optimize chunk splitting for better caching
+    // Aggressive optimization for fastest initial load
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Simplified chunking strategy to avoid circular dependency issues
+          // Ultra-aggressive splitting for maximum performance
           if (id.includes('node_modules')) {
-            // Group all React-related libraries together
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router') || 
-                id.includes('react-is') || id.includes('@tanstack/react-query')) {
-              return 'vendor';
+            // Absolute essentials only - smallest possible initial bundle
+            if (id.includes('react/jsx-runtime') || id.includes('scheduler')) {
+              return 'react-runtime'; // Ultra critical, tiny chunk
             }
-            // Group MUI with emotion to avoid initialization errors
+            
+            // React core - load immediately but separate
+            if (id.includes('react-dom/client') || id.includes('react-dom')) {
+              return 'react-dom';
+            }
+            
+            if (id.includes('react/') && !id.includes('react-dom') && !id.includes('react-router')) {
+              return 'react';
+            }
+            
+            // Router - needed for navigation
+            if (id.includes('react-router')) {
+              return 'router';
+            }
+            
+            // Query - can load slightly after
+            if (id.includes('@tanstack/react-query')) {
+              return 'query';
+            }
+            
+            // Heavy UI libraries - lazy load aggressively
             if (id.includes('@mui') || id.includes('@emotion')) {
-              return 'vendor';
+              return 'mui';
             }
-            // Keep other libraries in vendor too for simplicity
-            if (id.includes('axios') || id.includes('lodash') || id.includes('jwt-decode') ||
-                id.includes('framer-motion') || id.includes('react-toastify') || id.includes('react-hot-toast') ||
-                id.includes('lucide-react') || id.includes('react-icons') || id.includes('@heroicons')) {
-              return 'vendor';
+            
+            // Icons - very lazy
+            if (id.includes('react-icons') || id.includes('@heroicons') || id.includes('lucide-react')) {
+              return 'icons';
             }
+            
+            // Animations - lazy
+            if (id.includes('framer-motion')) {
+              return 'motion';
+            }
+            
+            // Charts - only for analytics
+            if (id.includes('recharts')) {
+              return 'charts';
+            }
+            
+            // Utilities
+            if (id.includes('axios')) {
+              return 'http';
+            }
+            
+            if (id.includes('lodash')) {
+              return 'lodash';
+            }
+            
+            // Everything else
+            return 'vendor';
           }
           
-          // Admin pages - only load when accessed
+          // Admin pages - never load for customers
           if (id.includes('/pages/Admin/')) {
-            return 'admin-pages';
+            return 'admin';
           }
           
-          // Vendor pages - only load when accessed
+          // Vendor pages - never load for customers
           if (id.includes('/pages/Vendor/')) {
             return 'vendor-pages';
+          }
+          
+          // Heavy components
+          if (id.includes('/components/Admin/')) {
+            return 'admin-comp';
+          }
+          
+          if (id.includes('/components/Vendor/')) {
+            return 'vendor-comp';
           }
         },
       },
     },
-    // Increase chunk size warning limit
-    chunkSizeWarningLimit: 1000,
-    // Enable CSS code splitting
-    cssCodeSplit: true,
-    // Minify for production - esbuild is faster than terser for Vite
+    // Maximum optimization
     minify: 'esbuild',
+    target: 'es2015',
+    cssCodeSplit: true,
+    sourcemap: false,
+    assetsInlineLimit: 4096, // Inline small assets
+    chunkSizeWarningLimit: 500, // Strict limit
+    reportCompressedSize: false, // Faster builds
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
     },
-    // Enable source maps for debugging (can disable in production)
-    sourcemap: false,
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'react-is', '@tanstack/react-query'],
-    // Don't exclude recharts - let it be optimized normally
+    // Pre-bundle only absolute essentials
+    include: [
+      'react/jsx-runtime',
+      'react',
+      'react-dom/client',
+      'react-router-dom',
+      'hoist-non-react-statics'
+    ],
+    exclude: [
+      'recharts',
+      'framer-motion'
+    ],
   },
   server: {
     proxy: {
@@ -72,9 +131,6 @@ export default defineConfig({
         secure: false,
       },
     },
-    // Enable HTTP/2 for faster loading
-    https: false,
   },
-  // Enable better caching
   cacheDir: 'node_modules/.vite',
 })

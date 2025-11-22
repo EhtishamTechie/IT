@@ -5,6 +5,5 @@ import App from './App';
 import './index.css';
 import './styles/imageProtection.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <App />
-);
+// Render app immediately
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
