@@ -10,26 +10,19 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom', 'react-is'] // Prevent duplicate React instances
   },
   build: {
     // Aggressive optimization for fastest initial load
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Ultra-aggressive splitting for maximum performance
+          // Keep React unified to prevent module conflicts
           if (id.includes('node_modules')) {
-            // Absolute essentials only - smallest possible initial bundle
-            if (id.includes('react/jsx-runtime') || id.includes('scheduler')) {
-              return 'react-runtime'; // Ultra critical, tiny chunk
-            }
-            
-            // React core - load immediately but separate
-            if (id.includes('react-dom/client') || id.includes('react-dom')) {
-              return 'react-dom';
-            }
-            
-            if (id.includes('react/') && !id.includes('react-dom') && !id.includes('react-router')) {
-              return 'react';
+            // All React-related modules together to avoid conflicts
+            if (id.includes('react') || id.includes('react-dom') || 
+                id.includes('scheduler') || id.includes('react-is')) {
+              return 'react-vendor';
             }
             
             // Router - needed for navigation
@@ -110,10 +103,10 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    // Pre-bundle only absolute essentials
     include: [
-      'react/jsx-runtime',
       'react',
+      'react/jsx-runtime',
+      'react-dom',
       'react-dom/client',
       'react-router-dom',
       'hoist-non-react-statics'
@@ -122,6 +115,9 @@ export default defineConfig({
       'recharts',
       'framer-motion'
     ],
+    esbuildOptions: {
+      target: 'es2015',
+    },
   },
   server: {
     proxy: {
