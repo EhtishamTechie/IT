@@ -10,7 +10,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-    dedupe: ['react', 'react-dom', 'react-is'] // Prevent duplicate React instances
+    dedupe: ['react', 'react-dom', 'react-is', 'prop-types'] // Prevent duplicate React instances
   },
   build: {
     // Aggressive optimization for fastest initial load
@@ -19,13 +19,14 @@ export default defineConfig({
         manualChunks(id) {
           // Keep React unified to prevent module conflicts
           if (id.includes('node_modules')) {
-            // All React-related modules together to avoid conflicts
+            // All React-related modules together - CRITICAL for avoiding conflicts
             if (id.includes('react') || id.includes('react-dom') || 
-                id.includes('scheduler') || id.includes('react-is')) {
+                id.includes('scheduler') || id.includes('react-is') ||
+                id.includes('prop-types') || id.includes('react-error-boundary')) {
               return 'react-vendor';
             }
             
-            // Router - needed for navigation
+            // Router separate but after React loads
             if (id.includes('react-router')) {
               return 'router';
             }
@@ -100,6 +101,7 @@ export default defineConfig({
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
+      defaultIsModuleExports: true, // Fix module export issues
     },
   },
   optimizeDeps: {
@@ -108,6 +110,8 @@ export default defineConfig({
       'react/jsx-runtime',
       'react-dom',
       'react-dom/client',
+      'react-is',
+      'prop-types',
       'react-router-dom',
       'hoist-non-react-statics'
     ],
