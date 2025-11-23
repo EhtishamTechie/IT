@@ -46,22 +46,16 @@ export default defineConfig({
       },
     },
     // Maximum optimization
-    minify: 'terser',
+    minify: 'esbuild', // Use esbuild (faster, no extra dependency)
     target: 'es2020', // Modern browsers only
     cssCodeSplit: true,
     sourcemap: false,
     assetsInlineLimit: 4096, // Inline small assets
     chunkSizeWarningLimit: 500, // Strict limit
     reportCompressedSize: false, // Faster builds
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.trace']
-      },
-      format: {
-        comments: false
-      }
+    esbuildOptions: {
+      drop: ['console', 'debugger'], // Remove console.logs and debuggers
+      legalComments: 'none'
     },
     commonjsOptions: {
       include: [/node_modules/],
