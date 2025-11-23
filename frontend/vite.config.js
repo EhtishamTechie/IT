@@ -62,7 +62,11 @@ export default defineConfig({
     esbuildOptions: {
       drop: ['console', 'debugger'], // Remove console.logs and debuggers
       legalComments: 'none',
-      treeShaking: true
+      treeShaking: true,
+      // Aggressive mangling for smaller bundles
+      minifyIdentifiers: true,
+      minifySyntax: true,
+      minifyWhitespace: true
     },
     commonjsOptions: {
       include: [/node_modules/],

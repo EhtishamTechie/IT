@@ -29,32 +29,45 @@
     <meta name="twitter:image" content="https://internationaltijarat.com/IT%20logo.jpeg" />
     
     <!-- Performance Optimization: Preconnect to external domains -->
-    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
-    <link rel="preconnect" href="https://connect.facebook.net" crossorigin>
+    <link rel="preconnect" href="https://www.googletagmanager.com">
+    <link rel="preconnect" href="https://connect.facebook.net">
     <link rel="dns-prefetch" href="https://www.facebook.com">
     
     <!-- Resource hints for API -->
     <link rel="dns-prefetch" href="https://internationaltijarat.com">
-    <link rel="preconnect" href="https://internationaltijarat.com">
+    <link rel="preconnect" href="https://internationaltijarat.com" crossorigin>
+    <link rel="preconnect" href="https://internationaltijarat.com/api" crossorigin>
     
     <!-- Preload critical above-the-fold images -->
     <link rel="preload" as="image" href="/uploads/homepage-cards/card-1761469120435-491492735.jpeg" fetchpriority="high" type="image/jpeg">
     
     <title>International Tijarat - Premium Online Shopping | Fragrances, Jewelry, Mobile Phones & More</title>
     
-    <!-- Google Tag Manager - Deferred for performance -->
+    <!-- Google Tag Manager - Heavily Deferred for performance -->
     <script>
-    window.addEventListener('load', function() {
+    // Defer GTM loading by 3 seconds or after user interaction
+    var gtmLoaded = false;
+    function loadGTM() {
+      if (gtmLoaded) return;
+      gtmLoaded = true;
       (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
       })(window,document,'script','dataLayer','GTM-K55PGMBD');
+    }
+    // Load after page is fully loaded + 3 seconds
+    window.addEventListener('load', function() {
+      setTimeout(loadGTM, 3000);
+    });
+    // Or load on first user interaction
+    ['mousedown', 'keydown', 'touchstart', 'wheel'].forEach(function(evt) {
+      window.addEventListener(evt, loadGTM, { once: true, passive: true });
     });
     </script>
     <!-- End Google Tag Manager -->
  
-    <!-- Meta Pixel Code - Fully Async with Caching -->
+    <!-- Meta Pixel Code - Heavily Deferred for performance -->
     <script>
     // Initialize fbq queue immediately (non-blocking)
     window.fbq = window.fbq || function() {
@@ -64,8 +77,10 @@
     window.fbq.loaded = !0;
     window.fbq.version = '2.0';
     
-    // Load script asynchronously after page load
-    window.addEventListener('load', function() {
+    var fbLoaded = false;
+    function loadFacebookPixel() {
+      if (fbLoaded) return;
+      fbLoaded = true;
       var script = document.createElement('script');
       script.async = true;
       script.defer = true;
@@ -76,11 +91,18 @@
       script.onload = function() {
         fbq('init', '1122233005539042');
         fbq('track', 'PageView');
-        if (location.hostname === 'localhost') {
-          console.log('Meta Pixel: Initialized with ID 1122233005539042');
-        }
       };
+    }
+    
+    // Load after page is fully loaded + 3 seconds
+    window.addEventListener('load', function() {
+      setTimeout(loadFacebookPixel, 3000);
     }, { once: true });
+    
+    // Or load on first user interaction
+    ['mousedown', 'keydown', 'touchstart', 'wheel'].forEach(function(evt) {
+      window.addEventListener(evt, loadFacebookPixel, { once: true, passive: true });
+    });
     </script>
     <!-- End Meta Pixel Code -->
     
