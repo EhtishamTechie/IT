@@ -15,6 +15,11 @@ export default defineConfig({
   build: {
     // Aggressive optimization for fastest initial load
     rollupOptions: {
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        tryCatchDeoptimization: false
+      },
       output: {
         format: 'es',
         // Simplified chunking to prevent React conflicts
@@ -33,19 +38,31 @@ export default defineConfig({
           'router': ['react-router-dom'],
           // Query
           'query': ['@tanstack/react-query'],
+          // Icons - separate for better caching
+          'ui-icons': ['lucide-react'],
           // Utils (NO React)
           'utils': ['axios', 'lodash', 'jwt-decode', 'clsx']
         }
       },
     },
     // Maximum optimization
-    minify: 'esbuild',
-    target: 'es2015',
+    minify: 'terser',
+    target: 'es2020', // Modern browsers only
     cssCodeSplit: true,
     sourcemap: false,
     assetsInlineLimit: 4096, // Inline small assets
     chunkSizeWarningLimit: 500, // Strict limit
     reportCompressedSize: false, // Faster builds
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.trace']
+      },
+      format: {
+        comments: false
+      }
+    },
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,

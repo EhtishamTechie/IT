@@ -1,0 +1,147 @@
+# ============================================
+# Apache Cache Configuration for Performance
+# Score improvement: 820 KB savings on repeat visits
+# ============================================
+# Place this file in your website root directory
+
+# ============================================
+# 1. BROWSER CACHING
+# ============================================
+<IfModule mod_expires.c>
+  ExpiresActive On
+  
+  # Images - 1 year
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/jpg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/x-icon "access plus 1 year"
+  
+  # CSS and JavaScript - 1 year
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/javascript "access plus 1 year"
+  ExpiresByType application/x-javascript "access plus 1 year"
+  
+  # Fonts - 1 year
+  ExpiresByType font/woff "access plus 1 year"
+  ExpiresByType font/woff2 "access plus 1 year"
+  ExpiresByType application/font-woff "access plus 1 year"
+  ExpiresByType application/font-woff2 "access plus 1 year"
+  ExpiresByType font/ttf "access plus 1 year"
+  ExpiresByType font/otf "access plus 1 year"
+  ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+  
+  # HTML - No cache
+  ExpiresByType text/html "access plus 0 seconds"
+  
+  # Data - Brief cache
+  ExpiresByType application/json "access plus 1 minute"
+  ExpiresByType application/xml "access plus 1 minute"
+  ExpiresByType text/xml "access plus 1 minute"
+</IfModule>
+
+# ============================================
+# 2. CACHE-CONTROL HEADERS
+# ============================================
+<IfModule mod_headers.c>
+  # Static assets - immutable
+  <FilesMatch "\.(js|css|png|jpg|jpeg|gif|ico|svg|webp|woff|woff2|ttf|eot|otf)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  
+  # HTML - no cache
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+  </FilesMatch>
+  
+  # Security headers
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-XSS-Protection "1; mode=block"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ============================================
+# 3. GZIP COMPRESSION
+# ============================================
+<IfModule mod_deflate.c>
+  # Compress HTML, CSS, JavaScript, Text, XML
+  AddOutputFilterByType DEFLATE text/plain
+  AddOutputFilterByType DEFLATE text/html
+  AddOutputFilterByType DEFLATE text/xml
+  AddOutputFilterByType DEFLATE text/css
+  AddOutputFilterByType DEFLATE text/javascript
+  AddOutputFilterByType DEFLATE application/xml
+  AddOutputFilterByType DEFLATE application/xhtml+xml
+  AddOutputFilterByType DEFLATE application/rss+xml
+  AddOutputFilterByType DEFLATE application/javascript
+  AddOutputFilterByType DEFLATE application/x-javascript
+  AddOutputFilterByType DEFLATE application/json
+  AddOutputFilterByType DEFLATE image/svg+xml
+  
+  # Don't compress images (already compressed)
+  SetEnvIfNoCase Request_URI \.(?:gif|jpe?g|png|webp)$ no-gzip
+</IfModule>
+
+# ============================================
+# 4. BROTLI COMPRESSION (if available)
+# ============================================
+<IfModule mod_brotli.c>
+  AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/xml text/css
+  AddOutputFilterByType BROTLI_COMPRESS application/javascript application/json
+  AddOutputFilterByType BROTLI_COMPRESS application/xml application/xhtml+xml
+  AddOutputFilterByType BROTLI_COMPRESS image/svg+xml
+</IfModule>
+
+# ============================================
+# 5. REMOVE ETAGS (better caching)
+# ============================================
+<IfModule mod_headers.c>
+  Header unset ETag
+</IfModule>
+FileETag None
+
+# ============================================
+# 6. CORS FOR FONTS
+# ============================================
+<IfModule mod_headers.c>
+  <FilesMatch "\.(woff|woff2|ttf|eot|otf)$">
+    Header set Access-Control-Allow-Origin "*"
+  </FilesMatch>
+</IfModule>
+
+# ============================================
+# 7. DISABLE DIRECTORY BROWSING
+# ============================================
+Options -Indexes
+
+# ============================================
+# 8. SPA ROUTING (React Router)
+# ============================================
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+  
+  # Don't rewrite files or directories
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+  
+  # Don't rewrite API calls
+  RewriteCond %{REQUEST_URI} !^/api/
+  
+  # Rewrite everything else to index.html
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# ============================================
+# USAGE INSTRUCTIONS:
+# ============================================
+# 1. Upload this file to your website root directory
+# 2. Make sure mod_expires, mod_headers, mod_deflate are enabled
+# 3. Test: curl -I https://internationaltijarat.com/assets/index-CHAXmyM1.js
+# 4. Should see: Cache-Control: public, max-age=31536000, immutable
+# 5. Second visit should load from cache (instant)

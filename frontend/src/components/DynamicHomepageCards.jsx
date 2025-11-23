@@ -116,7 +116,9 @@ const DynamicHomepageCards = () => {
                       <img 
                         src={getCardImageUrl(card)}
                         alt={card.title}
-                        loading="lazy"
+                        loading={card.order === 1 ? "eager" : "lazy"}
+                        fetchPriority={card.order === 1 ? "high" : "auto"}
+                        decoding="async"
                         className="w-full h-32 sm:h-40 object-cover rounded-md mb-3 sm:mb-4"
                         onError={(e) => {
                           e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="160" viewBox="0 0 300 160"><rect width="300" height="160" fill="%23f8fafc"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%23475569">${card.title}</text></svg>`;
@@ -152,7 +154,9 @@ const DynamicHomepageCards = () => {
                             <img 
                               src={getSubcategoryImageUrl(item)}
                               alt={item.name}
-                              loading="lazy"
+                              loading={card.order === 1 ? "eager" : "lazy"}
+                              fetchPriority={card.order === 1 && idx < 2 ? "high" : "auto"}
+                              decoding="async"
                               className="w-full h-16 sm:h-20 object-cover rounded-sm mb-1 sm:mb-2 hover:opacity-80 transition-opacity"
                               onError={(e) => {
                                 e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f8fafc"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="10" fill="%23475569">${item.name}</text></svg>`;
