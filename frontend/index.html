@@ -37,6 +37,9 @@
     <link rel="dns-prefetch" href="https://internationaltijarat.com">
     <link rel="preconnect" href="https://internationaltijarat.com">
     
+    <!-- Preload critical above-the-fold images -->
+    <link rel="preload" as="image" href="/uploads/homepage-cards/card-1761469120435-491492735.jpeg" fetchpriority="high" type="image/jpeg">
+    
     <title>International Tijarat - Premium Online Shopping | Fragrances, Jewelry, Mobile Phones & More</title>
     
     <!-- Google Tag Manager - Deferred for performance -->
@@ -51,27 +54,33 @@
     </script>
     <!-- End Google Tag Manager -->
  
-    <!-- Meta Pixel Code - Deferred for performance -->
+    <!-- Meta Pixel Code - Fully Async with Caching -->
     <script>
+    // Initialize fbq queue immediately (non-blocking)
+    window.fbq = window.fbq || function() {
+      (window.fbq.q = window.fbq.q || []).push(arguments);
+    };
+    window.fbq.q = [];
+    window.fbq.loaded = !0;
+    window.fbq.version = '2.0';
+    
+    // Load script asynchronously after page load
     window.addEventListener('load', function() {
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
+      var script = document.createElement('script');
+      script.async = true;
+      script.defer = true;
+      script.src = 'https://connect.facebook.net/en_US/fbevents.js';
+      document.head.appendChild(script);
       
-      // Initialize Meta Pixel with logging (only in development)
-      fbq('init', '1122233005539042');
-      if (location.hostname === 'localhost') {
+      // Initialize after script loads
+      script.onload = function() {
+        fbq('init', '1122233005539042');
+        fbq('track', 'PageView');
+        if (location.hostname === 'localhost') {
           console.log('Meta Pixel: Initialized with ID 1122233005539042');
-      }
-      
-      // Track PageView
-      fbq('track', 'PageView');
-    });
+        }
+      };
+    }, { once: true });
     </script>
     <!-- End Meta Pixel Code -->
     

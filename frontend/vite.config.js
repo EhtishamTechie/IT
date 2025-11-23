@@ -47,7 +47,7 @@ export default defineConfig({
     },
     // Maximum optimization
     minify: 'esbuild', // Use esbuild (faster, no extra dependency)
-    target: 'es2020', // Modern browsers only
+    target: 'es2020', // Modern browsers only - no legacy polyfills
     cssCodeSplit: true,
     sourcemap: false,
     assetsInlineLimit: 4096, // Inline small assets
@@ -55,7 +55,8 @@ export default defineConfig({
     reportCompressedSize: false, // Faster builds
     esbuildOptions: {
       drop: ['console', 'debugger'], // Remove console.logs and debuggers
-      legalComments: 'none'
+      legalComments: 'none',
+      treeShaking: true
     },
     commonjsOptions: {
       include: [/node_modules/],

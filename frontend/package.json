@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/extract-critical-css.js",
+    "build:only": "vite build",
+    "postbuild": "node scripts/extract-critical-css.js",
     "lint": "eslint .",
     "preview": "vite preview"
   },
