@@ -22,7 +22,7 @@ export default defineConfig({
       },
       output: {
         format: 'es',
-        // Simplified chunking to prevent React conflicts
+        // Aggressive chunking for better caching and smaller initial load
         manualChunks: {
           // Keep ALL React ecosystem together
           'react-vendor': [
@@ -40,8 +40,14 @@ export default defineConfig({
           'query': ['@tanstack/react-query'],
           // Icons - separate for better caching
           'ui-icons': ['lucide-react'],
+          // MUI separate chunk
+          'mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+          // Charts separate (large library)
+          'charts': ['recharts'],
           // Utils (NO React)
-          'utils': ['axios', 'lodash', 'jwt-decode', 'clsx']
+          'utils': ['axios', 'lodash', 'jwt-decode', 'clsx'],
+          // Animation
+          'animation': ['framer-motion']
         }
       },
     },
