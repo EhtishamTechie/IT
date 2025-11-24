@@ -253,10 +253,7 @@ const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = []
 
   const scrollContainer = (sectionId, direction) => {
     const container = document.getElementById(`scroll-${sectionId}`);
-    if (!container) return;
-    
-    // Prevent reflow by using requestAnimationFrame
-    requestAnimationFrame(() => {
+    if (container) {
       const scrollAmount = 320; // Width of one product + gap
       const currentScroll = container.scrollLeft;
       const newScroll = direction === 'left' 
@@ -267,7 +264,7 @@ const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = []
         left: newScroll,
         behavior: 'smooth'
       });
-    });
+    }
   };
 
   const ProductSection = ({ section }) => {

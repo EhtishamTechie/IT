@@ -38,6 +38,9 @@
     <link rel="preconnect" href="https://internationaltijarat.com" crossorigin>
     <link rel="preconnect" href="https://internationaltijarat.com/api" crossorigin>
     
+    <!-- Preload critical above-the-fold images -->
+    <link rel="preload" as="image" href="/uploads/homepage-cards/card-1761469120435-491492735.jpeg" fetchpriority="high" type="image/jpeg">
+    
     <title>International Tijarat - Premium Online Shopping | Fragrances, Jewelry, Mobile Phones & More</title>
     
     <!-- Google Tag Manager - Heavily Deferred for performance -->
@@ -136,15 +139,6 @@
       ]
     }
     </script>
-    
-    <!-- Performance: Prevent layout thrashing -->
-    <style>
-      /* Prevent forced reflows */
-      img { content-visibility: auto; }
-      .card-grid > * { contain: layout style paint; }
-      /* Optimize scrolling */
-      * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
-    </style>
   </head>
   <body>
     <!-- Google Tag Manager (noscript) -->
