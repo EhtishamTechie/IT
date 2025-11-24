@@ -148,19 +148,15 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
 
   return (
     <>
-      <section className="py-4 sm:py-6 lg:py-8 bg-gradient-to-br from-gray-50 to-blue-50 overflow-hidden">
+      <section className="py-2 sm:py-3 bg-gradient-to-br from-gray-50 to-blue-50 overflow-hidden">
         <div className="container mx-auto px-4 lg:px-8">
           {/* Section Header */}
-          <div className="text-center mb-6 sm:mb-7 lg:mb-8">
-            <div className="inline-flex items-center space-x-2 bg-orange-100 text-orange-600 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full text-xs sm:text-sm font-semibold mb-3 sm:mb-4">
-              <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-orange-500 rounded-full animate-pulse"></span>
-              <span>Explore Categories</span>
-            </div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2 sm:mb-3">
+          <div className="text-center mb-2 sm:mb-3">
+            <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-1 sm:mb-2">
               Shop by 
               <span className="bg-gradient-to-r from-orange-500 to-blue-600 bg-clip-text text-transparent"> Category</span>
             </h2>
-            <p className="text-xs sm:text-sm lg:text-base text-gray-600 max-w-2xl mx-auto px-4 sm:px-0">
+            <p className="text-[10px] sm:text-xs lg:text-sm text-gray-600 max-w-2xl mx-auto px-4 sm:px-0">
               Discover amazing products across all categories with unbeatable prices and quality
             </p>
           </div>
