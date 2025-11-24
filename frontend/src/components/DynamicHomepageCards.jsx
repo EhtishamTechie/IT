@@ -118,7 +118,8 @@ const DynamicHomepageCards = () => {
                         alt={card.title}
                         loading={card.order === 1 ? "eager" : "lazy"}
                         fetchPriority={card.order === 1 ? "high" : "auto"}
-                        decoding="async"
+                        decoding={card.order === 1 ? "sync" : "async"}
+                        importance={card.order === 1 ? "high" : "auto"}
                         className="w-full h-32 sm:h-40 object-cover rounded-md mb-3 sm:mb-4"
                         onError={(e) => {
                           e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="160" viewBox="0 0 300 160"><rect width="300" height="160" fill="%23f8fafc"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%23475569">${card.title}</text></svg>`;
