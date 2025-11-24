@@ -16,6 +16,7 @@ const EnhancedProductCard = ({
   showBuyNow = false,
   showFavorite = true,
   showQuickView = true,
+  showTitle = true, // New prop to control title visibility
   isAddingToCart = false,
   cartQuantity = 0,
   isInCart = false,
@@ -256,15 +257,6 @@ const EnhancedProductCard = ({
           </div>
         )}
 
-        {/* Multiple images indicator */}
-        {product.images && product.images.length > 1 && (
-          <div className="absolute bottom-3 right-3 z-10">
-            <div className="bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-              +{product.images.length - 1} more
-            </div>
-          </div>
-        )}
-
         {/* Hover overlay */}
         <div className={`
           absolute inset-0 bg-black/20 transition-opacity duration-300
@@ -274,20 +266,22 @@ const EnhancedProductCard = ({
       </div>
 
       {/* Product Info */}
-      <div className="p-2 flex flex-col h-auto min-h-[80px]">
-        {/* Product Title */}
-        <h3 className="font-semibold text-gray-900 text-[10px] leading-tight mb-1 line-clamp-2 group-hover:text-orange-600 transition-colors min-h-[1.5rem]">
-          {product.title || 'Untitled Product'}
-        </h3>
-
+      <div className="p-1 flex flex-col h-auto min-h-0">
+        {/* Product Title - Conditionally shown */}
+        {showTitle && (
+          <h3 className="font-semibold text-gray-900 text-[10px] leading-tight mb-1 line-clamp-2 group-hover:text-orange-600 transition-colors min-h-[1.5rem]">
+            {product.title || 'Untitled Product'}
+          </h3>
+        )}
+        
         {/* Price Section */}
-        <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-0">
           <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-gray-900">
+            <span className="text-xs font-bold text-gray-900">
                PKR {product.price || '0.00'}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-[8px] text-gray-500 line-through">
+              <span className="text-[9px] text-gray-500 line-through">
                 PKR {product.originalPrice}
               </span>
             )}

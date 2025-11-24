@@ -315,45 +315,28 @@ const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], ne
   };
 
   return (
-    <section className="py-8 bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
+    <section className="w-full py-1 sm:py-2 bg-gradient-to-br from-gray-50 via-white to-blue-50 relative overflow-hidden">
       {/* Background Elements */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-orange-200/30 to-pink-200/30 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-purple-200/30 rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
       
-      <div className="container mx-auto px-4 lg:px-8 relative">
-        {/* Section Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-100 to-pink-100 text-orange-600 px-6 py-3 rounded-full text-sm font-bold mb-4 shadow-lg">
-            <Zap className="w-4 h-4" />
-            <span>Premium Collection</span>
-          </div>
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-3">
-            Discover
-            <span className="bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 bg-clip-text text-transparent"> Exceptional</span>
-            <br />Products
-          </h2>
-          <p className="text-sm text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Curated collection of premium products from world-class brands, 
-            designed to elevate your lifestyle with unmatched quality and innovation.
-          </p>
-        </div>
-
+      <div className="w-full px-3 sm:px-4 relative">
         {/* Dynamic Tabs */}
-        <div className="flex flex-wrap justify-center gap-4 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-2 sm:mb-3">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`group relative px-8 py-4 rounded-2xl font-bold transition-all duration-300 ${
+                className={`group relative px-3 py-2 sm:px-4 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 ${
                   activeTab === tab.id
-                    ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-xl shadow-orange-500/25 scale-105'
-                    : 'bg-white text-gray-600 hover:text-gray-900 shadow-lg hover:shadow-xl border border-gray-200'
+                    ? 'bg-gradient-to-r from-orange-500 to-pink-500 text-white shadow-lg shadow-orange-500/25 scale-105'
+                    : 'bg-white text-gray-600 hover:text-gray-900 shadow-md hover:shadow-lg border border-gray-200'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <Icon className="w-5 h-5" />
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span>{tab.label}</span>
                 </div>
                 
@@ -383,7 +366,7 @@ const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], ne
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1">
             {(products[activeTab] && products[activeTab].length > 0) ? (
               products[activeTab].map((product) => (
                 <EnhancedProductCard 
@@ -396,6 +379,7 @@ const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], ne
                   isAddingToCart={addingToCart[product._id || product.id] || false}
                   errorMessage={errorMessages[product._id || product.id]}
                   showBuyNow={true}
+                  showTitle={false}
                 />
               ))
             ) : (

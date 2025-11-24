@@ -337,25 +337,21 @@ const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = []
   };
 
   return (
-    <section className="py-8 bg-gray-50">
-      <div className="container mx-auto px-4 lg:px-8 max-w-7xl">
+    <section className="w-full py-1 sm:py-2 bg-gray-50">
+      <div className="w-full px-3 sm:px-4">
         {/* Section Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center space-x-2 bg-blue-100 text-blue-600 px-4 py-2 rounded-full text-sm font-semibold mb-6">
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-            <span>Curated Collections</span>
-          </div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
+        <div className="text-center mb-2 sm:mb-3">
+          <h2 className="text-base sm:text-lg lg:text-xl font-bold text-gray-900 mb-1">
             Discover Amazing
             <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Products</span>
           </h2>
-          <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+          <p className="text-[10px] sm:text-xs text-gray-600 max-w-2xl mx-auto">
             Explore our handpicked selection of top-rated products across all categories
           </p>
         </div>
 
         {/* Product Sections */}
-        <div className="space-y-8">
+        <div className="space-y-2 sm:space-y-3">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
