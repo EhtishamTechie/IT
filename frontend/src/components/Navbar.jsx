@@ -182,93 +182,127 @@ const Navbar = () => {
 
           {/* Right Side Navigation */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Account */}
-            <div className="flex flex-col text-sm">
-              <span className="text-white">
-                {isVendorAuthenticated ? `Hello, ${vendor?.businessName || vendor?.name || 'Vendor'}` :
-                 isAuthenticated ? `Hello, ${user?.name || 'User'}` : 'Hello, Sign in'}
-              </span>
+            {/* Account Dropdown */}
+            {isVendorAuthenticated || isAuthenticated ? (
+              // Show greeting text for authenticated users
               <div className="flex items-center space-x-3">
-                {isVendorAuthenticated ? (
-                  // Vendor authenticated menu
-                  <div className="flex items-center space-x-3">
-                    <NavLink
-                      to="/vendor/dashboard"
-                      className="flex items-center text-sm font-medium text-white hover:text-orange-500 transition-colors duration-200"
-                    >
-                      <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      Dashboard
-                    </NavLink>
-                    <button
-                      onClick={vendorLogout}
-                      className="flex items-center text-sm font-medium text-white hover:text-orange-500 transition-colors duration-200"
-                    >
-                      Logout
-                    </button>
+                <span className="text-white text-sm font-medium">
+                  {isVendorAuthenticated 
+                    ? `Hello, ${vendor?.businessName || vendor?.name || 'Vendor'}` 
+                    : `Hello, ${user?.name || 'User'}`}
+                </span>
+                <div className="relative group">
+                  <button className="flex items-center space-x-1 text-white hover:text-orange-500 transition-colors duration-200 px-3 py-2 rounded-md hover:bg-gray-700">
+                    <UserIcon className="w-5 h-5" />
+                    <ChevronDownIcon className="w-4 h-4" />
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                    <div className="py-2">
+                      {isVendorAuthenticated ? (
+                        <>
+                          <NavLink
+                            to="/vendor/dashboard"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors duration-150"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            Vendor Dashboard
+                          </NavLink>
+                          <hr className="my-1 border-gray-200" />
+                          <button
+                            onClick={vendorLogout}
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Logout
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <NavLink
+                            to="/profile"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors duration-150"
+                          >
+                            <UserIcon className="w-4 h-4 mr-2" />
+                            My Profile
+                          </NavLink>
+                          <NavLink
+                            to="/orders"
+                            className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors duration-150"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            My Orders
+                          </NavLink>
+                          <hr className="my-1 border-gray-200" />
+                          <button
+                            onClick={logout}
+                            className="flex items-center w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
+                          >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            </svg>
+                            Logout
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                ) : isAuthenticated ? (
-                  // Regular user authenticated menu
-                  <div className="flex items-center space-x-3">
-                    <NavLink
-                      to="/profile"
-                      className="flex items-center text-sm font-medium text-white hover:text-orange-500 transition-colors duration-200"
-                    >
-                      <UserIcon className="w-5 h-5 mr-1" />
-                      Profile
-                    </NavLink>
-                    <NavLink
-                      to="/orders"
-                      className="flex items-center text-sm font-medium text-white hover:text-orange-500 transition-colors duration-200"
-                    >
-                      <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      Orders
-                    </NavLink>
-                    <button
-                      onClick={logout}
-                      className="flex items-center text-sm font-medium text-white hover:text-orange-500 transition-colors duration-200"
-                    >
-                      Logout
-                    </button>
-                  </div>
-                ) : (
-                  // Guest user menu
-                  <>
+                </div>
+              </div>
+            ) : (
+              // Show single dropdown button for guest users
+              <div className="relative group">
+                <button className="flex items-center space-x-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-md transition-all duration-200 font-medium text-sm shadow-md hover:shadow-lg">
+                  <UserIcon className="w-5 h-5" />
+                  <span>Account</span>
+                  <ChevronDownIcon className="w-4 h-4" />
+                </button>
+                
+                {/* Dropdown Menu for Guest */}
+                <div className="absolute right-0 mt-2 w-52 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="py-2">
                     <NavLink
                       to="/login"
-                      className={({ isActive }) => `flex items-center text-sm font-medium ${
-                        isActive ? 'text-orange-500' : 'text-white hover:text-orange-500'
-                      } transition-colors duration-200`}
+                      className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors duration-150"
                     >
-                      <UserIcon className="w-5 h-5 mr-1" />
+                      <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                      </svg>
                       Login
                     </NavLink>
                     <NavLink
                       to="/register"
-                      className={({ isActive }) => `flex items-center text-sm font-medium ${
-                        isActive ? 'text-orange-500' : 'text-white hover:text-orange-500'
-                      } transition-colors duration-200`}
+                      className="flex items-center px-4 py-3 text-sm font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors duration-150"
                     >
+                      <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                      </svg>
                       Register
                     </NavLink>
+                    <hr className="my-1 border-gray-200" />
                     <NavLink
                       to="/vendor/login"
-                      className={({ isActive }) => `flex items-center text-sm font-medium ${
-                        isActive ? 'text-orange-500' : 'text-white hover:text-orange-500'
-                      } transition-colors duration-200`}
+                      className="flex items-center px-4 py-3 text-sm font-medium text-green-700 hover:bg-green-50 transition-colors duration-150"
                     >
-                      <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                       </svg>
                       Sell with Us
                     </NavLink>
-                  </>
-                )}
+                    <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100 mt-1">
+                      Become a vendor and start selling
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Cart */}
             <Link to="/cart" className="relative flex items-center space-x-1 text-white hover:text-orange-500 group transition-colors duration-200">
