@@ -99,41 +99,41 @@ const HeroSection = ({ banners = [] }) => {
   return (
     <div className="w-full bg-white">
       {/* Main Hero Banner - Amazon Professional Style - Responsive */}
-      <div className="relative w-full h-64 sm:h-80 md:h-96 overflow-hidden">
+      <div className="relative w-full h-32 sm:h-40 md:h-48 overflow-hidden">
         <div 
           className="absolute inset-0 transition-all duration-1000 ease-in-out"
           style={{ backgroundColor: currentSlideData.bgColor }}
         >
-          <div className="container mx-auto px-4 sm:px-6 h-full flex items-center">
-            <div className="flex flex-col md:flex-row w-full items-center justify-between gap-4 md:gap-0">
+          <div className="container mx-auto px-3 sm:px-4 h-full flex items-center">
+            <div className="flex w-full items-center justify-between gap-2 sm:gap-3 md:gap-4">
               
-              {/* Left Side - Professional Text Content */}
-              <div className="flex-1 max-w-md z-10 text-center md:text-left">
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold text-white mb-3 md:mb-4 leading-tight">
+              {/* Left - Professional Text Content */}
+              <div className="flex-shrink-0 z-10 text-left ml-4 sm:ml-6 md:ml-8">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1 sm:mb-2 leading-tight">
                   {currentSlideData.title}
                 </h1>
                 {/* Shop now button - Navigate to category group page */}
                 {currentSlideData.category?.name ? (
                   <Link 
                     to={`/category-group/${currentSlideData.category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
-                    className="inline-block bg-white text-gray-900 px-6 py-2 sm:px-8 sm:py-3 rounded-md font-semibold hover:bg-gray-100 transition-colors duration-200 shadow-lg text-sm sm:text-base"
+                    className="inline-block bg-white text-gray-900 px-4 py-1.5 sm:px-5 sm:py-2 rounded-md font-semibold hover:bg-gray-100 transition-colors duration-200 shadow-lg text-xs sm:text-sm"
                   >
                     Shop now
                   </Link>
                 ) : (
                   <Link 
                     to="/products"
-                    className="inline-block bg-white text-gray-900 px-6 py-2 sm:px-8 sm:py-3 rounded-md font-semibold hover:bg-gray-100 transition-colors duration-200 shadow-lg text-sm sm:text-base"
+                    className="inline-block bg-white text-gray-900 px-4 py-1.5 sm:px-5 sm:py-2 rounded-md font-semibold hover:bg-gray-100 transition-colors duration-200 shadow-lg text-xs sm:text-sm"
                   >
                     Shop now
                   </Link>
                 )}
               </div>
               
-              {/* Right Side - Professional Product Showcase - Responsive */}
-              <div className="flex-1 flex justify-center md:justify-end items-center space-x-2 sm:space-x-4">
-                {/* Main Featured Product - Responsive sizes */}
-                <div className="relative">
+              {/* Right - All Product Images in Horizontal Row - Same Size */}
+              <div className="flex justify-end items-center gap-0 flex-shrink-0">
+                {/* Main Featured Product - Same size as others */}
+                <div className="relative flex-shrink-0">
                   {currentSlideData.mainProduct.id ? (
                     <Link to={`/product/${currentSlideData.mainProduct.id}`}>
                       <img 
@@ -141,9 +141,9 @@ const HeroSection = ({ banners = [] }) => {
                         alt={currentSlideData.mainProduct.title}
                         loading="eager"
                         fetchpriority="high"
-                        className="w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-cover rounded-lg shadow-xl hover:scale-105 transition-transform duration-200 cursor-pointer"
+                        className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
                         onError={(e) => {
-                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">${currentSlideData.mainProduct.title}</text></svg>`;
+                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
                         }}
                       />
                     </Link>
@@ -153,40 +153,40 @@ const HeroSection = ({ banners = [] }) => {
                       alt={currentSlideData.mainProduct.title}
                       loading="eager"
                       fetchpriority="high"
-                      className="w-32 h-32 sm:w-48 sm:h-48 md:w-64 md:h-64 lg:w-80 lg:h-80 object-cover rounded-lg shadow-xl"
+                      className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md"
                       onError={(e) => {
-                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">${currentSlideData.mainProduct.title}</text></svg>`;
+                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
                       }}
                     />
                   )}
-                </div>                {/* Secondary Products Stack - Each clickable - Responsive */}
-                <div className="flex flex-col space-y-1 sm:space-y-2">
-                  {currentSlideData.secondaryProducts.slice(0, 3).map((productItem, index) => (
-                    <div key={index} className="relative">
-                      {productItem.id ? (
-                        <Link to={`/product/${productItem.id}`}>
-                          <img 
-                            src={productItem.image}
-                            alt={productItem.title || `Product ${index + 1}`}
-                            className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 object-cover rounded-md shadow-lg hover:scale-105 transition-transform duration-200 cursor-pointer"
+                </div>
+                
+                {/* Secondary Products - Horizontal layout - Same size as main */}
+                {currentSlideData.secondaryProducts.slice(0, 3).map((productItem, index) => (
+                  <div key={index} className="relative flex-shrink-0">
+                    {productItem.id ? (
+                      <Link to={`/product/${productItem.id}`}>
+                        <img 
+                          src={productItem.image}
+                          alt={productItem.title || `Featured Product ${index + 1}`}
+                          className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
                             onError={(e) => {
-                              e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Item</text></svg>`;
+                              e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
                             }}
                           />
                         </Link>
                       ) : (
-                        <img 
-                          src={productItem.image}
-                          alt={productItem.title || `Product ${index + 1}`}
-                          className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 object-cover rounded-md shadow-lg hover:scale-105 transition-transform duration-200"
+                      <img 
+                        src={productItem.image}
+                        alt={productItem.title || `Featured Product ${index + 1}`}
+                        className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200"
                           onError={(e) => {
-                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" viewBox="0 0 96 96"><rect width="96" height="96" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Item</text></svg>`;
+                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
                           }}
                         />
                       )}
                     </div>
                   ))}
-                </div>
               </div>
             </div>
           </div>
@@ -195,30 +195,17 @@ const HeroSection = ({ banners = [] }) => {
         {/* Professional Navigation Arrows - Responsive */}
         <button 
           onClick={prevSlide}
-          className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-2 sm:p-3 shadow-lg transition-all duration-200 hover:scale-110"
+          className="absolute left-0 sm:left-1 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-lg transition-all duration-200 hover:scale-110"
         >
-          <ChevronLeft className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
+          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700" />
         </button>
         
         <button 
           onClick={nextSlide}
-          className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-2 sm:p-3 shadow-lg transition-all duration-200 hover:scale-110"
+          className="absolute right-0 sm:right-1 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-lg transition-all duration-200 hover:scale-110"
         >
-          <ChevronRight className="w-4 h-4 sm:w-6 sm:h-6 text-gray-700" />
+          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700" />
         </button>
-
-        {/* Professional Slide Indicators - Responsive */}
-        <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-1 sm:space-x-2">
-          {heroSlides.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => setCurrentSlide(index)}
-              className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full transition-all duration-200 ${
-                index === currentSlide ? 'bg-white' : 'bg-white bg-opacity-50 hover:bg-opacity-75'
-              }`}
-            />
-          ))}
-        </div>
       </div>
 
       {/* Dynamic Homepage Cards */}
