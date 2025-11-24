@@ -476,52 +476,6 @@ const ProductDetailPage = () => {
       </Helmet>
       
       <div className="max-w-7xl mx-auto px-4 sm:px-4 lg:px-6 py-2 lg:py-1">
-        
-        {/* SEO-Enhanced Breadcrumb Navigation */}
-        <nav className="mb-2 lg:mb-1" aria-label="Breadcrumb">
-          <ol className="flex items-center space-x-2 text-sm" itemScope itemType="https://schema.org/BreadcrumbList">
-            {breadcrumbs.map((crumb, index) => (
-              <li key={index} className="flex items-center" itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
-                {index > 0 && <span className="text-gray-400 mx-2">/</span>}
-                {crumb.url ? (
-                  <button 
-                    onClick={() => navigate(crumb.url)} 
-                    className="text-orange-500 hover:text-orange-600 transition-colors"
-                    itemProp="item"
-                  >
-                    <span itemProp="name">{crumb.name}</span>
-                  </button>
-                ) : (
-                  <span className="text-gray-600 font-medium" itemProp="name">
-                    {crumb.name}
-                  </span>
-                )}
-                <meta itemProp="position" content={index + 1} />
-              </li>
-            ))}
-          </ol>
-        </nav>
-
-        {/* Fallback simple breadcrumb if breadcrumbs array is empty */}
-        {breadcrumbs.length === 0 && (
-          <nav className="mb-1 lg:mb-0" aria-label="Simple Breadcrumb">
-            <ol className="flex items-center space-x-2 text-sm">
-              <li>
-                <button onClick={() => navigate("/")} className="text-orange-500 hover:text-orange-600">
-                  Home
-                </button>
-              </li>
-              <li className="text-gray-400">/</li>
-              <li>
-                <button onClick={() => navigate("/products")} className="text-orange-500 hover:text-orange-600">
-                  Products
-                </button>
-              </li>
-              <li className="text-gray-400">/</li>
-              <li className="text-gray-600">{product?.title || 'Product'}</li>
-            </ol>
-          </nav>
-        )}
 
         {/* Product Details */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">

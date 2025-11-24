@@ -55,10 +55,21 @@ const ProductInfo = ({
 
       {/* Description */}
       <div>
-        <h3 className="text-lg font-semibold mb-2">Description</h3>
-        <p className="text-gray-600 leading-relaxed text-justify">
-          {product?.description || 'No description available'}
-        </p>
+        <h3 className="text-lg font-semibold mb-3">Description</h3>
+        <div className="text-gray-600 leading-relaxed">
+          {product?.description ? (
+            <ul className="list-none space-y-2">
+              {product.description.split(/[.!?]\s+/).filter(sentence => sentence.trim()).map((sentence, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-orange-500 font-bold mr-2 mt-1">•</span>
+                  <span className="flex-1">{sentence.trim()}{sentence.match(/[.!?]$/) ? '' : '.'}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-gray-400">No description available</p>
+          )}
+        </div>
       </div>
 
       {/* Categories */}
@@ -66,24 +77,17 @@ const ProductInfo = ({
         const mainCategories = extractCategoryNames(product?.mainCategory);
         const subCategories = extractCategoryNames(product?.subCategory);
         const categories = extractCategoryNames(product?.category);
-        const hasAnyCategories = mainCategories.length > 0 || subCategories.length > 0 || categories.length > 0;
+        
+        // Combine all categories and remove duplicates
+        const allCategories = [...new Set([...mainCategories, ...subCategories, ...categories])];
+        const hasAnyCategories = allCategories.length > 0;
         
         return hasAnyCategories && (
           <div>
             <h3 className="text-lg font-semibold mb-2">Categories</h3>
             <div className="flex flex-wrap gap-2">
-              {mainCategories.map((catName, index) => (
+              {allCategories.map((catName, index) => (
                 <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-                  {catName}
-                </span>
-              ))}
-              {subCategories.map((catName, index) => (
-                <span key={index} className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm">
-                  {catName}
-                </span>
-              ))}
-              {categories.map((catName, index) => (
-                <span key={index} className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm">
                   {catName}
                 </span>
               ))}
@@ -174,19 +178,6 @@ const ProductInfo = ({
             </button>
           </div>
         </div>
-
-        {/* Stock availability indicator */}
-        {product?.stock !== undefined && (
-          <div className="text-sm text-gray-600">
-            {product.stock > 0 ? (
-              <span>
-                <strong>{product.stock}</strong> items available
-              </span>
-            ) : (
-              <span className="text-red-600 font-medium">Out of stock</span>
-            )}
-          </div>
-        )}
 
         <div className="flex gap-3">
           <button
