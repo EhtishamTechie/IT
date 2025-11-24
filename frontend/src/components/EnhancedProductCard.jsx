@@ -157,21 +157,21 @@ const EnhancedProductCard = ({
     return null;
   };
 
-  // Size classes
+  // Size classes - reduced to half
   const sizeClasses = {
-    small: 'w-full max-w-[250px]',
-    normal: 'w-full max-w-[300px]',
-    large: 'w-full max-w-[350px]',
-    wide: 'w-full max-w-[400px]',
-    tall: 'w-full max-w-[300px]'
+    small: 'w-full max-w-[125px]',
+    normal: 'w-full max-w-[150px]',
+    large: 'w-full max-w-[175px]',
+    wide: 'w-full max-w-[200px]',
+    tall: 'w-full max-w-[150px]'
   };
 
   const heightClasses = {
-    small: 'h-[240px] sm:h-[300px]',
-    normal: 'h-[260px] sm:h-[350px]',
-    large: 'h-[280px] sm:h-[400px]',
-    wide: 'h-[240px] sm:h-[300px]',
-    tall: 'h-[320px] sm:h-[450px]'
+    small: 'h-[120px] sm:h-[150px]',
+    normal: 'h-[130px] sm:h-[175px]',
+    large: 'h-[140px] sm:h-[200px]',
+    wide: 'h-[120px] sm:h-[150px]',
+    tall: 'h-[160px] sm:h-[225px]'
   };
 
   return (
@@ -207,8 +207,9 @@ const EnhancedProductCard = ({
         )}
       </div>
 
-      {/* Media Container */}
-      <div className="relative w-full aspect-square overflow-hidden rounded-t-xl bg-gray-100">
+      {/* Media Container - Square 1:1 aspect ratio for images */}
+      <div className="relative w-full overflow-hidden rounded-t-xl bg-gray-100" style={{ paddingBottom: '100%', height: 0 }}>
+        <div className="absolute inset-0" style={{ width: '100%', height: '100%' }}>
         {/* Video - shown on hover if available */}
         {product.video && !videoError && (
           <video
@@ -269,38 +270,24 @@ const EnhancedProductCard = ({
           absolute inset-0 bg-black/20 transition-opacity duration-300
           ${isHovered ? 'opacity-100' : 'opacity-0'}
         `} />
+        </div>
       </div>
 
       {/* Product Info */}
-      <div className="p-4 flex flex-col h-auto min-h-[140px]">
+      <div className="p-2 flex flex-col h-auto min-h-[80px]">
         {/* Product Title */}
-        <h3 className="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2 group-hover:text-orange-600 transition-colors min-h-[2.5rem]">
+        <h3 className="font-semibold text-gray-900 text-[10px] leading-tight mb-1 line-clamp-2 group-hover:text-orange-600 transition-colors min-h-[1.5rem]">
           {product.title || 'Untitled Product'}
         </h3>
 
-        {/* Vendor Information */}
-        <div className="mb-2">
-          {product.vendor ? (
-            <p className="text-xs text-gray-500">
-              by <span className="text-green-600 font-medium">
-                {typeof product.vendor === 'object' ? product.vendor.businessName : product.vendor}
-              </span>
-            </p>
-          ) : (
-            <p className="text-xs text-gray-500">
-              by <span className="text-blue-600 font-medium">International Tijarat</span>
-            </p>
-          )}
-        </div>
-
         {/* Price Section */}
-        <div className="flex items-center justify-between mb-2 sm:mb-3">
+        <div className="flex items-center justify-between mb-1">
           <div className="flex flex-col">
-            <span className="text-xs sm:text-lg font-bold text-gray-900">
+            <span className="text-[10px] font-bold text-gray-900">
                PKR {product.price || '0.00'}
             </span>
             {product.originalPrice && product.originalPrice > product.price && (
-              <span className="text-xs sm:text-sm text-gray-500 line-through">
+              <span className="text-[8px] text-gray-500 line-through">
                 PKR {product.originalPrice}
               </span>
             )}
@@ -310,162 +297,38 @@ const EnhancedProductCard = ({
           <div className="text-right">
             {product.stock !== undefined ? (
               product.stock > 0 ? (
-                <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">In Stock</span>
+                <span className="text-[8px] text-green-600 font-medium bg-green-50 px-1 py-0.5 rounded-full">In Stock</span>
               ) : (
-                <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded-full">Out of Stock</span>
+                <span className="text-[8px] text-red-600 font-medium bg-red-50 px-1 py-0.5 rounded-full">Out of Stock</span>
               )
             ) : (
-              <span className="text-xs text-gray-500 bg-gray-50 px-2 py-1 rounded-full">Stock N/A</span>
+              <span className="text-[8px] text-gray-500 bg-gray-50 px-1 py-0.5 rounded-full">Stock N/A</span>
             )}
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-auto">
-          {/* Both Add to Cart and Buy Now buttons */}
-          {showAddToCart && showBuyNow && (
-            <div className="space-y-2">
-              <button
-                onClick={handleAddToCart}
-                disabled={isAddingToCart || !product.stock}
-                className={`
-                  w-full py-2.5 px-3 rounded-lg font-medium text-sm transition-all duration-200 
-                  flex items-center justify-center gap-2
-                  ${isAddingToCart 
-                    ? 'bg-orange-400 text-white cursor-not-allowed' 
-                    : isInCart && cartQuantity > 0
-                    ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                    : !product.stock
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02]'
-                  }
-                `}
-                title={errorMessage || ''}
-              >
-                <ShoppingCart className="w-4 h-4" />
-                <span>
-                  {isAddingToCart 
-                    ? 'Adding...' 
-                    : isInCart && cartQuantity > 0 
-                    ? `In Cart (${cartQuantity})`
-                    : !product.stock
-                    ? 'Out of Stock'
-                    : 'Add to Cart'
-                  }
-                </span>
-              </button>
-              
-              <button
-                onClick={handleBuyNow}
-                disabled={isAddingToCart || !product.stock}
-                className={`
-                  w-full py-2.5 px-3 rounded-lg font-medium text-sm transition-all duration-200 
-                  flex items-center justify-center gap-2
-                  ${isAddingToCart || !product.stock
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02]'
-                  }
-                `}
-              >
-                <ShoppingBag className="w-4 h-4" />
-                <span>Buy Now</span>
-              </button>
-            </div>
-          )}
-
-          {/* Only Add to Cart button */}
-          {showAddToCart && !showBuyNow && (
-            <button
-              onClick={handleAddToCart}
-              disabled={isAddingToCart || !product.stock}
-              className={`
-                w-full py-2.5 px-3 rounded-lg font-medium text-sm transition-all duration-200 
-                flex items-center justify-center gap-2
-                ${isAddingToCart 
-                  ? 'bg-orange-400 text-white cursor-not-allowed' 
-                  : isInCart && cartQuantity > 0
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : !product.stock
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-orange-500 hover:bg-orange-600 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02]'
-                }
-              `}
-              title={errorMessage || ''}
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>
-                {isAddingToCart 
-                  ? 'Adding...' 
-                  : isInCart && cartQuantity > 0 
-                  ? `In Cart (${cartQuantity})`
-                  : !product.stock
-                  ? 'Out of Stock'
-                  : 'Add to Cart'
-                }
-              </span>
-            </button>
-          )}
-
-          {/* Only Buy Now button */}
-          {!showAddToCart && showBuyNow && (
-            <button
-              onClick={handleBuyNow}
-              disabled={isAddingToCart || !product.stock}
-              className={`
-                w-full py-2.5 px-3 rounded-lg font-medium text-sm transition-all duration-200 
-                flex items-center justify-center gap-2
-                ${isAddingToCart || !product.stock
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg transform hover:scale-[1.02]'
-                }
-              `}
-            >
-              <ShoppingBag className="w-4 h-4" />
-              <span>Buy Now</span>
-            </button>
-          )}
-
-          {/* Fallback: default add to cart button */}
-          {!showAddToCart && !showBuyNow && (
-            <button
-              onClick={handleAddToCart}
-              className="w-full py-2.5 rounded-lg bg-orange-500 text-white hover:bg-orange-600 transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-[1.02] flex items-center justify-center gap-2"
-            >
-              <ShoppingCart className="w-4 h-4" />
-              <span>Add to Cart</span>
-            </button>
-          )}
-
-          {/* Error Message Display */}
-          {errorMessage && (
-            <div className="mt-2 text-xs text-red-600 text-center bg-red-50 py-1 px-2 rounded border">
-              {errorMessage}
-            </div>
-          )}
-
-          {/* Rating if available */}
-          {product.rating && (
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center gap-1">
-                <div className="flex">
-                  {[...Array(5)].map((_, i) => (
-                    <span
-                      key={i}
-                      className={`text-xs ${
-                        i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'
-                      }`}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-                <span className="text-xs text-gray-600">
-                  ({product.reviewCount || 0})
-                </span>
+        {/* Rating if available */}
+        {product.rating && (
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-1">
+              <div className="flex">
+                {[...Array(5)].map((_, i) => (
+                  <span
+                    key={i}
+                    className={`text-xs ${
+                      i < Math.floor(product.rating) ? 'text-yellow-400' : 'text-gray-300'
+                    }`}
+                  >
+                    ★
+                  </span>
+                ))}
               </div>
+              <span className="text-xs text-gray-600">
+                ({product.reviewCount || 0})
+              </span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
       
       {/* Size Selection Modal - Rendered via Portal to be completely outside card DOM */}

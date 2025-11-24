@@ -425,72 +425,55 @@ const AllProductsPage = () => {
 
       {/* Enhanced Modern Header */}
       <div className="bg-white shadow-lg border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Breadcrumb Navigation */}
-          <nav className="flex items-center space-x-2 text-sm mb-4" aria-label="Breadcrumb">
-            {breadcrumbs.map((crumb, index) => (
-              <div key={index} className="flex items-center">
-                {index > 0 && (
-                  <svg className="w-4 h-4 text-gray-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-                {index === breadcrumbs.length - 1 ? (
-                  <span className="text-gray-900 font-medium">{crumb.name}</span>
-                ) : (
-                  <a 
-                    href={crumb.url} 
-                    className="text-blue-600 hover:text-blue-800 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate(crumb.url);
-                    }}
-                  >
-                    {crumb.name}
-                  </a>
-                )}
-              </div>
-            ))}
-          </nav>
-
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             {/* Title and Stats */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-xl font-bold text-gray-900 mb-1">
                 All Products
               </h1>
             </div>
 
             {/* Sort and Filter Controls */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-hidden">
+            <div className="flex flex-col sm:flex-row gap-2 overflow-hidden">
               {/* Category Filter */}
-              <div className="w-full sm:min-w-[200px] sm:flex-1 relative">
+              <div className="w-full sm:w-[180px] relative">
                 <select 
                   value={filters.category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full max-w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors truncate"
+                  className="w-full appearance-none px-3 py-2 pr-8 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all shadow-sm hover:border-gray-400 cursor-pointer"
                 >
                   <option value="">All Categories</option>
                   {categories.map((category, index) => (
-                    <option key={`category-${index}`} value={category} className="truncate">
+                    <option key={`category-${index}`} value={category}>
                       {category}
                     </option>
                   ))}
                 </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
 
               {/* Sort Dropdown */}
-              <div className="w-full sm:min-w-[200px] sm:flex-1 relative">
+              <div className="w-full sm:w-[180px] relative">
                 <select 
                   value={filters.sortBy}
                   onChange={(e) => handleSortChange(e.target.value)}
-                  className="w-full max-w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors truncate"
+                  className="w-full appearance-none px-3 py-2 pr-8 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm font-medium focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all shadow-sm hover:border-gray-400 cursor-pointer"
                 >
                   <option value="relevance">Sort by Relevance</option>
                   <option value="price-low">Price: Low to High</option>
                   <option value="price-high">Price: High to Low</option>
                   <option value="newest">Newest First</option>
                 </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -498,8 +481,8 @@ const AllProductsPage = () => {
       </div>
 
       {/* Products Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
           {filteredAndSortedProducts.map((product, index) => (
             <div
               key={product._id}
