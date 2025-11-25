@@ -99,10 +99,10 @@ router.post('/', authenticateAdmin, upload.fields([
     const { title, type, order, mainCategory, linkText, subcategoryData } = req.body;
     
     // Validate required fields
-    if (!title || !type || !order || !mainCategory) {
+    if (!title || !type || !order) {
       return res.status(400).json({
         success: false,
-        message: 'Title, type, order, and main category are required'
+        message: 'Title, type, and order are required'
       });
     }
 
@@ -115,20 +115,22 @@ router.post('/', authenticateAdmin, upload.fields([
       });
     }
 
-    // Validate category exists
-    const category = await Category.findById(mainCategory);
-    if (!category) {
-      return res.status(400).json({
-        success: false,
-        message: 'Main category not found'
-      });
+    // Validate category exists (if provided)
+    if (mainCategory) {
+      const category = await Category.findById(mainCategory);
+      if (!category) {
+        return res.status(400).json({
+          success: false,
+          message: 'Main category not found'
+        });
+      }
     }
 
     const cardData = {
       title,
       type,
       order: parseInt(order),
-      mainCategory,
+      mainCategory: mainCategory || null,
       linkText: linkText || 'Shop now'
     };
 
@@ -279,7 +281,7 @@ router.put('/:id', authenticateAdmin, upload.fields([
     if (title) card.title = title;
     if (type) card.type = type;
     if (order) card.order = parseInt(order);
-    if (mainCategory) card.mainCategory = mainCategory;
+    if (mainCategory !== undefined) card.mainCategory = mainCategory || null;
     if (linkText) card.linkText = linkText;
 
     // Handle image updates based on type
@@ -367,8 +369,21 @@ router.put('/:id', authenticateAdmin, upload.fields([
 router.delete('/:id', authenticateAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    
+    console.log('[DELETE Card] Attempting to delete card with ID:', id);
+    
+    // Validate ObjectId format
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log('[DELETE Card] Invalid ObjectId format:', id);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid card ID format'
+      });
+    }
 
     const card = await HomepageCard.findById(id);
+    console.log('[DELETE Card] Card found:', card ? 'Yes' : 'No');
+    
     if (!card) {
       return res.status(404).json({
         success: false,

@@ -41,7 +41,7 @@ const CardManagement = () => {
   const [editingCard, setEditingCard] = useState(null);
   const [formData, setFormData] = useState({
     title: '',
-    type: 'main-category',
+    type: 'subcategories',
     order: 1,
     mainCategory: '',
     linkText: 'Shop now',
@@ -73,12 +73,16 @@ const CardManagement = () => {
       
       // Fetch both admin and vendor categories to show all in dropdowns
       const [cardsResponse, adminCategoriesResponse, vendorCategoriesResponse] = await Promise.all([
-        API.get(getApiUrl('homepage/cards')),
-        API.get(getApiUrl('admin/categories')), // Admin categories
-        API.get(getApiUrl('categories')) // All categories (includes vendor)
+        API.get('/homepage/cards/admin'), // Use admin endpoint to get all cards including inactive
+        API.get('/admin/categories'), // Admin categories
+        API.get('/categories') // All categories (includes vendor)
       ]);
 
       setCards(cardsResponse.data.cards || []);
+      
+      // Debug: Log all card IDs
+      const cardIds = (cardsResponse.data.cards || []).map(c => ({ id: c._id, order: c.order, title: c.title }));
+      console.log('[CardManagement] Loaded cards:', cardIds);
       
       // Combine admin and vendor categories
       const adminCategories = adminCategoriesResponse.data.data || adminCategoriesResponse.data || [];
@@ -111,7 +115,7 @@ const CardManagement = () => {
 
   const fetchSubcategories = async (mainCategoryId) => {
     try {
-      const response = await API.get(getApiUrl(`categories/${mainCategoryId}/subcategories`));
+      const response = await API.get(`/categories/${mainCategoryId}/subcategories`);
       const allSubcategories = response.data || [];
       
       // Use categoryMap for subcategories (by main category ID)
@@ -130,27 +134,11 @@ const CardManagement = () => {
   };
 
   const handleMainCategoryChange = (categoryId) => {
-    console.log('[CardManagement] Main category changed to:', categoryId);
-    setFormData(prev => {
-      const newFormData = { ...prev, mainCategory: categoryId };
-      // Fetch subcategories if this is a subcategories type card
-      if (categoryId && newFormData.type === 'subcategories') {
-        fetchSubcategories(categoryId);
-      }
-      return newFormData;
-    });
+    setFormData(prev => ({ ...prev, mainCategory: categoryId }));
   };
 
   const handleTypeChange = (type) => {
-    console.log('[CardManagement] Card type changed to:', type);
-    setFormData(prev => {
-      const newFormData = { ...prev, type };
-      // Fetch subcategories if switching to subcategories type and category is selected
-      if (type === 'subcategories' && newFormData.mainCategory) {
-        fetchSubcategories(newFormData.mainCategory);
-      }
-      return newFormData;
-    });
+    setFormData(prev => ({ ...prev, type }));
   };
 
   const handleSubcategoryItemChange = (index, field, value) => {
@@ -185,13 +173,13 @@ const CardManagement = () => {
       setEditingCard(card);
       setFormData({
         title: card.title,
-        type: card.type,
+        type: 'subcategories',
         order: card.order,
-        mainCategory: card.mainCategory._id,
+        mainCategory: '',
         linkText: card.linkText || 'Shop now',
         subcategoryItems: card.subcategoryItems?.map(item => ({
           name: item.name,
-          categoryId: item.category._id
+          categoryId: item.category?._id || item.categoryId
         })) || [
           { name: '', categoryId: '' },
           { name: '', categoryId: '' },
@@ -199,14 +187,11 @@ const CardManagement = () => {
           { name: '', categoryId: '' }
         ]
       });
-      if (card.type === 'subcategories' && card.mainCategory._id) {
-        fetchSubcategories(card.mainCategory._id);
-      }
     } else {
       setEditingCard(null);
       setFormData({
         title: '',
-        type: 'main-category',
+        type: 'subcategories',
         order: getNextAvailableOrder(),
         mainCategory: '',
         linkText: 'Shop now',
@@ -251,22 +236,28 @@ const CardManagement = () => {
     try {
       // Validation for subcategories type
       if (formData.type === 'subcategories') {
+        console.log('Validating subcategory items...');
         // Check all subcategory items have name and categoryId
         for (let i = 0; i < 4; i++) {
           const item = formData.subcategoryItems[i];
+          console.log(`Checking item ${i + 1}:`, item);
+          console.log(`Image for item ${i + 1}:`, images[`subcategoryImage${i + 1}`]);
+          console.log(`Existing image for item ${i + 1}:`, editingCard?.subcategoryItems?.[i]?.image);
+          
           if (!item.name || !item.categoryId) {
-            toast.error(`Subcategory item ${i + 1} must have both name and category selected`);
+            toast.error(`Category item ${i + 1} must have both name and category selected`);
             setLoading(false);
             return;
           }
           
           // Check corresponding image exists (new image or existing image for updates)
-          if (!images[`subcategoryImage${i + 1}`] && (!editingCard || !editingCard.subcategories?.[i]?.image)) {
-            toast.error(`Image for subcategory item ${i + 1} is required`);
+          if (!images[`subcategoryImage${i + 1}`] && (!editingCard || !editingCard.subcategoryItems?.[i]?.image)) {
+            toast.error(`Image for category item ${i + 1} is required`);
             setLoading(false);
             return;
           }
         }
+        console.log('All subcategory items validated successfully');
       }
 
       // Validation for main-category type (check for new image or existing image for updates)
@@ -310,15 +301,15 @@ const CardManagement = () => {
 
       if (editingCard) {
         console.log('CardManagement: Updating existing card with ID:', editingCard._id);
-        console.log('CardManagement: Update URL:', getApiUrl(`homepage/cards/${editingCard._id}`));
-        await API.put(getApiUrl(`homepage/cards/${editingCard._id}`), formDataToSend, {
+        console.log('CardManagement: Update URL:', `/homepage/cards/${editingCard._id}`);
+        await API.put(`/homepage/cards/${editingCard._id}`, formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         console.log('CardManagement: Card updated successfully');
         toast.success('Card updated successfully');
       } else {
         console.log('CardManagement: Creating new card');
-        await API.post(getApiUrl('homepage/cards'), formDataToSend, {
+        await API.post('/homepage/cards', formDataToSend, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         toast.success('Card created successfully');
@@ -339,13 +330,18 @@ const CardManagement = () => {
   const handleDelete = async (cardId) => {
     if (!window.confirm('Are you sure you want to delete this card?')) return;
 
+    console.log('[CardManagement] Deleting card with ID:', cardId);
+
     try {
-      await API.delete(getApiUrl(`homepage/cards/${cardId}`));
+      // Use relative path since API instance already has baseURL configured
+      const response = await API.delete(`/homepage/cards/${cardId}`);
+      console.log('[CardManagement] Delete response:', response);
       toast.success('Card deleted successfully');
       fetchData();
     } catch (err) {
       console.error('Error deleting card:', err);
-      toast.error('Failed to delete card');
+      console.error('Error response:', err.response);
+      toast.error(err.response?.data?.message || 'Failed to delete card');
     }
   };
 
@@ -541,19 +537,7 @@ const CardManagement = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Card Type *
-                  </label>
-                  <select
-                    value={formData.type}
-                    onChange={(e) => handleTypeChange(e.target.value)}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="main-category">Single Category (1 image)</option>
-                    <option value="subcategories">Subcategories (4 images)</option>
-                  </select>
-                </div>
+
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -593,55 +577,9 @@ const CardManagement = () => {
                 </div>
               </div>
 
-              {/* Main Category */}
+              {/* Category Items */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Main Category *
-                </label>
-                <select
-                  value={formData.mainCategory}
-                  onChange={(e) => handleMainCategoryChange(e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Main Image for single category type */}
-              {formData.type === 'main-category' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Main Image *
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageChange('mainImage', e.target.files[0])}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required={!editingCard}
-                  />
-                  {editingCard?.mainImage && (
-                    <div className="mt-2">
-                      <img
-                        src={getCardImageUrl(editingCard)}
-                        alt="Current main image"
-                        className="w-32 h-24 object-cover rounded"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Subcategory Items for subcategories type */}
-              {formData.type === 'subcategories' && (
-                <div>
-                  <h4 className="text-lg font-medium text-gray-900 mb-3">Subcategory Items (4 required)</h4>
+                <h4 className="text-lg font-medium text-gray-900 mb-3">Category Items (4 images)</h4>
                   <div className="space-y-4">
                     {formData.subcategoryItems.map((item, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-4">
@@ -662,7 +600,7 @@ const CardManagement = () => {
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Subcategory *
+                              Category *
                             </label>
                             <select
                               value={item.categoryId}
@@ -670,10 +608,10 @@ const CardManagement = () => {
                               className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                               required
                             >
-                              <option value="">Select subcategory</option>
-                              {(categoryMap[formData.mainCategory] || []).map(subcat => (
-                                <option key={subcat._id} value={subcat._id}>
-                                  {subcat.name}
+                              <option value="">Select category</option>
+                              {categories.map(category => (
+                                <option key={category._id} value={category._id}>
+                                  {category.name}
                                 </option>
                               ))}
                             </select>
@@ -705,7 +643,6 @@ const CardManagement = () => {
                     ))}
                   </div>
                 </div>
-              )}
 
               {/* Submit Buttons */}
               <div className="flex justify-end space-x-3 pt-4 border-t">

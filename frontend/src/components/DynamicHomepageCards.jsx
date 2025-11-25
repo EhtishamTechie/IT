@@ -30,8 +30,9 @@ const DynamicHomepageCards = () => {
 
     console.log('Fetching fresh homepage cards data');
     try {
-      const response = await API.get(getApiUrl('homepage/cards'));
+      const response = await API.get('/homepage/cards');
       const data = response.data.cards || [];
+      console.log('Homepage cards received:', data.length);
       setCards(data);
       
       // Update cache

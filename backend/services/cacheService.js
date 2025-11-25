@@ -116,9 +116,9 @@ class CacheService {
 
       // Clear memory cache by pattern
       const keys = this.memoryCache.keys();
-      const patternBase = pattern.replace('*', '');
+      const patternBase = pattern.replace(/\*/g, '');
       keys.forEach(key => {
-        if (key.startsWith(patternBase) || key.includes('/products') || key.includes('/categories')) {
+        if (key.startsWith(patternBase) || key.includes('/products') || key.includes('/categories') || key.includes('/homepage')) {
           logger.debug(`Clearing cache key: ${key}`);
           this.memoryCache.del(key);
         }

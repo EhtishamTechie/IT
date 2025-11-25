@@ -37,7 +37,7 @@ const homepageCardSchema = new mongoose.Schema({
   mainCategory: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    required: true
+    required: false
   },
   mainImage: {
     type: String,
