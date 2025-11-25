@@ -405,48 +405,21 @@ const GroupCategoryPage = () => {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          {/* Breadcrumb Navigation */}
-          <nav className="flex items-center space-x-2 text-sm mb-4" aria-label="Breadcrumb">
-            {breadcrumbs.map((crumb, index) => (
-              <div key={index} className="flex items-center">
-                {index > 0 && (
-                  <svg className="w-4 h-4 text-gray-400 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                )}
-                {index === breadcrumbs.length - 1 ? (
-                  <span className="text-gray-900 font-medium">{crumb.name}</span>
-                ) : (
-                  <a 
-                    href={crumb.url} 
-                    className="text-blue-600 hover:text-blue-800 transition-colors"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      navigate(crumb.url);
-                    }}
-                  >
-                    {crumb.name}
-                  </a>
-                )}
-              </div>
-            ))}
-          </nav>
-
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 capitalize">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900 capitalize">
                 {displayGroup} Products
               </h1>
             </div>
             
             {/* Controls */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 overflow-hidden">
-              <div className="w-full sm:min-w-[200px] sm:flex-1 relative">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 overflow-hidden">
+              <div className="w-full sm:min-w-[180px] sm:flex-1 relative">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full max-w-full px-3 py-2 sm:px-4 sm:py-3 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm sm:text-base focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors truncate"
+                  className="w-full max-w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-colors truncate"
                 >
                   <option value="newest">Newest First</option>
                   <option value="price-low">Price: Low to High</option>
@@ -460,7 +433,7 @@ const GroupCategoryPage = () => {
       </div>
 
       {/* Products */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
 
 
         {products.length === 0 && !loading ? (
@@ -474,7 +447,7 @@ const GroupCategoryPage = () => {
             <p className="text-gray-500">No products available in this category yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1">
             {sortedProducts.map((product, index) => (
               <div
                 key={product._id}
@@ -497,23 +470,23 @@ const GroupCategoryPage = () => {
 
         {/* Loading More Indicator */}
         {loadingMore && (
-          <div className="text-center mt-12 mb-8">
-            <div className="inline-flex items-center space-x-2 bg-white rounded-full px-6 py-3 shadow-lg border border-gray-100">
+          <div className="text-center mt-6 mb-4">
+            <div className="inline-flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow-lg border border-gray-100">
               <div className="relative">
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-gray-200"></div>
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-orange-500 border-t-transparent absolute top-0 left-0"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-gray-200"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-orange-500 border-t-transparent absolute top-0 left-0"></div>
               </div>
-              <span className="text-gray-700 font-medium">Loading more products...</span>
+              <span className="text-gray-700 text-sm font-medium">Loading more...</span>
             </div>
           </div>
         )}
 
         {/* End of Products Message */}
         {!hasNextPage && products.length > 0 && !loading && (
-          <div className="text-center mt-12 mb-8">
-            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-50 to-orange-100 rounded-full px-6 py-3 border border-orange-200">
+          <div className="text-center mt-6 mb-4">
+            <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-50 to-orange-100 rounded-full px-4 py-2 border border-orange-200">
               <div className="text-left">
-                <p className="text-gray-800 font-semibold">You've reached the end!</p>
+                <p className="text-gray-800 text-sm font-semibold">You've reached the end!</p>
               </div>
             </div>
           </div>
