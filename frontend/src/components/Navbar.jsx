@@ -41,6 +41,8 @@ const LocationIcon = (props) => (
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false); // For secondary nav dropdown
+  const [hoveredCategory, setHoveredCategory] = useState(null); // Track which category is hovered
+  const [submenuPosition, setSubmenuPosition] = useState(0); // Track submenu Y position
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState({});
   const [loadingCategories, setLoadingCategories] = useState(true);
@@ -400,7 +402,7 @@ const Navbar = () => {
                 </button>
 
               {catOpen && (
-                <div className="absolute left-0 top-full mt-1 w-80 bg-white shadow-xl rounded-lg border border-gray-200 z-50">
+                <div className="absolute left-0 top-full mt-1 w-64 bg-white shadow-xl rounded-lg border border-gray-200 z-50">
                   <div className="max-h-96 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     {loadingCategories ? (
                       <div className="flex items-center justify-center py-8">
@@ -413,47 +415,70 @@ const Navbar = () => {
                       </div>
                     ) : (
                       Object.entries(categories)
-                        .sort(([a], [b]) => a.localeCompare(b)) // Sort main categories alphabetically
+                        .sort(([a], [b]) => a.localeCompare(b))
                         .map(([main, subs]) => (
-                        <div key={main} className="px-2 py-1 group/main">
-                          <div className="flex justify-between items-center px-3 py-2 rounded-md hover:bg-gray-50">
-                            <span className="font-semibold text-sm text-gray-800">{main}</span>
-                            <Link
-                              to={`/category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
-                              onClick={() => {
-                                console.log(`Secondary nav - Navigating to main category: ${main}`);
-                                console.log(`Secondary nav - URL: /category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`);
-                                setCatOpen(false);
-                              }}
-                              className="text-xs text-orange-500 hover:text-orange-600 hover:underline opacity-0 group-hover/main:opacity-100 transition-opacity"
-                            >
-                              View All
-                            </Link>
-                          </div>
-                          {subs.length > 0 && (
-                            <ul className="ml-3 mt-1 space-y-1">
-                              {subs.sort().map((sub, i) => ( // Sort subcategories alphabetically
-                                <li key={i}>
-                                  <Link
-                                    to={`/category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
-                                    onClick={() => {
-                                      console.log(`Secondary nav - Navigating to subcategory: ${sub}`);
-                                      console.log(`Secondary nav - URL: /category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`);
-                                      setCatOpen(false);
-                                    }}
-                                    className="block py-1 px-3 text-sm text-gray-600 hover:text-orange-500 hover:bg-gray-50 rounded-md transition-colors duration-150"
-                                  >
-                                    {sub}
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                          <hr className="my-1 border-gray-200" />
+                        <div 
+                          key={main} 
+                          className="relative"
+                          onMouseEnter={(e) => {
+                            setHoveredCategory(main);
+                            // Get the position of this category item relative to the dropdown
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const parentRect = e.currentTarget.closest('.absolute').getBoundingClientRect();
+                            setSubmenuPosition(rect.top - parentRect.top);
+                          }}
+                          onMouseLeave={() => setHoveredCategory(null)}
+                        >
+                          <Link
+                            to={`/category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                            onClick={() => {
+                              console.log(`Secondary nav - Navigating to main category: ${main}`);
+                              setCatOpen(false);
+                              setHoveredCategory(null);
+                            }}
+                            className="flex justify-between items-center px-4 py-2.5 text-sm text-gray-800 hover:bg-orange-50 hover:text-orange-600 transition-colors duration-150 font-medium"
+                          >
+                            <span>{main}</span>
+                            {subs.length > 0 && (
+                              <svg className={`w-4 h-4 transition-colors ${hoveredCategory === main ? 'text-orange-600' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                              </svg>
+                            )}
+                          </Link>
                         </div>
                       ))
                     )}
                   </div>
+                  
+                  {/* Subcategories panel - appears to the right aligned with hovered category */}
+                  {hoveredCategory && categories[hoveredCategory]?.length > 0 && (
+                    <div 
+                      className="absolute left-full top-0 ml-1 w-64 bg-white shadow-xl rounded-lg border border-gray-200 z-50"
+                      style={{ top: `${submenuPosition}px` }}
+                      onMouseEnter={() => setHoveredCategory(hoveredCategory)}
+                      onMouseLeave={() => setHoveredCategory(null)}
+                    >
+                      <div className="max-h-96 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        <div className="px-4 py-2 border-b border-gray-200 bg-orange-50">
+                          <p className="text-sm font-semibold text-orange-600">{hoveredCategory}</p>
+                        </div>
+                        {categories[hoveredCategory].sort().map((sub, i) => (
+                          <Link
+                            key={i}
+                            to={`/category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                            onClick={() => {
+                              console.log(`Secondary nav - Navigating to subcategory: ${sub}`);
+                              setCatOpen(false);
+                              setHoveredCategory(null);
+                            }}
+                            className="block py-2.5 px-4 text-sm text-gray-700 hover:text-orange-600 hover:bg-orange-50 transition-colors duration-150"
+                          >
+                            {sub}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               </div>
