@@ -99,13 +99,100 @@ const HeroSection = ({ banners = [] }) => {
   return (
     <div className="w-full bg-white">
       {/* Main Hero Banner - Amazon Professional Style - Responsive */}
-      <div className="relative w-full h-32 sm:h-40 md:h-48 overflow-hidden">
+      <div className="relative w-full h-auto sm:h-40 md:h-48 overflow-hidden">
         <div 
-          className="absolute inset-0 transition-all duration-1000 ease-in-out"
+          className="relative sm:absolute inset-0 transition-all duration-1000 ease-in-out"
           style={{ backgroundColor: currentSlideData.bgColor }}
         >
-          <div className="container mx-auto px-3 sm:px-4 h-full flex items-center">
-            <div className="flex w-full items-center justify-between gap-2 sm:gap-3 md:gap-4">
+          <div className="container mx-auto px-3 sm:px-4 h-full">
+            {/* Mobile Layout - Vertical */}
+            <div className="sm:hidden py-4">
+              {/* Text Content */}
+              <div className="text-center mb-3">
+                <h1 className="text-xl font-bold text-white mb-2 leading-tight">
+                  {currentSlideData.title}
+                </h1>
+                {/* Shop now button */}
+                {currentSlideData.category?.name ? (
+                  <Link 
+                    to={`/category-group/${currentSlideData.category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                    className="inline-block bg-white text-gray-900 px-4 py-1.5 rounded-md font-semibold hover:bg-gray-100 transition-colors duration-200 shadow-lg text-xs"
+                  >
+                    Shop now
+                  </Link>
+                ) : (
+                  <Link 
+                    to="/products"
+                    className="inline-block bg-white text-gray-900 px-4 py-1.5 rounded-md font-semibold hover:bg-gray-100 transition-colors duration-200 shadow-lg text-xs"
+                  >
+                    Shop now
+                  </Link>
+                )}
+              </div>
+              
+              {/* All Product Images - Horizontal Row */}
+              <div className="flex justify-center items-center gap-1 flex-wrap">
+                {/* Main Featured Product */}
+                <div className="relative flex-shrink-0">
+                  {currentSlideData.mainProduct.id ? (
+                    <Link to={`/product/${currentSlideData.mainProduct.id}`}>
+                      <img 
+                        src={currentSlideData.mainProduct.image}
+                        alt={currentSlideData.mainProduct.title}
+                        loading="eager"
+                        fetchpriority="high"
+                        className="w-20 h-20 object-cover rounded-md shadow-md cursor-pointer"
+                        onError={(e) => {
+                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
+                        }}
+                      />
+                    </Link>
+                  ) : (
+                    <img 
+                      src={currentSlideData.mainProduct.image}
+                      alt={currentSlideData.mainProduct.title}
+                      loading="eager"
+                      fetchpriority="high"
+                      className="w-20 h-20 object-cover rounded-md shadow-md"
+                      onError={(e) => {
+                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
+                      }}
+                    />
+                  )}
+                </div>
+                
+                {/* Secondary Products */}
+                {currentSlideData.secondaryProducts.slice(0, 3).map((productItem, index) => (
+                  <div key={index} className="relative flex-shrink-0">
+                    {productItem.id ? (
+                      <Link to={`/product/${productItem.id}`}>
+                        <img 
+                          src={productItem.image}
+                          alt={productItem.title || `Featured Product ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded-md shadow-md cursor-pointer"
+                          onError={(e) => {
+                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
+                          }}
+                        />
+                      </Link>
+                    ) : (
+                      <img 
+                        src={productItem.image}
+                        alt={productItem.title || `Featured Product ${index + 1}`}
+                        className="w-20 h-20 object-cover rounded-md shadow-md"
+                        onError={(e) => {
+                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop/Tablet Layout - Horizontal */}
+            <div className="hidden sm:flex h-full items-center">
+              <div className="flex w-full items-center justify-between gap-2 sm:gap-3 md:gap-4">
               
               {/* Left - Professional Text Content */}
               <div className="flex-shrink-0 z-10 text-left ml-4 sm:ml-6 md:ml-8">
@@ -131,7 +218,7 @@ const HeroSection = ({ banners = [] }) => {
               </div>
               
               {/* Right - All Product Images in Horizontal Row - Same Size */}
-              <div className="flex justify-end items-center gap-0 flex-shrink-0">
+              <div className="flex justify-end items-center gap-0 flex-shrink-0 overflow-x-auto scrollbar-hide">
                 {/* Main Featured Product - Same size as others */}
                 <div className="relative flex-shrink-0">
                   {currentSlideData.mainProduct.id ? (
@@ -141,7 +228,7 @@ const HeroSection = ({ banners = [] }) => {
                         alt={currentSlideData.mainProduct.title}
                         loading="eager"
                         fetchpriority="high"
-                        className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
+                        className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
                         onError={(e) => {
                           e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
                         }}
@@ -153,7 +240,7 @@ const HeroSection = ({ banners = [] }) => {
                       alt={currentSlideData.mainProduct.title}
                       loading="eager"
                       fetchpriority="high"
-                      className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md"
+                      className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md"
                       onError={(e) => {
                         e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
                       }}
@@ -169,7 +256,7 @@ const HeroSection = ({ banners = [] }) => {
                         <img 
                           src={productItem.image}
                           alt={productItem.title || `Featured Product ${index + 1}`}
-                          className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
+                          className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
                             onError={(e) => {
                               e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
                             }}
@@ -179,7 +266,7 @@ const HeroSection = ({ banners = [] }) => {
                       <img 
                         src={productItem.image}
                         alt={productItem.title || `Featured Product ${index + 1}`}
-                        className="w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200"
+                        className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200"
                           onError={(e) => {
                             e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
                           }}
@@ -191,26 +278,27 @@ const HeroSection = ({ banners = [] }) => {
             </div>
           </div>
         </div>
-
-        {/* Professional Navigation Arrows - Responsive */}
-        <button 
-          onClick={prevSlide}
-          className="absolute left-0 sm:left-1 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-lg transition-all duration-200 hover:scale-110"
-        >
-          <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700" />
-        </button>
-        
-        <button 
-          onClick={nextSlide}
-          className="absolute right-0 sm:right-1 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-lg transition-all duration-200 hover:scale-110"
-        >
-          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700" />
-        </button>
       </div>
 
-      {/* Dynamic Homepage Cards */}
-      <DynamicHomepageCards />
+      {/* Professional Navigation Arrows - Responsive */}
+      <button 
+        onClick={prevSlide}
+        className="absolute left-0 sm:left-1 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-lg transition-all duration-200 hover:scale-110"
+      >
+        <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700" />
+      </button>
+      
+      <button 
+        onClick={nextSlide}
+        className="absolute right-0 sm:right-1 top-1/2 -translate-y-1/2 z-20 bg-white bg-opacity-90 hover:bg-opacity-100 rounded-full p-1.5 sm:p-2 shadow-lg transition-all duration-200 hover:scale-110"
+      >
+        <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-700" />
+      </button>
     </div>
+
+    {/* Dynamic Homepage Cards */}
+    <DynamicHomepageCards />
+  </div>
   );
 };
 
