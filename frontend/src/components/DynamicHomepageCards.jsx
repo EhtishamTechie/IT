@@ -94,10 +94,10 @@ const DynamicHomepageCards = () => {
             // Default placeholder card if no card is configured
             if (!card) {
               return (
-                <div key={index} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200">
-                  <div className="p-1.5 sm:p-2 flex items-center justify-center h-32 sm:h-40 text-gray-400">
+                <div key={index} className="bg-white border border-gray-200 rounded-md overflow-hidden hover:shadow-md transition-shadow duration-200">
+                  <div className="p-1.5 flex items-center justify-center h-24 sm:h-28 text-gray-400">
                     <div className="text-center">
-                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-200 rounded-full mx-auto mb-1"></div>
+                      <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-200 rounded-full mx-auto mb-1"></div>
                       <p className="text-[10px] sm:text-xs">Card not configured</p>
                     </div>
                   </div>
@@ -108,9 +108,9 @@ const DynamicHomepageCards = () => {
             // Main category card (single image)
             if (card.type === 'main-category') {
               return (
-                <div key={card._id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200">
-                  <div className="p-1.5 sm:p-2">
-                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-1.5 leading-tight">
+                <div key={card._id} className="bg-white border border-gray-200 rounded-md overflow-hidden hover:shadow-md transition-shadow duration-200">
+                  <div className="p-1.5">
+                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-1 leading-tight">
                       {card.title}
                     </h3>
                     {card.mainImage && (
@@ -121,7 +121,7 @@ const DynamicHomepageCards = () => {
                           loading={card.order === 1 ? "eager" : "lazy"}
                           fetchPriority={card.order === 1 ? "high" : "auto"}
                           decoding="async"
-                          className="w-full aspect-square object-cover rounded-md mb-1.5 hover:opacity-90 transition-opacity cursor-pointer"
+                          className="w-full aspect-square object-cover rounded-sm mb-1 hover:opacity-90 transition-opacity cursor-pointer"
                           onError={(e) => {
                             e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%23f8fafc"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%23475569">${card.title}</text></svg>`;
                           }}
@@ -136,12 +136,12 @@ const DynamicHomepageCards = () => {
             // Subcategories card (4 images)
             if (card.type === 'subcategories' && card.subcategoryItems?.length === 4) {
               return (
-                <div key={card._id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200">
-                  <div className="p-1.5 sm:p-2">
-                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-1.5 leading-tight">
+                <div key={card._id} className="bg-white border border-gray-200 rounded-md overflow-hidden hover:shadow-md transition-shadow duration-200">
+                  <div className="p-1.5">
+                    <h3 className="text-xs sm:text-sm font-bold text-gray-900 mb-1 leading-tight">
                       {card.title}
                     </h3>
-                    <div className="grid grid-cols-2 gap-1 mb-1.5">
+                    <div className="grid grid-cols-2 gap-0.5 mb-1">
                       {card.subcategoryItems.map((item, idx) => (
                         <div key={idx} className="text-center">
                           <Link to={getCategoryUrl(item.category._id, item.category.name)}>
@@ -151,7 +151,7 @@ const DynamicHomepageCards = () => {
                               loading={card.order === 1 ? "eager" : "lazy"}
                               fetchPriority={card.order === 1 && idx < 2 ? "high" : "auto"}
                               decoding="async"
-                              className="w-full aspect-square object-cover rounded-sm mb-1 hover:opacity-80 transition-opacity"
+                              className="w-full aspect-square object-cover rounded-sm mb-0.5 hover:opacity-80 transition-opacity"
                               onError={(e) => {
                                 e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f8fafc"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="10" fill="%23475569">${item.name}</text></svg>`;
                               }}

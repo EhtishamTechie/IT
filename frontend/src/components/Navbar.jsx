@@ -41,6 +41,7 @@ const LocationIcon = (props) => (
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false); // For secondary nav dropdown
+  const [showHorizontalCategories, setShowHorizontalCategories] = useState(false); // For horizontal category bar
   const [hoveredCategory, setHoveredCategory] = useState(null); // Track which category is hovered
   const [submenuPosition, setSubmenuPosition] = useState(0); // Track submenu Y position
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,10 +112,10 @@ const Navbar = () => {
     { label: "Property Sale/Purchase", path: "/properties" },
     { label: "Wholesale Dealership", path: "/contact-wholeseller" },
     // { label: "Our Stores", path: "/stores" },
-    { label: "Blog", path: "/BlogPage" },
   ];
 
-  const utilityPages = [
+  const otherPages = [
+    { label: "Blog", path: "/BlogPage" },
     { label: "About Us", path: "/AboutUsPage" },
     { label: "Contact Us", path: "/ContactUsPage" },
   ];
@@ -162,7 +163,9 @@ const Navbar = () => {
           <div className="hidden md:flex flex-1 max-w-xl mx-6 relative">
             <form onSubmit={handleSearch} className="flex w-full">
               <div 
-                className="bg-gray-700 border border-r-0 border-gray-600 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent hover:bg-gray-600 transition-colors duration-200 relative"
+                className="bg-gray-700 border border-r-0 border-gray-600 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent hover:bg-gray-600 transition-colors duration-200 relative cursor-pointer"
+                onMouseEnter={() => setShowHorizontalCategories(true)}
+                onMouseLeave={() => setShowHorizontalCategories(false)}
               >
                 <span className="text-gray-200">Main Categories</span>
               </div>
@@ -358,8 +361,13 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Horizontal Category Bar - Always Visible */}
-      <div className="bg-gray-800 border-b border-gray-700 shadow-sm">
+      {/* Horizontal Category Bar - Show on Hover */}
+      {showHorizontalCategories && (
+        <div 
+          className="bg-gray-800 border-b border-gray-700 shadow-sm"
+          onMouseEnter={() => setShowHorizontalCategories(true)}
+          onMouseLeave={() => setShowHorizontalCategories(false)}
+        >
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
             <div className="hidden md:block">
               <div className="flex flex-wrap gap-1">
@@ -370,6 +378,7 @@ const Navbar = () => {
                     onClick={() => {
                       console.log(`Horizontal category bar - Navigating to main category: ${main}`);
                       console.log(`Horizontal category bar - URL: /category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`);
+                      setShowHorizontalCategories(false);
                     }}
                     className="px-3 py-1 text-sm font-medium text-gray-300 hover:text-orange-400 hover:bg-gray-700 rounded transition-colors duration-200"
                   >
@@ -380,6 +389,7 @@ const Navbar = () => {
             </div>
           </div>
         </div>
+      )}
 
       {/* Secondary Navigation Bar */}
       <div className="bg-gray-900 border-b border-gray-700 shadow-sm">
@@ -388,11 +398,15 @@ const Navbar = () => {
             
             {/* Left Section - Categories Dropdown */}
             <div className="flex items-center mr-8">
-              <div className="relative" ref={categoriesRef}>
+              <div 
+                className="relative" 
+                ref={categoriesRef}
+                onMouseEnter={() => setCatOpen(true)}
+                onMouseLeave={() => setCatOpen(false)}
+              >
                 <button
                   type="button"
                   className="flex items-center space-x-1 px-2 py-1.5 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors duration-200 font-medium text-xs"
-                  onClick={() => setCatOpen(!catOpen)}
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -515,21 +529,29 @@ const Navbar = () => {
             {/* Spacer to push right section to the far right */}
             <div className="flex-1"></div>
 
-            {/* Right Corner - Utility Links */}
-            <div className="flex items-center space-x-6">
-              {utilityPages.map((page) => (
-                <NavLink
-                  key={page.label}
-                  to={page.path}
-                  className={({ isActive }) => `px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-                    isActive 
-                      ? 'text-orange-400 bg-gray-800' 
-                      : 'text-gray-400 hover:text-orange-400 hover:bg-gray-800'
-                  }`}
-                >
-                  {page.label}
-                </NavLink>
-              ))}
+            {/* Right Corner - Other Dropdown */}
+            <div className="flex items-center -mr-2">
+              <div className="relative group">
+                <button className="flex items-center space-x-1 px-2 py-2 rounded-md text-sm font-medium text-gray-400 hover:text-orange-400 hover:bg-gray-800 transition-all duration-200">
+                  <span>Other</span>
+                  <ChevronDownIcon className="w-4 h-4" />
+                </button>
+                
+                {/* Dropdown Menu */}
+                <div className="absolute right-0 mt-2 w-48 bg-gray-900 rounded-lg shadow-xl border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="py-2">
+                    {otherPages.map((page) => (
+                      <NavLink
+                        key={page.label}
+                        to={page.path}
+                        className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-orange-400 transition-colors duration-150"
+                      >
+                        {page.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
           </nav>
         </div>
@@ -558,7 +580,7 @@ const Navbar = () => {
           </div>
 
           <div className="px-4 pt-2 pb-4 space-y-1 max-h-96 overflow-y-auto">
-            {[...mainPages, ...utilityPages].map((page) => (
+            {[...mainPages, ...otherPages].map((page) => (
               <NavLink
                 key={page.label}
                 to={page.path}
