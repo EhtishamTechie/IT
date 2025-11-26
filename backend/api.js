@@ -3,15 +3,18 @@
 
 const express = require('express');
 const cors = require('cors');
-const compression = require('compression');
+const path = require('path');
+const fs = require('fs');
+const cacheService = require('./services/cacheService');
+
+// Custom optimized middleware
+const compressionMiddleware = require('./middleware/compression');
+const cacheHeaders = require('./middleware/cacheHeaders');
 
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const path = require('path');
-const fs = require('fs');
-const cacheService = require('./services/cacheService');
 
 // Auth middleware
 const { authenticateToken, authenticateAdmin } = require('./middleware/auth');
@@ -68,31 +71,51 @@ const ensureUploadDirectories = () => {
 // Initialize upload directories
 ensureUploadDirectories();
 
-// Serve homepage category images with cache headers
+// Apply compression FIRST (before any routes)
+app.use(compressionMiddleware);
+
+// Apply cache headers SECOND (before serving static files)
+app.use(cacheHeaders);
+
+// Serve homepage category images with optimized settings
 app.use('/uploads/homepage-categories', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'homepage-categories'), {
     fallthrough: true,
-    maxAge: '1y', // 1 year cache
-    immutable: true
+    maxAge: '365d',
+    immutable: true,
+    etag: true,
+    lastModified: true,
+    setHeaders: (res) => {
+      res.set('X-Content-Type-Options', 'nosniff');
+    }
 }));
 
-// Serve homepage card images with cache headers
+// Serve homepage card images with optimized settings
 app.use('/uploads/homepage-cards', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'homepage-cards'), {
     fallthrough: true,
-    maxAge: '1y',
-    immutable: true
+    maxAge: '365d',
+    immutable: true,
+    etag: true,
+    lastModified: true,
+    setHeaders: (res) => {
+      res.set('X-Content-Type-Options', 'nosniff');
+    }
 }));
 
-// Serve QR code images for payment accounts with cache headers
+// Serve QR code images for payment accounts
 app.use('/uploads/qr-codes', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'qr-codes'), {
     fallthrough: true,
-    maxAge: '30d' // 30 days - QR codes may change occasionally
+    maxAge: '30d',
+    etag: true,
+    lastModified: true
 }));
 
-// Serve payment receipt images for advance payment orders with cache headers
+// Serve payment receipt images
 app.use('/uploads/payment-receipts', express.static(path.join(UPLOADS_ABSOLUTE_PATH, 'payment-receipts'), {
     fallthrough: true,
-    maxAge: '1y',
-    immutable: true
+    maxAge: '365d',
+    immutable: true,
+    etag: true,
+    lastModified: true
 }));
 
 // Fix any misplaced product images
@@ -113,16 +136,23 @@ app.use(['/uploads', '/uploads/products', '/uploads/used-products', '/uploads/ve
   next();
 });
 
-// ⚡ OPTIMIZED: Unified static file serving with caching for all upload directories
+// ⚡ OPTIMIZED: Maximum performance static file serving with aggressive caching
 const staticOptions = {
     maxAge: '365d', // 1 year caching for immutable assets
     immutable: true,
     index: false, // Disable directory indexing for security
+    etag: true, // Enable ETag for conditional requests
+    lastModified: true, // Enable Last-Modified header
+    cacheControl: true, // Enable cache control
     setHeaders: (res, filePath) => {
-        // Set cache control headers for CDN optimization
-        res.set('Cache-Control', 'public, max-age=31536000, immutable');
+        // Aggressive caching with stale-while-revalidate
+        res.set('Cache-Control', 'public, max-age=31536000, stale-while-revalidate=86400, immutable');
+        // Security headers
+        res.set('X-Content-Type-Options', 'nosniff');
         // Timing headers for performance monitoring
         res.set('Timing-Allow-Origin', '*');
+        // Vary header for proper CDN caching
+        res.set('Vary', 'Accept-Encoding');
     }
 };
 
@@ -235,23 +265,7 @@ app.use(cors({
   maxAge: 86400
 }));
 
-// ⚡ OPTIMIZED: Compression middleware - Gzip for response compression
-app.use(compression({
-  level: 6, // Compression level (0-9, 6 is default and good balance)
-  threshold: 1024, // Only compress responses larger than 1KB
-  filter: (req, res) => {
-    // Don't compress if no-transform header is present
-    if (req.headers['x-no-compression']) {
-      return false;
-    }
-    // Don't compress images (already compressed)
-    if (req.path.startsWith('/uploads/')) {
-      return false;
-    }
-    // Compress all other responses
-    return compression.filter(req, res);
-  }
-}));
+// Compression is now applied via custom middleware at the top
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));

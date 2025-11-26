@@ -22,56 +22,76 @@ export default defineConfig({
       },
       output: {
         format: 'es',
-        // Aggressive chunking for better caching and smaller initial load
-        manualChunks: {
-          // Keep ALL React ecosystem together
-          'react-vendor': [
-            'react',
-            'react/jsx-runtime',
-            'react-dom',
-            'react-dom/client',
-            'scheduler',
-            'react-is',
-            'prop-types'
-          ],
-          // Router
-          'router': ['react-router-dom'],
-          // Query
-          'query': ['@tanstack/react-query'],
-          // Icons - separate for better caching
-          'ui-icons': ['lucide-react'],
-          // MUI separate chunk
-          'mui': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          // Charts separate (large library)
-          'charts': ['recharts'],
-          // Utils (NO React)
-          'utils': ['axios', 'lodash', 'jwt-decode', 'clsx'],
-          // Animation
-          'animation': ['framer-motion']
-        }
+        // Optimized chunking for maximum caching
+        manualChunks(id) {
+          // Core React - rarely changes
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/react-is') ||
+              id.includes('node_modules/scheduler') ||
+              id.includes('node_modules/prop-types')) {
+            return 'react-core';
+          }
+          // Router - moderate change frequency
+          if (id.includes('node_modules/react-router')) {
+            return 'router';
+          }
+          // Heavy UI libraries - separate for better caching
+          if (id.includes('node_modules/@mui') || 
+              id.includes('node_modules/@emotion')) {
+            return 'mui';
+          }
+          if (id.includes('node_modules/recharts')) {
+            return 'charts';
+          }
+          if (id.includes('node_modules/lucide-react')) {
+            return 'icons';
+          }
+          if (id.includes('node_modules/framer-motion')) {
+            return 'animation';
+          }
+          // Utilities - small, rarely change
+          if (id.includes('node_modules/axios') ||
+              id.includes('node_modules/lodash') ||
+              id.includes('node_modules/jwt-decode') ||
+              id.includes('node_modules/clsx')) {
+            return 'utils';
+          }
+          // Vendor chunk for other dependencies
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        },
+        // Optimize chunk naming for better caching
+        chunkFileNames: 'assets/[name].[hash].js',
+        entryFileNames: 'assets/[name].[hash].js',
+        assetFileNames: 'assets/[name].[hash].[ext]'
       },
     },
     // Maximum optimization
-    minify: 'esbuild', // Use esbuild (faster, no extra dependency)
-    target: 'es2020', // Modern browsers only - no legacy polyfills
+    minify: 'esbuild',
+    target: 'es2020',
     cssCodeSplit: true,
+    cssMinify: true,
     sourcemap: false,
-    assetsInlineLimit: 4096, // Inline small assets
-    chunkSizeWarningLimit: 500, // Strict limit
-    reportCompressedSize: false, // Faster builds
+    assetsInlineLimit: 2048, // Reduced to 2KB for better caching
+    chunkSizeWarningLimit: 400,
+    reportCompressedSize: false,
+    // Production optimizations
     esbuildOptions: {
-      drop: ['console', 'debugger'], // Remove console.logs and debuggers
+      drop: ['console', 'debugger'],
       legalComments: 'none',
       treeShaking: true,
-      // Aggressive mangling for smaller bundles
       minifyIdentifiers: true,
       minifySyntax: true,
-      minifyWhitespace: true
+      minifyWhitespace: true,
+      pure: ['console.log', 'console.info', 'console.debug', 'console.warn'],
+      target: 'es2020'
     },
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
-      defaultIsModuleExports: true, // Fix module export issues
+      defaultIsModuleExports: true,
     },
   },
   optimizeDeps: {
