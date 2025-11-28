@@ -118,8 +118,31 @@ async function optimizeImage(imagePath, isDryRun = false) {
       return { success: true, skipped: false };
     }
     
-    // Get image metadata
-    const metadata = await sharp(imagePath).metadata();
+    // Get image metadata with error handling for corrupted files
+    let metadata;
+    try {
+      metadata = await sharp(imagePath).metadata();
+    } catch (metadataError) {
+      console.log(`   ⚠️  Corrupted file, attempting to repair...`);
+      
+      // Try to repair PNG by re-encoding through Sharp
+      try {
+        const tempPath = `${imagePath}.temp`;
+        await sharp(imagePath, { limitInputPixels: false, failOnError: false })
+          .png({ compressionLevel: 9, force: true })
+          .toFile(tempPath);
+        
+        // Replace original with repaired version
+        await fs.unlink(imagePath);
+        await fs.rename(tempPath, imagePath);
+        
+        // Retry metadata
+        metadata = await sharp(imagePath).metadata();
+        console.log(`   ✅ File repaired successfully`);
+      } catch (repairError) {
+        throw new Error(`Cannot repair: ${repairError.message}`);
+      }
+    }
     const results = {
       original: imagePath,
       originalSize,
@@ -130,7 +153,7 @@ async function optimizeImage(imagePath, isDryRun = false) {
     
     // 1. Generate full-size WebP
     const webpPath = `${baseWithoutExt}.webp`;
-    await sharp(imagePath)
+    await sharp(imagePath, { limitInputPixels: false, failOnError: false })
       .webp(CONFIG.formats.webp)
       .toFile(webpPath);
     
@@ -141,7 +164,7 @@ async function optimizeImage(imagePath, isDryRun = false) {
     
     // 2. Generate full-size AVIF
     const avifPath = `${baseWithoutExt}.avif`;
-    await sharp(imagePath)
+    await sharp(imagePath, { limitInputPixels: false, failOnError: false })
       .avif(CONFIG.formats.avif)
       .toFile(avifPath);
     
@@ -156,7 +179,7 @@ async function optimizeImage(imagePath, isDryRun = false) {
       if (metadata.width > size) {
         // Original format responsive
         const responsivePath = `${baseWithoutExt}-${size}w${ext}`;
-        await sharp(imagePath)
+        await sharp(imagePath, { limitInputPixels: false, failOnError: false })
           .resize(size, null, {
             fit: 'inside',
             withoutEnlargement: true
@@ -170,7 +193,7 @@ async function optimizeImage(imagePath, isDryRun = false) {
         
         // WebP responsive
         const webpResponsivePath = `${baseWithoutExt}-${size}w.webp`;
-        await sharp(imagePath)
+        await sharp(imagePath, { limitInputPixels: false, failOnError: false })
           .resize(size, null, {
             fit: 'inside',
             withoutEnlargement: true
@@ -184,7 +207,7 @@ async function optimizeImage(imagePath, isDryRun = false) {
         
         // AVIF responsive
         const avifResponsivePath = `${baseWithoutExt}-${size}w.avif`;
-        await sharp(imagePath)
+        await sharp(imagePath, { limitInputPixels: false, failOnError: false })
           .resize(size, null, {
             fit: 'inside',
             withoutEnlargement: true
