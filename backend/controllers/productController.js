@@ -57,7 +57,13 @@ const getOptimizedImagePaths = (originalPath) => {
     const absolutePath = `${absoluteBase}${suffix}`;
     const relativePath = `${basePathWithoutExt}${suffix}`;
     
-    if (checkFileExists(absolutePath)) {
+    const exists = checkFileExists(absolutePath);
+    // Log for debugging (first 2 products only to avoid spam)
+    if (originalPath.includes('1764071486387') || originalPath.includes('1763861219600')) {
+      console.log(`[AVIF CHECK] ${size}:`, exists ? '✅ EXISTS' : '❌ MISSING', absolutePath);
+    }
+    
+    if (exists) {
       result.avif[size] = relativePath;
     }
   });
