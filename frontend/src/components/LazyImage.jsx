@@ -81,13 +81,21 @@ const LazyImage = ({
       pathOnly = baseSrc.replace(config.BASE_URL, '');
     }
     
-    // Don't remove extension - keep it to match how optimization script generates files
-    // Old files: image.JPG-300w.webp (extension kept)
+    // Get the directory and filename separately
+    // e.g., /uploads/products/product-123.jpg -> dir=/uploads/products/, file=product-123.jpg
+    const lastSlash = pathOnly.lastIndexOf('/');
+    const directory = pathOnly.substring(0, lastSlash + 1);
+    const filename = pathOnly.substring(lastSlash + 1);
+    
+    // Remove extension from filename
+    const lastDot = filename.lastIndexOf('.');
+    const filenameWithoutExt = lastDot !== -1 ? filename.substring(0, lastDot) : filename;
+    
     // Generate srcSet with format suffix  
     const formatSuffix = format ? `.${format}` : '';
     return sizes
       .map(size => {
-        const optimizedPath = `${pathOnly}-${size}w${formatSuffix}`;
+        const optimizedPath = `${directory}${filenameWithoutExt}-${size}w${formatSuffix}`;
         // In production, use relative paths; in dev, use full URLs
         if (import.meta.env.DEV) {
           const fullUrl = optimizedPath.startsWith('/') 
