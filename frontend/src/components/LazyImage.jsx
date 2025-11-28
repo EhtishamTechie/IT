@@ -27,6 +27,7 @@ const LazyImage = ({
   priority = false,
   enableModernFormats = true, // Enable WebP/AVIF
   responsiveSizes = [300, 600, 1200], // Responsive breakpoints
+  optimizedImage = null, // Backend-provided optimized image paths
   ...props 
 }) => {
   // Helper to get full URL for images
@@ -71,9 +72,33 @@ const LazyImage = ({
     }
   };
 
-  // Generate srcSet for responsive images if not provided
+  // Generate srcSet for responsive images - use backend data if available
   const generateSrcSet = (baseSrc, sizes, format = '') => {
-    if (!baseSrc || srcSet) return srcSet; // Use provided srcSet if available
+    if (srcSet) return srcSet; // Use provided srcSet if available
+    
+    // If we have optimizedImage data from backend, use it directly
+    if (optimizedImage && format) {
+      const formatData = optimizedImage[format]; // 'avif' or 'webp'
+      if (formatData) {
+        return sizes
+          .map(size => {
+            const sizeKey = `${size}w`;
+            const path = formatData[sizeKey];
+            if (!path) return null;
+            
+            // In dev, prepend BASE_URL; in production, use as-is
+            const finalPath = import.meta.env.DEV && path.startsWith('/') 
+              ? `${config.BASE_URL}${path}` 
+              : path;
+            return `${finalPath} ${size}w`;
+          })
+          .filter(Boolean)
+          .join(', ');
+      }
+    }
+    
+    // Fallback: Generate paths client-side (less reliable)
+    if (!baseSrc) return '';
     
     // Extract path from full URL if needed
     let pathOnly = baseSrc;
@@ -82,7 +107,6 @@ const LazyImage = ({
     }
     
     // Get the directory and filename separately
-    // e.g., /uploads/products/product-123.jpg -> dir=/uploads/products/, file=product-123.jpg
     const lastSlash = pathOnly.lastIndexOf('/');
     const directory = pathOnly.substring(0, lastSlash + 1);
     const filename = pathOnly.substring(lastSlash + 1);
@@ -186,7 +210,12 @@ LazyImage.propTypes = {
   onError: PropTypes.func,
   priority: PropTypes.bool, // Set to true for above-the-fold images
   enableModernFormats: PropTypes.bool, // Enable WebP/AVIF picture element
-  responsiveSizes: PropTypes.arrayOf(PropTypes.number) // Responsive breakpoints
+  responsiveSizes: PropTypes.arrayOf(PropTypes.number), // Responsive breakpoints
+  optimizedImage: PropTypes.shape({
+    original: PropTypes.string,
+    webp: PropTypes.object,
+    avif: PropTypes.object
+  })
 };
 
 export default LazyImage;

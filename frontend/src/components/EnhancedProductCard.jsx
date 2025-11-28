@@ -236,6 +236,7 @@ const EnhancedProductCard = ({
             alt={product.title || 'Product'}
             enableModernFormats={true}
             priority={false}
+            optimizedImage={product.optimizedImage}
             className={`
               absolute inset-0 w-full h-full object-cover transition-all duration-500
               ${isHovered && product.video && !videoError 
