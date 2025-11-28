@@ -152,14 +152,12 @@ const LazyImage = ({
     if (sizes) return sizes;
     
     // Default responsive sizes
+    // If viewing on large screen but 1200w doesn't exist, browser will use largest available (600w or 300w)
     return '(max-width: 640px) 300px, (max-width: 1024px) 600px, 1200px';
   };
 
   // If modern formats are enabled, use picture element
   if (enableModernFormats && !hasError) {
-    const baseWithoutExt = imageSrc.substring(0, imageSrc.lastIndexOf('.'));
-    const ext = imageSrc.substring(imageSrc.lastIndexOf('.'));
-    
     return (
       <picture>
         {/* AVIF - Best compression, modern browsers */}
