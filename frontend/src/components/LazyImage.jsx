@@ -81,14 +81,13 @@ const LazyImage = ({
       pathOnly = baseSrc.replace(config.BASE_URL, '');
     }
     
-    const ext = pathOnly.substring(pathOnly.lastIndexOf('.'));
-    const baseWithoutExt = pathOnly.substring(0, pathOnly.lastIndexOf('.'));
-    
-    // Generate srcSet with format suffix
-    const formatSuffix = format ? `.${format}` : ext;
+    // Don't remove extension - keep it to match how optimization script generates files
+    // Old files: image.JPG-300w.webp (extension kept)
+    // Generate srcSet with format suffix  
+    const formatSuffix = format ? `.${format}` : '';
     return sizes
       .map(size => {
-        const optimizedPath = `${baseWithoutExt}-${size}w${formatSuffix}`;
+        const optimizedPath = `${pathOnly}-${size}w${formatSuffix}`;
         // In production, use relative paths; in dev, use full URLs
         if (import.meta.env.DEV) {
           const fullUrl = optimizedPath.startsWith('/') 

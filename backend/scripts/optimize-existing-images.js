@@ -104,7 +104,8 @@ async function getFileSize(filePath) {
 async function optimizeImage(imagePath, isDryRun = false) {
   try {
     const ext = path.extname(imagePath).toLowerCase();
-    const baseWithoutExt = imagePath.replace(ext, '');
+    const actualExt = path.extname(imagePath); // Keep original case
+    const baseWithoutExt = imagePath.slice(0, -actualExt.length); // Remove extension properly
     const filename = path.basename(imagePath);
     
     console.log(`\n📸 Processing: ${filename}`);
