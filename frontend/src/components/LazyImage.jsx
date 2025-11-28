@@ -149,12 +149,49 @@ const LazyImage = ({
       .join(', ');
   };
 
-  // Generate sizes attribute if not provided
+  // Generate sizes attribute if not provided - based on what actually exists
   const generateSizes = () => {
     if (sizes) return sizes;
     
-    // Default responsive sizes
-    // If viewing on large screen but 1200w doesn't exist, browser will use largest available (600w or 300w)
+    // If we have optimizedImage data, check which sizes actually exist
+    if (optimizedImage && (optimizedImage.avif || optimizedImage.webp)) {
+      const availableSizes = new Set();
+      
+      // Collect available sizes from both formats
+      ['avif', 'webp'].forEach(format => {
+        if (optimizedImage[format]) {
+          Object.keys(optimizedImage[format]).forEach(sizeKey => {
+            if (sizeKey.endsWith('w')) {
+              const size = parseInt(sizeKey);
+              if (!isNaN(size)) availableSizes.add(size);
+            }
+          });
+        }
+      });
+      
+      // Convert to sorted array
+      const sortedSizes = Array.from(availableSizes).sort((a, b) => a - b);
+      
+      // Generate sizes attribute based on what's available
+      if (sortedSizes.length === 0) {
+        // No size-specific variants, use original
+        return '100vw';
+      } else if (sortedSizes.length === 1) {
+        // Only one size available (e.g., only 300w)
+        return `(max-width: 640px) ${sortedSizes[0]}px, ${sortedSizes[0]}px`;
+      } else if (sortedSizes.includes(300) && sortedSizes.includes(600) && sortedSizes.includes(1200)) {
+        // All sizes available - use full responsive rules
+        return '(max-width: 640px) 300px, (max-width: 1024px) 600px, 1200px';
+      } else if (sortedSizes.includes(300) && !sortedSizes.includes(600)) {
+        // Only 300w available, don't request 600w
+        return '(max-width: 640px) 300px, 300px';
+      } else if (sortedSizes.includes(300) && sortedSizes.includes(600)) {
+        // 300w and 600w available, but no 1200w
+        return '(max-width: 640px) 300px, 600px';
+      }
+    }
+    
+    // Default responsive sizes as fallback
     return '(max-width: 640px) 300px, (max-width: 1024px) 600px, 1200px';
   };
 
