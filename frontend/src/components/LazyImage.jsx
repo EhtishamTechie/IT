@@ -35,9 +35,15 @@ const LazyImage = ({
     if (path.startsWith('http')) return path;
     if (path.startsWith('data:')) return path;
     
-    // If it's a backend path starting with /uploads/, prepend base URL
+    // If it's a backend path starting with /uploads/
     if (path.startsWith('/uploads/')) {
-      return `${config.BASE_URL}${path}`;
+      // In development, prepend BASE_URL (http://localhost:3001)
+      // In production, use relative path (served by same domain)
+      if (import.meta.env.DEV) {
+        return `${config.BASE_URL}${path}`;
+      }
+      // Production - use relative path as-is
+      return path;
     }
     
     // Otherwise return as-is
@@ -78,15 +84,20 @@ const LazyImage = ({
     const ext = pathOnly.substring(pathOnly.lastIndexOf('.'));
     const baseWithoutExt = pathOnly.substring(0, pathOnly.lastIndexOf('.'));
     
-    // Generate srcSet with format suffix and full URLs
+    // Generate srcSet with format suffix
     const formatSuffix = format ? `.${format}` : ext;
     return sizes
       .map(size => {
         const optimizedPath = `${baseWithoutExt}-${size}w${formatSuffix}`;
-        const fullUrl = optimizedPath.startsWith('/') 
-          ? `${config.BASE_URL}${optimizedPath}` 
-          : optimizedPath;
-        return `${fullUrl} ${size}w`;
+        // In production, use relative paths; in dev, use full URLs
+        if (import.meta.env.DEV) {
+          const fullUrl = optimizedPath.startsWith('/') 
+            ? `${config.BASE_URL}${optimizedPath}` 
+            : optimizedPath;
+          return `${fullUrl} ${size}w`;
+        }
+        // Production - use relative path
+        return `${optimizedPath} ${size}w`;
       })
       .join(', ');
   };
