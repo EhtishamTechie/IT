@@ -53,7 +53,7 @@ const CONFIG = {
   },
   responsiveSizes: [300, 600, 1200],
   batchSize: 10, // Process 10 images at a time
-  skipExisting: true // Skip if optimized versions already exist
+  skipExisting: false // Force re-optimization of all images
 };
 
 // Statistics tracking
@@ -72,8 +72,9 @@ const stats = {
  * Check if image has already been optimized
  */
 async function isAlreadyOptimized(imagePath) {
-  const ext = path.extname(imagePath);
-  const baseWithoutExt = imagePath.replace(ext, '');
+  const ext = path.extname(imagePath).toLowerCase();
+  const actualExt = path.extname(imagePath);
+  const baseWithoutExt = imagePath.slice(0, -actualExt.length);
   
   // Check if WebP version exists
   const webpPath = `${baseWithoutExt}.webp`;
@@ -255,7 +256,7 @@ async function processDirectory(dirName, isDryRun = false) {
     const files = await fs.readdir(dirPath);
     const imageFiles = files.filter(file => {
       const ext = path.extname(file).toLowerCase();
-      return ['.jpg', '.jpeg', '.png'].includes(ext);
+      return ['.jpg', '.jpeg', '.png', '.webp'].includes(ext);
     });
     
     console.log(`   Found ${imageFiles.length} images`);
