@@ -80,20 +80,32 @@ const LazyImage = ({
     if (optimizedImage && format) {
       const formatData = optimizedImage[format]; // 'avif' or 'webp'
       if (formatData) {
-        return sizes
-          .map(size => {
-            const sizeKey = `${size}w`;
-            const path = formatData[sizeKey];
-            if (!path) return null;
-            
+        const srcSetParts = [];
+        
+        // Build srcset with fallback logic
+        for (const size of sizes) {
+          const sizeKey = `${size}w`;
+          let path = formatData[sizeKey];
+          
+          // If requested size doesn't exist, fallback to next available size
+          if (!path) {
+            // Try full size as fallback
+            path = formatData['full'] || formatData['1200w'] || formatData['600w'] || formatData['300w'];
+          }
+          
+          if (path) {
             // In dev, prepend BASE_URL; in production, use as-is
             const finalPath = import.meta.env.DEV && path.startsWith('/') 
               ? `${config.BASE_URL}${path}` 
               : path;
-            return `${finalPath} ${size}w`;
-          })
-          .filter(Boolean)
-          .join(', ');
+            srcSetParts.push(`${finalPath} ${size}w`);
+          }
+        }
+        
+        // If we have at least one valid path, return the srcset
+        if (srcSetParts.length > 0) {
+          return srcSetParts.join(', ');
+        }
       }
     }
     
