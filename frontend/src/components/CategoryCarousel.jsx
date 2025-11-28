@@ -194,6 +194,7 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                             alt={category.name}
                             enableModernFormats={true}
                             priority={index < 2}
+                            optimizedImage={category.optimizedMainImage || null}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={() => handleImageError(category._id)}
                             onLoad={() => handleImageLoad(category._id)}
