@@ -101,11 +101,13 @@ const LazyImage = ({
           const fullPath = import.meta.env.DEV && formatData['full'].startsWith('/') 
             ? `${config.BASE_URL}${formatData['full']}` 
             : formatData['full'];
+          console.log(`[LazyImage] Using full size fallback for ${format}:`, fullPath);
           return fullPath; // Return single path, not srcset
         }
         
         // If we have at least one valid size variant, return the srcset
         if (srcSetParts.length > 0) {
+          console.log(`[LazyImage] Generated srcset for ${format}:`, srcSetParts.join(', '));
           return srcSetParts.join(', ');
         }
       }
