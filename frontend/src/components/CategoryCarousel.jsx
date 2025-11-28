@@ -192,7 +192,7 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                             src={getImageUrl('homepageCategories', category.imageUrl)}
                             alt={category.name}
                             loading={index < 4 ? "eager" : "lazy"}
-                            fetchPriority={index < 2 ? "high" : "auto"}
+                            fetchpriority={index < 2 ? "high" : "auto"}
                             decoding="async"
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={() => handleImageError(category._id)}

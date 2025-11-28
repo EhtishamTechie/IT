@@ -218,9 +218,10 @@ function CategorySettings() {
               category.name.toLowerCase().includes(searchQuery.toLowerCase())
             )
             .map((category) => {
-              const homepageCategory = homepageCategories.find(hCat => hCat._id === category._id);
+              const homepageCategory = homepageCategories.find(hCat => 
+                hCat.categoryId === category._id || hCat.categoryId?._id === category._id
+              );
               const isOnHomepage = Boolean(homepageCategory);
-              console.log('Category:', category.name, 'isOnHomepage:', isOnHomepage); // Debug log
             return (
               <div key={category._id} className="border rounded-lg p-4 hover:border-blue-500 transition-colors">
                 <h4 className="font-medium text-gray-900">{category.name}</h4>

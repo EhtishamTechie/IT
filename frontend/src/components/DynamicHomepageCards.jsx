@@ -119,7 +119,7 @@ const DynamicHomepageCards = () => {
                           src={getCardImageUrl(card)}
                           alt={card.title}
                           loading={card.order === 1 ? "eager" : "lazy"}
-                          fetchPriority={card.order === 1 ? "high" : "auto"}
+                          fetchpriority={card.order === 1 ? "high" : "auto"}
                           decoding="async"
                           className="w-full aspect-square object-cover rounded-sm mb-1 hover:opacity-90 transition-opacity cursor-pointer"
                           onError={(e) => {
@@ -149,7 +149,7 @@ const DynamicHomepageCards = () => {
                               src={getSubcategoryImageUrl(item)}
                               alt={item.name}
                               loading={card.order === 1 ? "eager" : "lazy"}
-                              fetchPriority={card.order === 1 && idx < 2 ? "high" : "auto"}
+                              fetchpriority={card.order === 1 && idx < 2 ? "high" : "auto"}
                               decoding="async"
                               className="w-full aspect-square object-cover rounded-sm mb-0.5 hover:opacity-80 transition-opacity"
                               onError={(e) => {

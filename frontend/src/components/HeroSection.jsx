@@ -58,12 +58,12 @@ const HeroSection = ({ banners = [] }) => {
     }) : [
       {
         id: 'default-1',
-        title: "Loading...",
+        title: "Welcome to International Tijarat",
         bgColor: "#146EB4",
         category: null,
         mainProduct: {
-          image: "placeholder.jpg",
-          title: "Loading...",
+          image: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23146EB4"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%23ffffff" font-weight="bold">IT</text></svg>`,
+          title: "Shop Premium Products",
           id: null,
           product: null
         },
@@ -88,10 +88,13 @@ const HeroSection = ({ banners = [] }) => {
 
   const currentSlideData = heroSlides[currentSlide] || heroSlides[0] || {
     bgColor: "#146EB4",
-    title: "Loading...",
+    title: "Welcome to International Tijarat",
+    category: null,
     mainProduct: {
-      image: "placeholder.jpg",
-      title: "Loading..."
+      image: `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23146EB4"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%23ffffff" font-weight="bold">IT</text></svg>`,
+      title: "Shop Premium Products",
+      id: null,
+      product: null
     },
     secondaryProducts: []
   };
@@ -99,7 +102,7 @@ const HeroSection = ({ banners = [] }) => {
   return (
     <div className="w-full bg-white">
       {/* Main Hero Banner - Amazon Professional Style - Responsive */}
-      <div className="relative w-full h-auto sm:h-40 md:h-48 overflow-hidden">
+      <div className="relative w-full min-h-[200px] sm:h-48 md:h-56 lg:h-64 overflow-hidden">
         <div 
           className="relative sm:absolute inset-0 transition-all duration-1000 ease-in-out"
           style={{ backgroundColor: currentSlideData.bgColor }}
@@ -141,9 +144,12 @@ const HeroSection = ({ banners = [] }) => {
                         alt={currentSlideData.mainProduct.title}
                         loading="eager"
                         fetchpriority="high"
+                        width="80"
+                        height="80"
+                        decoding="async"
                         className="w-20 h-20 object-cover rounded-md shadow-md cursor-pointer"
                         onError={(e) => {
-                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
+                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Product</text></svg>`;
                         }}
                       />
                     </Link>
@@ -153,9 +159,12 @@ const HeroSection = ({ banners = [] }) => {
                       alt={currentSlideData.mainProduct.title}
                       loading="eager"
                       fetchpriority="high"
+                      width="80"
+                      height="80"
+                      decoding="async"
                       className="w-20 h-20 object-cover rounded-md shadow-md"
                       onError={(e) => {
-                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
+                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Product</text></svg>`;
                       }}
                     />
                   )}
@@ -169,9 +178,13 @@ const HeroSection = ({ banners = [] }) => {
                         <img 
                           src={productItem.image}
                           alt={productItem.title || `Featured Product ${index + 1}`}
+                          width="80"
+                          height="80"
+                          loading="lazy"
+                          decoding="async"
                           className="w-20 h-20 object-cover rounded-md shadow-md cursor-pointer"
                           onError={(e) => {
-                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
+                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Item</text></svg>`;
                           }}
                         />
                       </Link>
@@ -228,9 +241,12 @@ const HeroSection = ({ banners = [] }) => {
                         alt={currentSlideData.mainProduct.title}
                         loading="eager"
                         fetchpriority="high"
+                        width="160"
+                        height="160"
+                        decoding="async"
                         className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
                         onError={(e) => {
-                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
+                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Product</text></svg>`;
                         }}
                       />
                     </Link>
@@ -240,9 +256,12 @@ const HeroSection = ({ banners = [] }) => {
                       alt={currentSlideData.mainProduct.title}
                       loading="eager"
                       fetchpriority="high"
+                      width="160"
+                      height="160"
+                      decoding="async"
                       className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md"
                       onError={(e) => {
-                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Product</text></svg>`;
+                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Product</text></svg>`;
                       }}
                     />
                   )}
@@ -256,22 +275,30 @@ const HeroSection = ({ banners = [] }) => {
                         <img 
                           src={productItem.image}
                           alt={productItem.title || `Featured Product ${index + 1}`}
+                          width="160"
+                          height="160"
+                          loading="lazy"
+                          decoding="async"
                           className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
-                            onError={(e) => {
-                              e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
-                            }}
-                          />
-                        </Link>
-                      ) : (
+                          onError={(e) => {
+                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Item</text></svg>`;
+                          }}
+                        />
+                      </Link>
+                    ) : (
                       <img 
                         src={productItem.image}
                         alt={productItem.title || `Featured Product ${index + 1}`}
+                        width="160"
+                        height="160"
+                        loading="lazy"
+                        decoding="async"
                         className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200"
-                          onError={(e) => {
-                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
-                          }}
-                        />
-                      )}
+                        onError={(e) => {
+                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Item</text></svg>`;
+                        }}
+                      />
+                    )}
                     </div>
                   ))}
               </div>

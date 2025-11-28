@@ -72,9 +72,9 @@ export default defineConfig({
     minify: 'esbuild',
     target: 'es2020',
     cssCodeSplit: true,
-    cssMinify: true,
+    cssMinify: 'esbuild', // More aggressive CSS minification
     sourcemap: false,
-    assetsInlineLimit: 2048, // Reduced to 2KB for better caching
+    assetsInlineLimit: 4096, // Increased to 4KB - reduce HTTP requests
     chunkSizeWarningLimit: 400,
     reportCompressedSize: false,
     // Production optimizations
