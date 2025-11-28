@@ -209,7 +209,7 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
       if (!imagePath) return null;
       if (imagePath.startsWith('/uploads/')) return imagePath;
       if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
-      return `/uploads/homepage-categories/${imagePath}`;
+      return `/uploads/category-carousel/${imagePath}`;
     };
 
     // Construct optimized response
