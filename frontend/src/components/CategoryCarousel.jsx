@@ -192,7 +192,7 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                           <LazyImage 
                             src={category.imageUrl}
                             alt={category.name}
-                            enableModernFormats={false}
+                            enableModernFormats={true}
                             priority={index < 2}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={() => handleImageError(category._id)}

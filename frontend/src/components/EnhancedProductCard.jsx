@@ -234,7 +234,7 @@ const EnhancedProductCard = ({
           <LazyImage
             src={getImageSrc()}
             alt={product.title || 'Product'}
-            enableModernFormats={false}
+            enableModernFormats={true}
             priority={false}
             className={`
               absolute inset-0 w-full h-full object-cover transition-all duration-500
