@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import { config } from '../config';
 
 /**
  * LazyImage Component - Optimized image loading with modern formats and responsive images
@@ -28,12 +29,27 @@ const LazyImage = ({
   responsiveSizes = [300, 600, 1200], // Responsive breakpoints
   ...props 
 }) => {
-  const [imageSrc, setImageSrc] = React.useState(src);
+  // Helper to get full URL for images
+  const getFullUrl = (path) => {
+    if (!path) return fallback;
+    if (path.startsWith('http')) return path;
+    if (path.startsWith('data:')) return path;
+    
+    // If it's a backend path starting with /uploads/, prepend base URL
+    if (path.startsWith('/uploads/')) {
+      return `${config.BASE_URL}${path}`;
+    }
+    
+    // Otherwise return as-is
+    return path;
+  };
+
+  const [imageSrc, setImageSrc] = React.useState(getFullUrl(src));
   const [hasError, setHasError] = React.useState(false);
 
   // Update image source when src prop changes
   React.useEffect(() => {
-    setImageSrc(src);
+    setImageSrc(getFullUrl(src));
     setHasError(false);
   }, [src]);
 
@@ -53,13 +69,25 @@ const LazyImage = ({
   const generateSrcSet = (baseSrc, sizes, format = '') => {
     if (!baseSrc || srcSet) return srcSet; // Use provided srcSet if available
     
-    const ext = baseSrc.substring(baseSrc.lastIndexOf('.'));
-    const baseWithoutExt = baseSrc.substring(0, baseSrc.lastIndexOf('.'));
+    // Extract path from full URL if needed
+    let pathOnly = baseSrc;
+    if (baseSrc.includes(config.BASE_URL)) {
+      pathOnly = baseSrc.replace(config.BASE_URL, '');
+    }
     
-    // Generate srcSet with format suffix
+    const ext = pathOnly.substring(pathOnly.lastIndexOf('.'));
+    const baseWithoutExt = pathOnly.substring(0, pathOnly.lastIndexOf('.'));
+    
+    // Generate srcSet with format suffix and full URLs
     const formatSuffix = format ? `.${format}` : ext;
     return sizes
-      .map(size => `${baseWithoutExt}-${size}w${formatSuffix} ${size}w`)
+      .map(size => {
+        const optimizedPath = `${baseWithoutExt}-${size}w${formatSuffix}`;
+        const fullUrl = optimizedPath.startsWith('/') 
+          ? `${config.BASE_URL}${optimizedPath}` 
+          : optimizedPath;
+        return `${fullUrl} ${size}w`;
+      })
       .join(', ');
   };
 

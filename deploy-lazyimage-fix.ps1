@@ -56,6 +56,7 @@ mkdir -p $BACKUP_DIR && \
   cp -r $SERVER_PATH/backend/controllers/productController.js $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/backend/routes/homepageCardRoutes.js $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/backend/routes/homepageCategoryRoutes.js $BACKUP_DIR/ && \
+  cp -r $SERVER_PATH/frontend/src/components/LazyImage.jsx $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/frontend/src/components/EnhancedProductCard.jsx $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/frontend/src/components/CategoryCarousel.jsx $BACKUP_DIR/
 "@
@@ -97,6 +98,7 @@ Write-Host ""
 # Step 3: Upload frontend files
 Write-Host "3️⃣  Uploading frontend files..." -ForegroundColor Yellow
 $frontendFiles = @(
+    @{Local="frontend\src\components\LazyImage.jsx"; Remote="$SERVER_PATH/frontend/src/components/LazyImage.jsx"},
     @{Local="frontend\src\components\EnhancedProductCard.jsx"; Remote="$SERVER_PATH/frontend/src/components/EnhancedProductCard.jsx"},
     @{Local="frontend\src\components\CategoryCarousel.jsx"; Remote="$SERVER_PATH/frontend/src/components/CategoryCarousel.jsx"}
 )

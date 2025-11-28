@@ -24,6 +24,7 @@ ssh $SERVER "mkdir -p $BACKUP_DIR && \
   cp -r $SERVER_PATH/backend/controllers/productController.js $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/backend/routes/homepageCardRoutes.js $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/backend/routes/homepageCategoryRoutes.js $BACKUP_DIR/ && \
+  cp -r $SERVER_PATH/frontend/src/components/LazyImage.jsx $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/frontend/src/components/EnhancedProductCard.jsx $BACKUP_DIR/ && \
   cp -r $SERVER_PATH/frontend/src/components/CategoryCarousel.jsx $BACKUP_DIR/"
 
@@ -51,6 +52,7 @@ echo ""
 
 # Step 3: Upload frontend files
 echo "3️⃣  Uploading frontend files..."
+scp frontend/src/components/LazyImage.jsx $SERVER:$SERVER_PATH/frontend/src/components/
 scp frontend/src/components/EnhancedProductCard.jsx $SERVER:$SERVER_PATH/frontend/src/components/
 scp frontend/src/components/CategoryCarousel.jsx $SERVER:$SERVER_PATH/frontend/src/components/
 

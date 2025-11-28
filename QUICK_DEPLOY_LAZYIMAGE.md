@@ -7,12 +7,18 @@
 ✅ Backend APIs not returning optimized image paths  
 
 ## What Changed
-📝 **5 Files Modified:**
+📝 **6 Files Modified:**
 1. `backend/controllers/productController.js` - Added optimized image paths to API
 2. `backend/routes/homepageCardRoutes.js` - Added optimized paths for homepage cards
 3. `backend/routes/homepageCategoryRoutes.js` - Added optimized paths for categories
-4. `frontend/src/components/EnhancedProductCard.jsx` - Now uses LazyImage component
-5. `frontend/src/components/CategoryCarousel.jsx` - Now uses LazyImage component
+4. `frontend/src/components/LazyImage.jsx` - **FIXED:** Now handles backend paths correctly
+5. `frontend/src/components/EnhancedProductCard.jsx` - Now uses LazyImage component
+6. `frontend/src/components/CategoryCarousel.jsx` - Now uses LazyImage component
+
+**🔧 Critical Fix Applied:**
+- LazyImage now receives raw backend paths (`/uploads/products/image.jpg`)
+- Component internally converts to full URLs and generates WebP/AVIF variants
+- Images will now load correctly as optimized formats!
 
 ## How to Deploy (WINDOWS)
 
@@ -62,7 +68,8 @@ scp "backend\controllers\productController.js" root@147.93.108.205:/var/www/inte
 scp "backend\routes\homepageCardRoutes.js" root@147.93.108.205:/var/www/internationaltijarat/backend/routes/
 scp "backend\routes\homepageCategoryRoutes.js" root@147.93.108.205:/var/www/internationaltijarat/backend/routes/
 
-# Frontend files
+# Frontend files (INCLUDING FIXED LazyImage.jsx)
+scp "frontend\src\components\LazyImage.jsx" root@147.93.108.205:/var/www/internationaltijarat/frontend/src/components/
 scp "frontend\src\components\EnhancedProductCard.jsx" root@147.93.108.205:/var/www/internationaltijarat/frontend/src/components/
 scp "frontend\src\components\CategoryCarousel.jsx" root@147.93.108.205:/var/www/internationaltijarat/frontend/src/components/
 ```

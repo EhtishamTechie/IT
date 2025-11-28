@@ -190,7 +190,7 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                       <div className="relative h-36 sm:h-40 md:h-48 overflow-hidden bg-gray-100">
                         <Link to={`/category-group/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`} className="block w-full h-full">
                           <LazyImage 
-                            src={getImageUrl('homepageCategories', category.imageUrl)}
+                            src={category.imageUrl}
                             alt={category.name}
                             enableModernFormats={true}
                             priority={index < 2}

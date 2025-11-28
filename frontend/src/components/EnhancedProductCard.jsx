@@ -142,11 +142,11 @@ const EnhancedProductCard = ({
     : (product.images && product.images.length > 0 ? product.images[0] : null);
 
   // Determine the correct image URL
-
-
+  // Note: LazyImage needs the raw path to generate WebP/AVIF variants
   const getImageSrc = () => {
     if (primaryImage) {
-      return getImageUrl('products', primaryImage);
+      // Return raw path for LazyImage to process
+      return primaryImage;
     }
     return null;
   };
