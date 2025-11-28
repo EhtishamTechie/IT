@@ -82,16 +82,10 @@ const LazyImage = ({
       if (formatData) {
         const srcSetParts = [];
         
-        // Build srcset with fallback logic
+        // Only include sizes that actually exist
         for (const size of sizes) {
           const sizeKey = `${size}w`;
-          let path = formatData[sizeKey];
-          
-          // If requested size doesn't exist, fallback to next available size
-          if (!path) {
-            // Try full size as fallback
-            path = formatData['full'] || formatData['1200w'] || formatData['600w'] || formatData['300w'];
-          }
+          const path = formatData[sizeKey];
           
           if (path) {
             // In dev, prepend BASE_URL; in production, use as-is
@@ -102,7 +96,15 @@ const LazyImage = ({
           }
         }
         
-        // If we have at least one valid path, return the srcset
+        // If no size-specific variants exist, use full size as fallback
+        if (srcSetParts.length === 0 && formatData['full']) {
+          const fullPath = import.meta.env.DEV && formatData['full'].startsWith('/') 
+            ? `${config.BASE_URL}${formatData['full']}` 
+            : formatData['full'];
+          return fullPath; // Return single path, not srcset
+        }
+        
+        // If we have at least one valid size variant, return the srcset
         if (srcSetParts.length > 0) {
           return srcSetParts.join(', ');
         }

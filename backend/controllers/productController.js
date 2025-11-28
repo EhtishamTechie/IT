@@ -16,21 +16,53 @@ const getOptimizedImagePaths = (originalPath) => {
   const ext = path.extname(originalPath);
   const basePathWithoutExt = originalPath.replace(ext, '');
   
-  return {
-    original: originalPath,
-    webp: {
-      '300w': `${basePathWithoutExt}-300w.webp`,
-      '600w': `${basePathWithoutExt}-600w.webp`,
-      '1200w': `${basePathWithoutExt}-1200w.webp`,
-      full: `${basePathWithoutExt}.webp`
-    },
-    avif: {
-      '300w': `${basePathWithoutExt}-300w.avif`,
-      '600w': `${basePathWithoutExt}-600w.avif`,
-      '1200w': `${basePathWithoutExt}-1200w.avif`,
-      full: `${basePathWithoutExt}.avif`
+  // Convert /uploads/products/image.jpg to absolute path
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  const relativeBase = basePathWithoutExt.startsWith('/uploads/') 
+    ? basePathWithoutExt.replace('/uploads/', '')
+    : basePathWithoutExt;
+  const absoluteBase = path.join(uploadsDir, relativeBase);
+  
+  // Check which variants actually exist
+  const checkFileExists = (filePath) => {
+    try {
+      return fs.existsSync(filePath);
+    } catch {
+      return false;
     }
   };
+  
+  const result = {
+    original: originalPath,
+    webp: {},
+    avif: {}
+  };
+  
+  // Check WebP variants
+  const webpSizes = ['300w', '600w', '1200w', 'full'];
+  webpSizes.forEach(size => {
+    const suffix = size === 'full' ? '.webp' : `-${size}.webp`;
+    const absolutePath = `${absoluteBase}${suffix}`;
+    const relativePath = `${basePathWithoutExt}${suffix}`;
+    
+    if (checkFileExists(absolutePath)) {
+      result.webp[size] = relativePath;
+    }
+  });
+  
+  // Check AVIF variants
+  const avifSizes = ['300w', '600w', '1200w', 'full'];
+  avifSizes.forEach(size => {
+    const suffix = size === 'full' ? '.avif' : `-${size}.avif`;
+    const absolutePath = `${absoluteBase}${suffix}`;
+    const relativePath = `${basePathWithoutExt}${suffix}`;
+    
+    if (checkFileExists(absolutePath)) {
+      result.avif[size] = relativePath;
+    }
+  });
+  
+  return result;
 };
 
 // Helper function to transform product images with better error handling
