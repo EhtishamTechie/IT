@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Eye, ShoppingBag } from 'lucide-react';
 import { getImageUrl } from '../config';
 import ImagePlaceholder from './ImagePlaceholder';
+import LazyImage from './LazyImage';
 
 const EnhancedProductCard = ({ 
   product, 
@@ -230,10 +231,11 @@ const EnhancedProductCard = ({
 
         {/* Primary Image - shown by default or when video not available */}
         {primaryImage && !imageError ? (
-          <img
+          <LazyImage
             src={getImageSrc()}
             alt={product.title || 'Product'}
-            loading="lazy"
+            enableModernFormats={true}
+            priority={false}
             className={`
               absolute inset-0 w-full h-full object-cover transition-all duration-500
               ${isHovered && product.video && !videoError 

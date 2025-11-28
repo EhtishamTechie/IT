@@ -38,13 +38,47 @@ const upload = multer({
   }
 });
 
+// Helper function to get optimized image paths
+const getOptimizedImagePaths = (originalPath) => {
+  if (!originalPath) return null;
+  
+  const ext = path.extname(originalPath);
+  const basePathWithoutExt = originalPath.replace(ext, '');
+  
+  return {
+    original: originalPath,
+    webp: {
+      '300w': `${basePathWithoutExt}-300w.webp`,
+      '600w': `${basePathWithoutExt}-600w.webp`,
+      '1200w': `${basePathWithoutExt}-1200w.webp`,
+      full: `${basePathWithoutExt}.webp`
+    },
+    avif: {
+      '300w': `${basePathWithoutExt}-300w.avif`,
+      '600w': `${basePathWithoutExt}-600w.avif`,
+      '1200w': `${basePathWithoutExt}-1200w.avif`,
+      full: `${basePathWithoutExt}.avif`
+    }
+  };
+};
+
 // Get all homepage categories
 router.get('/', cacheService.middleware(HOMEPAGE_CACHE), async (req, res) => {
   try {
     const categories = await HomepageCategory.find()
       .sort({ displayOrder: 1 })
       .populate('categoryId', 'name description');
-    res.json(categories);
+    
+    // Add optimized image paths for each category
+    const categoriesWithOptimizedImages = categories.map(cat => {
+      const catObj = cat.toObject();
+      if (catObj.imageUrl) {
+        catObj.optimizedImage = getOptimizedImagePaths(catObj.imageUrl);
+      }
+      return catObj;
+    });
+    
+    res.json(categoriesWithOptimizedImages);
   } catch (error) {
     console.error('Error fetching homepage categories:', error);
     res.status(500).json({ message: 'Failed to fetch homepage categories' });

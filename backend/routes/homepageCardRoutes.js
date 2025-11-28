@@ -42,6 +42,30 @@ const upload = multer({
   }
 });
 
+// Helper function to get optimized image paths
+const getOptimizedImagePaths = (originalPath) => {
+  if (!originalPath) return null;
+  
+  const ext = path.extname(originalPath);
+  const basePathWithoutExt = originalPath.replace(ext, '');
+  
+  return {
+    original: originalPath,
+    webp: {
+      '300w': `${basePathWithoutExt}-300w.webp`,
+      '600w': `${basePathWithoutExt}-600w.webp`,
+      '1200w': `${basePathWithoutExt}-1200w.webp`,
+      full: `${basePathWithoutExt}.webp`
+    },
+    avif: {
+      '300w': `${basePathWithoutExt}-300w.avif`,
+      '600w': `${basePathWithoutExt}-600w.avif`,
+      '1200w': `${basePathWithoutExt}-1200w.avif`,
+      full: `${basePathWithoutExt}.avif`
+    }
+  };
+};
+
 // GET /api/homepage/cards - Get all homepage cards
 router.get('/', cacheService.middleware(HOMEPAGE_CACHE), async (req, res) => {
   try {
@@ -49,10 +73,34 @@ router.get('/', cacheService.middleware(HOMEPAGE_CACHE), async (req, res) => {
       .sort({ order: 1 })
       .populate('mainCategory', 'name')
       .populate('subcategoryItems.category', 'name');
+    
+    // Add optimized image paths for each card
+    const cardsWithOptimizedImages = cards.map(card => {
+      const cardObj = card.toObject();
+      
+      // Add optimized paths for main image
+      if (cardObj.mainImage) {
+        const fullPath = `/uploads/homepage-cards/${cardObj.mainImage}`;
+        cardObj.optimizedMainImage = getOptimizedImagePaths(fullPath);
+      }
+      
+      // Add optimized paths for subcategory images
+      if (cardObj.subcategoryItems && cardObj.subcategoryItems.length > 0) {
+        cardObj.optimizedSubcategoryItems = cardObj.subcategoryItems.map(item => {
+          const fullPath = `/uploads/homepage-cards/${item.image}`;
+          return {
+            ...item,
+            optimizedImage: getOptimizedImagePaths(fullPath)
+          };
+        });
+      }
+      
+      return cardObj;
+    });
       
     res.json({
       success: true,
-      cards
+      cards: cardsWithOptimizedImages
     });
   } catch (error) {
     console.error('Error fetching homepage cards:', error);

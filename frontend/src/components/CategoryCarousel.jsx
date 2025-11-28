@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { config, getApiUrl, getImageUrl } from '../config';
 import { Link } from 'react-router-dom';
+import LazyImage from './LazyImage';
 
 const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                           
@@ -188,12 +189,11 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                       {/* Image Container */}
                       <div className="relative h-36 sm:h-40 md:h-48 overflow-hidden bg-gray-100">
                         <Link to={`/category-group/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`} className="block w-full h-full">
-                          <img 
+                          <LazyImage 
                             src={getImageUrl('homepageCategories', category.imageUrl)}
                             alt={category.name}
-                            loading={index < 4 ? "eager" : "lazy"}
-                            fetchpriority={index < 2 ? "high" : "auto"}
-                            decoding="async"
+                            enableModernFormats={true}
+                            priority={index < 2}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                             onError={() => handleImageError(category._id)}
                             onLoad={() => handleImageLoad(category._id)}

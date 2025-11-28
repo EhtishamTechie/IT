@@ -9,6 +9,30 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const { getUploadUrl } = require('../utils/urlHelpers');
 
+// Helper function to get optimized image variants
+const getOptimizedImagePaths = (originalPath) => {
+  if (!originalPath) return null;
+  
+  const ext = path.extname(originalPath);
+  const basePathWithoutExt = originalPath.replace(ext, '');
+  
+  return {
+    original: originalPath,
+    webp: {
+      '300w': `${basePathWithoutExt}-300w.webp`,
+      '600w': `${basePathWithoutExt}-600w.webp`,
+      '1200w': `${basePathWithoutExt}-1200w.webp`,
+      full: `${basePathWithoutExt}.webp`
+    },
+    avif: {
+      '300w': `${basePathWithoutExt}-300w.avif`,
+      '600w': `${basePathWithoutExt}-600w.avif`,
+      '1200w': `${basePathWithoutExt}-1200w.avif`,
+      full: `${basePathWithoutExt}.avif`
+    }
+  };
+};
+
 // Helper function to transform product images with better error handling
 const transformProductImages = (product) => {
   if (!product) {
@@ -44,16 +68,30 @@ const transformProductImages = (product) => {
       sizeStock = Object.fromEntries(sizeStock);
     }
     
+    // Generate optimized paths for main image
+    const mainImagePath = addUploadPrefix(product.image);
+    const optimizedMainImage = getOptimizedImagePaths(mainImagePath);
+    
+    // Generate optimized paths for additional images
+    const optimizedImages = images.map(img => {
+      const imgPath = addUploadPrefix(img);
+      return getOptimizedImagePaths(imgPath);
+    });
+    
     const transformed = {
       ...product,
-      image: addUploadPrefix(product.image),
+      image: mainImagePath,
       images: images.map(img => addUploadPrefix(img)),
+      // Add optimized image paths for frontend
+      optimizedImage: optimizedMainImage,
+      optimizedImages: optimizedImages,
       sizeStock: sizeStock
     };
     
     console.log('✅ [TRANSFORM] Image paths updated:', {
       mainImage: transformed.image,
-      additionalImages: transformed.images?.length || 0
+      additionalImages: transformed.images?.length || 0,
+      optimizedVariants: optimizedMainImage ? 'included' : 'none'
     });
     
     return transformed;
