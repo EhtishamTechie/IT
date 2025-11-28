@@ -10,7 +10,22 @@ import EnhancedProductCard from './EnhancedProductCard';
 
 const PremiumProductDisplay = ({ premiumProducts = [], featuredProducts = [], newArrivals = [] }) => {
   const navigate = useNavigate();
-  const { addToCart, removeFromCart, cartItems } = useCart();
+  
+  // Safely get cart context with fallback
+  let addToCart, removeFromCart, cartItems;
+  try {
+    const cartContext = useCart();
+    addToCart = cartContext.addToCart;
+    removeFromCart = cartContext.removeFromCart;
+    cartItems = cartContext.cartItems || [];
+  } catch (error) {
+    console.warn('Cart context not available in PremiumProductDisplay:', error);
+    // Provide fallback functions
+    addToCart = async () => ({ success: false, error: 'Cart not available' });
+    removeFromCart = () => {};
+    cartItems = [];
+  }
+  
   const { user } = useAuth();
   const [addingToCart, setAddingToCart] = useState({});
   const [errorMessages, setErrorMessages] = useState({});
