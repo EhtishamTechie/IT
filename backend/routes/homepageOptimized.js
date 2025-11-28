@@ -7,9 +7,67 @@ const PremiumProducts = require('../models/PremiumProducts');
 const FeaturedProducts = require('../models/FeaturedProducts');
 const Product = require('../models/Product');
 const cacheService = require('../services/cacheService');
+const path = require('path');
+const fs = require('fs');
 
 // Cache duration: 1 hour for homepage data (changes infrequently)
 const HOMEPAGE_CACHE_TTL = 3600;
+
+// Helper function to get optimized image variants
+const getOptimizedImagePaths = (originalPath) => {
+  if (!originalPath) return null;
+  
+  const ext = path.extname(originalPath);
+  const basePathWithoutExt = originalPath.replace(ext, '');
+  
+  // Convert /uploads/products/image.jpg to absolute path
+  const uploadsDir = path.join(__dirname, '..', 'uploads');
+  const relativeBase = basePathWithoutExt.startsWith('/uploads/') 
+    ? basePathWithoutExt.replace('/uploads/', '')
+    : basePathWithoutExt;
+  const absoluteBase = path.join(uploadsDir, relativeBase);
+  
+  // Check which variants actually exist
+  const checkFileExists = (filePath) => {
+    try {
+      return fs.existsSync(filePath);
+    } catch {
+      return false;
+    }
+  };
+  
+  const result = {
+    original: originalPath,
+    webp: {},
+    avif: {}
+  };
+  
+  // Check WebP variants
+  const webpSizes = ['300w', '600w', '1200w', 'full'];
+  webpSizes.forEach(size => {
+    const suffix = size === 'full' ? '.webp' : `-${size}.webp`;
+    const absolutePath = `${absoluteBase}${suffix}`;
+    const relativePath = `${basePathWithoutExt}${suffix}`;
+    
+    if (checkFileExists(absolutePath)) {
+      result.webp[size] = relativePath;
+    }
+  });
+  
+  // Check AVIF variants
+  const avifSizes = ['300w', '600w', '1200w', 'full'];
+  avifSizes.forEach(size => {
+    const suffix = size === 'full' ? '.avif' : `-${size}.avif`;
+    const absolutePath = `${absoluteBase}${suffix}`;
+    const relativePath = `${basePathWithoutExt}${suffix}`;
+    
+    if (checkFileExists(absolutePath)) {
+      result.avif[size] = relativePath;
+    }
+  });
+  
+  return result;
+};
 
 /**
  * GET /api/homepage/all-data
@@ -122,10 +180,20 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
         return `/uploads/products/${imagePath}`;
       };
       
+      const mainImagePath = addUploadPrefix(product.image);
+      const optimizedMainImage = getOptimizedImagePaths(mainImagePath);
+      
+      const optimizedImages = (product.images || []).map(img => {
+        const imgPath = addUploadPrefix(img);
+        return getOptimizedImagePaths(imgPath);
+      });
+      
       return {
         ...product,
-        image: addUploadPrefix(product.image),
-        images: (product.images || []).map(img => addUploadPrefix(img))
+        image: mainImagePath,
+        images: (product.images || []).map(img => addUploadPrefix(img)),
+        optimizedImage: optimizedMainImage,
+        optimizedImages: optimizedImages
       };
     };
 
@@ -157,13 +225,17 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
       })) || [],
 
       // Category carousel
-      categories: categories.map(cat => ({
-        _id: cat._id,
-        name: cat.name || cat.categoryId?.name,
-        imageUrl: addCategoryImagePath(cat.imageUrl),
-        displayOrder: cat.displayOrder,
-        description: cat.description
-      })),
+      categories: categories.map(cat => {
+        const imagePath = addCategoryImagePath(cat.imageUrl);
+        return {
+          _id: cat._id,
+          name: cat.name || cat.categoryId?.name,
+          imageUrl: imagePath,
+          optimizedMainImage: getOptimizedImagePaths(imagePath),
+          displayOrder: cat.displayOrder,
+          description: cat.description
+        };
+      }),
 
       // Static category sections
       staticCategories: staticCategories.map(section => ({
