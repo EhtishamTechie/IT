@@ -2,14 +2,16 @@ import React from 'react';
 import PropTypes from 'prop-types';
 
 /**
- * LazyImage Component - Optimized image loading with lazy loading and modern attributes
+ * LazyImage Component - Optimized image loading with modern formats and responsive images
  * 
  * Features:
  * - Native lazy loading (loading="lazy")
  * - Async decoding for better performance
+ * - WebP and AVIF support with fallbacks
+ * - Responsive images with srcSet
  * - Fallback placeholder support
  * - Error handling with fallback image
- * - Responsive image support with srcSet
+ * - Explicit dimensions to prevent CLS
  */
 const LazyImage = ({ 
   src, 
@@ -22,6 +24,8 @@ const LazyImage = ({
   fallback = '/placeholder-image.jpg',
   onError,
   priority = false,
+  enableModernFormats = true, // Enable WebP/AVIF
+  responsiveSizes = [300, 600, 1200], // Responsive breakpoints
   ...props 
 }) => {
   const [imageSrc, setImageSrc] = React.useState(src);
@@ -45,6 +49,68 @@ const LazyImage = ({
     }
   };
 
+  // Generate srcSet for responsive images if not provided
+  const generateSrcSet = (baseSrc, sizes, format = '') => {
+    if (!baseSrc || srcSet) return srcSet; // Use provided srcSet if available
+    
+    const ext = baseSrc.substring(baseSrc.lastIndexOf('.'));
+    const baseWithoutExt = baseSrc.substring(0, baseSrc.lastIndexOf('.'));
+    
+    // Generate srcSet with format suffix
+    const formatSuffix = format ? `.${format}` : ext;
+    return sizes
+      .map(size => `${baseWithoutExt}-${size}w${formatSuffix} ${size}w`)
+      .join(', ');
+  };
+
+  // Generate sizes attribute if not provided
+  const generateSizes = () => {
+    if (sizes) return sizes;
+    
+    // Default responsive sizes
+    return '(max-width: 640px) 300px, (max-width: 1024px) 600px, 1200px';
+  };
+
+  // If modern formats are enabled, use picture element
+  if (enableModernFormats && !hasError) {
+    const baseWithoutExt = imageSrc.substring(0, imageSrc.lastIndexOf('.'));
+    const ext = imageSrc.substring(imageSrc.lastIndexOf('.'));
+    
+    return (
+      <picture>
+        {/* AVIF - Best compression, modern browsers */}
+        <source 
+          type="image/avif" 
+          srcSet={generateSrcSet(imageSrc, responsiveSizes, 'avif')}
+          sizes={generateSizes()}
+        />
+        
+        {/* WebP - Good compression, wide support */}
+        <source 
+          type="image/webp" 
+          srcSet={generateSrcSet(imageSrc, responsiveSizes, 'webp')}
+          sizes={generateSizes()}
+        />
+        
+        {/* Original format - Fallback */}
+        <img
+          src={imageSrc}
+          alt={alt}
+          className={className}
+          width={width}
+          height={height}
+          srcSet={srcSet || generateSrcSet(imageSrc, responsiveSizes)}
+          sizes={sizes || generateSizes()}
+          loading={priority ? 'eager' : 'lazy'}
+          decoding="async"
+          onError={handleError}
+          {...props}
+        />
+      </picture>
+    );
+  }
+
+  // Fallback to simple img tag
   return (
     <img
       src={imageSrc}
@@ -72,7 +138,9 @@ LazyImage.propTypes = {
   sizes: PropTypes.string,
   fallback: PropTypes.string,
   onError: PropTypes.func,
-  priority: PropTypes.bool // Set to true for above-the-fold images
+  priority: PropTypes.bool, // Set to true for above-the-fold images
+  enableModernFormats: PropTypes.bool, // Enable WebP/AVIF picture element
+  responsiveSizes: PropTypes.arrayOf(PropTypes.number) // Responsive breakpoints
 };
 
 export default LazyImage;

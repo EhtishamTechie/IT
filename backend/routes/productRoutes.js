@@ -38,7 +38,13 @@ router.post('/add',
   authenticateAdmin, 
   uploadProductMedia, 
   handleUploadError,
-  optimizeUploadedImages({ quality: 85, generateWebP: true }),
+  optimizeUploadedImages({ 
+    quality: 85, 
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }),
   async (req, res, next) => {
     await cacheInvalidator.invalidateProducts();
     next();
@@ -50,7 +56,13 @@ router.put('/:id',
   authenticateAdmin, 
   uploadProductMedia, 
   handleUploadError,
-  optimizeUploadedImages({ quality: 85, generateWebP: true }),
+  optimizeUploadedImages({ 
+    quality: 85, 
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }),
   async (req, res, next) => {
     await cacheInvalidator.invalidateProducts();
     next();

@@ -7,6 +7,7 @@ const HomepageCategory = require('../models/HomepageCategory');
 const Category = require('../models/Category');
 const authAdmin = require('../middleware/authAdmin');
 const cacheService = require('../services/cacheService');
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
 
 // Cache duration constants (in seconds)
 const HOMEPAGE_CACHE = 3600; // 1 hour - homepage content changes infrequently
@@ -51,7 +52,13 @@ router.get('/', cacheService.middleware(HOMEPAGE_CACHE), async (req, res) => {
 });
 
 // Add category to homepage
-router.post('/', authAdmin, upload.single('image'), async (req, res) => {
+router.post('/', authAdmin, upload.single('image'), optimizeUploadedImages({
+  quality: 85,
+  generateWebP: true,
+  generateAVIF: true,
+  generateResponsive: true,
+  responsiveSizes: [300, 600, 1200]
+}), async (req, res) => {
   try {
     const { categoryId, name } = req.body;
     

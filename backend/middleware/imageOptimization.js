@@ -25,8 +25,9 @@ const optimizeImage = async (filePath, options = {}) => {
     maxHeight = 1920,
     quality = 85,
     generateWebP = true,
-    generateResponsive = false,
-    responsiveSizes = [400, 800, 1200]
+    generateAVIF = true,
+    generateResponsive = true,
+    responsiveSizes = [300, 600, 1200]
   } = options;
 
   try {
@@ -44,7 +45,12 @@ const optimizeImage = async (filePath, options = {}) => {
       original: filePath,
       optimized: null,
       webp: null,
-      responsive: [],
+      avif: null,
+      responsive: {
+        webp: [],
+        avif: [],
+        original: []
+      },
       originalSize: metadata.size,
       optimizedSize: 0,
       savings: 0
@@ -92,29 +98,92 @@ const optimizeImage = async (filePath, options = {}) => {
           fit: 'inside',
           withoutEnlargement: true
         })
-        .webp({ quality: quality - 5 }) // WebP can use slightly lower quality
+        .webp({ 
+          quality: quality - 5,
+          effort: 4 // Good balance of compression and speed
+        })
         .toFile(webpPath);
       
       results.webp = webpPath;
     }
     
-    // 3. Generate responsive variants (optional)
+    // 3. Generate AVIF version (best compression)
+    if (generateAVIF) {
+      const avifPath = `${basePath}.avif`;
+      await sharp(filePath)
+        .resize(maxWidth, maxHeight, {
+          fit: 'inside',
+          withoutEnlargement: true
+        })
+        .avif({ 
+          quality: quality - 10, // AVIF can use lower quality for same visual result
+          effort: 4
+        })
+        .toFile(avifPath);
+      
+      results.avif = avifPath;
+    }
+    
+    // 4. Generate responsive variants with multiple formats
     if (generateResponsive) {
       for (const size of responsiveSizes) {
-        if (size < metadata.width) {
+        // Only generate if source is larger than target size
+        if (size <= metadata.width) {
+          // Original format
           const responsivePath = `${basePath}-${size}w${ext}`;
-          await sharp(filePath)
-            .resize(size, null, {
-              fit: 'inside',
-              withoutEnlargement: true
-            })
-            .jpeg({ quality, progressive: true })
-            .toFile(responsivePath);
-          
-          results.responsive.push({
-            width: size,
-            path: responsivePath
+          let resizePipeline = sharp(filePath).resize(size, null, {
+            fit: 'inside',
+            withoutEnlargement: true
           });
+          
+          if (ext === '.jpg' || ext === '.jpeg') {
+            resizePipeline = resizePipeline.jpeg({ quality, progressive: true, mozjpeg: true });
+          } else if (ext === '.png') {
+            resizePipeline = resizePipeline.png({ quality, compressionLevel: 9 });
+          }
+          
+          await resizePipeline.toFile(responsivePath);
+          results.responsive.original.push({
+            width: size,
+            path: responsivePath,
+            filename: path.basename(responsivePath)
+          });
+          
+          // WebP variant
+          if (generateWebP) {
+            const webpResponsivePath = `${basePath}-${size}w.webp`;
+            await sharp(filePath)
+              .resize(size, null, {
+                fit: 'inside',
+                withoutEnlargement: true
+              })
+              .webp({ quality: quality - 5, effort: 4 })
+              .toFile(webpResponsivePath);
+            
+            results.responsive.webp.push({
+              width: size,
+              path: webpResponsivePath,
+              filename: path.basename(webpResponsivePath)
+            });
+          }
+          
+          // AVIF variant
+          if (generateAVIF) {
+            const avifResponsivePath = `${basePath}-${size}w.avif`;
+            await sharp(filePath)
+              .resize(size, null, {
+                fit: 'inside',
+                withoutEnlargement: true
+              })
+              .avif({ quality: quality - 10, effort: 4 })
+              .toFile(avifResponsivePath);
+            
+            results.responsive.avif.push({
+              width: size,
+              path: avifResponsivePath,
+              filename: path.basename(avifResponsivePath)
+            });
+          }
         }
       }
     }
@@ -123,6 +192,8 @@ const optimizeImage = async (filePath, options = {}) => {
     console.log(`   Original: ${(metadata.size / 1024).toFixed(2)} KB`);
     console.log(`   Optimized: ${(results.optimizedSize / 1024).toFixed(2)} KB`);
     console.log(`   Savings: ${results.savings}%`);
+    console.log(`   Formats: ${[results.webp && 'WebP', results.avif && 'AVIF'].filter(Boolean).join(', ')}`);
+    console.log(`   Responsive sizes: ${results.responsive.original.length} variants per format`);
     
     return results;
     

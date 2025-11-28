@@ -4,6 +4,7 @@ const HomepageCard = require('../models/HomepageCard');
 const Category = require('../models/Category');
 const { authenticateAdmin } = require('../middleware/auth');
 const { uploadSingle } = require('../middleware/uploadMiddleware');
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
 const cacheService = require('../services/cacheService');
 const multer = require('multer');
 const path = require('path');
@@ -90,7 +91,13 @@ router.post('/', authenticateAdmin, upload.fields([
   { name: 'subcategoryImage2', maxCount: 1 },
   { name: 'subcategoryImage3', maxCount: 1 },
   { name: 'subcategoryImage4', maxCount: 1 }
-]), async (req, res) => {
+]), optimizeUploadedImages({
+  quality: 85,
+  generateWebP: true,
+  generateAVIF: true,
+  generateResponsive: true,
+  responsiveSizes: [300, 600, 1200]
+}), async (req, res) => {
   try {
     console.log('📝 Creating homepage card...');
     console.log('📦 Request body:', req.body);
