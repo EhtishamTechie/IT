@@ -376,10 +376,23 @@ const getAllProducts = async (req, res) => {
           return `/uploads/products/${imagePath}`;
         };
         
+        // Generate optimized paths for main image
+        const mainImagePath = addUploadPrefix(product.image);
+        const optimizedMainImage = getOptimizedImagePaths(mainImagePath);
+        
+        // Generate optimized paths for additional images
+        const optimizedImages = (product.images || []).map(img => {
+          const imgPath = addUploadPrefix(img);
+          return getOptimizedImagePaths(imgPath);
+        });
+        
         const transformedProduct = {
           ...product, // product is already a plain object due to .lean()
-          image: addUploadPrefix(product.image),
+          image: mainImagePath,
           images: (product.images || []).map(img => addUploadPrefix(img)),
+          // Add optimized image paths for frontend
+          optimizedImage: optimizedMainImage,
+          optimizedImages: optimizedImages,
           // Handle populated category fields (they're already plain objects from .lean())
           mainCategoryName: product.mainCategory?.[0]?.name || '',
           subCategoryName: product.subCategory?.[0]?.name || '',
