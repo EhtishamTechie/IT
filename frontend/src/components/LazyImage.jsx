@@ -76,6 +76,16 @@ const LazyImage = ({
   const generateSrcSet = (baseSrc, sizes, format = '') => {
     if (srcSet) return srcSet; // Use provided srcSet if available
     
+    // Debug logging
+    if (baseSrc && baseSrc.includes('1764071486387')) {
+      console.log('[LazyImage DEBUG] Product 1764071486387:', {
+        format,
+        hasOptimizedImage: !!optimizedImage,
+        optimizedImage: optimizedImage,
+        baseSrc
+      });
+    }
+    
     // If we have optimizedImage data from backend, use it directly
     if (optimizedImage && format) {
       const formatData = optimizedImage[format]; // 'avif' or 'webp'
