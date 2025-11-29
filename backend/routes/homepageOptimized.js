@@ -220,8 +220,9 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
         title: slide.title,
         category: slide.category,
         image: addBannerImagePath(slide.image),
-        primaryProduct: slide.primaryProduct,
-        secondaryProducts: slide.secondaryProducts
+        optimizedMainImage: getOptimizedImagePaths(addBannerImagePath(slide.image)),
+        primaryProduct: slide.primaryProduct ? addImagePaths(slide.primaryProduct) : null,
+        secondaryProducts: (slide.secondaryProducts || []).map(addImagePaths)
       })) || [],
 
       // Category carousel

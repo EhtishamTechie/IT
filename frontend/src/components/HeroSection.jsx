@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { getImageUrl } from '../config';
 import DynamicHomepageCards from './DynamicHomepageCards';
+import LazyImage from './LazyImage';
 
 const HeroSection = ({ banners = [] }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -139,33 +140,27 @@ const HeroSection = ({ banners = [] }) => {
                 <div className="relative flex-shrink-0">
                   {currentSlideData.mainProduct.id ? (
                     <Link to={`/product/${currentSlideData.mainProduct.id}`}>
-                      <img 
+                      <LazyImage 
                         src={currentSlideData.mainProduct.image}
                         alt={currentSlideData.mainProduct.title}
-                        loading="eager"
-                        fetchpriority="high"
+                        priority={true}
+                        enableModernFormats={true}
+                        optimizedImage={currentSlideData.mainProduct.product?.optimizedImage}
                         width="80"
                         height="80"
-                        decoding="async"
                         className="w-20 h-20 object-cover rounded-md shadow-md cursor-pointer"
-                        onError={(e) => {
-                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Product</text></svg>`;
-                        }}
                       />
                     </Link>
                   ) : (
-                    <img 
+                    <LazyImage 
                       src={currentSlideData.mainProduct.image}
                       alt={currentSlideData.mainProduct.title}
-                      loading="eager"
-                      fetchpriority="high"
+                      priority={true}
+                      enableModernFormats={true}
+                      optimizedImage={currentSlideData.mainProduct.product?.optimizedImage}
                       width="80"
                       height="80"
-                      decoding="async"
                       className="w-20 h-20 object-cover rounded-md shadow-md"
-                      onError={(e) => {
-                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Product</text></svg>`;
-                      }}
                     />
                   )}
                 </div>
@@ -175,27 +170,27 @@ const HeroSection = ({ banners = [] }) => {
                   <div key={index} className="relative flex-shrink-0">
                     {productItem.id ? (
                       <Link to={`/product/${productItem.id}`}>
-                        <img 
+                        <LazyImage 
                           src={productItem.image}
                           alt={productItem.title || `Featured Product ${index + 1}`}
                           width="80"
                           height="80"
-                          loading="lazy"
-                          decoding="async"
+                          priority={false}
+                          enableModernFormats={true}
+                          optimizedImage={productItem.product?.optimizedImage}
                           className="w-20 h-20 object-cover rounded-md shadow-md cursor-pointer"
-                          onError={(e) => {
-                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236b7280">Item</text></svg>`;
-                          }}
                         />
                       </Link>
                     ) : (
-                      <img 
+                      <LazyImage 
                         src={productItem.image}
                         alt={productItem.title || `Featured Product ${index + 1}`}
+                        width="80"
+                        height="80"
+                        priority={false}
+                        enableModernFormats={true}
+                        optimizedImage={productItem.product?.optimizedImage}
                         className="w-20 h-20 object-cover rounded-md shadow-md"
-                        onError={(e) => {
-                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320"><rect width="320" height="320" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%236b7280">Item</text></svg>`;
-                        }}
                       />
                     )}
                   </div>
@@ -236,33 +231,27 @@ const HeroSection = ({ banners = [] }) => {
                 <div className="relative flex-shrink-0">
                   {currentSlideData.mainProduct.id ? (
                     <Link to={`/product/${currentSlideData.mainProduct.id}`}>
-                      <img 
+                      <LazyImage 
                         src={currentSlideData.mainProduct.image}
                         alt={currentSlideData.mainProduct.title}
-                        loading="eager"
-                        fetchpriority="high"
+                        priority={true}
+                        enableModernFormats={true}
+                        optimizedImage={currentSlideData.mainProduct.product?.optimizedImage}
                         width="160"
                         height="160"
-                        decoding="async"
                         className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
-                        onError={(e) => {
-                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Product</text></svg>`;
-                        }}
                       />
                     </Link>
                   ) : (
-                    <img 
+                    <LazyImage 
                       src={currentSlideData.mainProduct.image}
                       alt={currentSlideData.mainProduct.title}
-                      loading="eager"
-                      fetchpriority="high"
+                      priority={true}
+                      enableModernFormats={true}
+                      optimizedImage={currentSlideData.mainProduct.product?.optimizedImage}
                       width="160"
                       height="160"
-                      decoding="async"
                       className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md"
-                      onError={(e) => {
-                        e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Product</text></svg>`;
-                      }}
                     />
                   )}
                 </div>
@@ -272,31 +261,27 @@ const HeroSection = ({ banners = [] }) => {
                   <div key={index} className="relative flex-shrink-0">
                     {productItem.id ? (
                       <Link to={`/product/${productItem.id}`}>
-                        <img 
+                        <LazyImage 
                           src={productItem.image}
                           alt={productItem.title || `Featured Product ${index + 1}`}
                           width="160"
                           height="160"
-                          loading="lazy"
-                          decoding="async"
+                          priority={false}
+                          enableModernFormats={true}
+                          optimizedImage={productItem.product?.optimizedImage}
                           className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200 cursor-pointer"
-                          onError={(e) => {
-                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Item</text></svg>`;
-                          }}
                         />
                       </Link>
                     ) : (
-                      <img 
+                      <LazyImage 
                         src={productItem.image}
                         alt={productItem.title || `Featured Product ${index + 1}`}
                         width="160"
                         height="160"
-                        loading="lazy"
-                        decoding="async"
+                        priority={false}
+                        enableModernFormats={true}
+                        optimizedImage={productItem.product?.optimizedImage}
                         className="w-28 h-28 md:w-36 md:h-36 lg:w-40 lg:h-40 object-cover rounded-md shadow-md hover:scale-105 transition-transform duration-200"
-                        onError={(e) => {
-                          e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160"><rect width="160" height="160" fill="%23f3f4f6"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="14" fill="%236b7280">Item</text></svg>`;
-                        }}
                       />
                     )}
                     </div>
