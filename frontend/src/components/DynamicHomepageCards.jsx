@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API from '../api';
 import { getImageUrl, getApiUrl } from '../config';
+import LazyImage from './LazyImage';
 
 const CACHE_DURATION = 30000; // 30 seconds
 
@@ -115,16 +116,13 @@ const DynamicHomepageCards = () => {
                     </h3>
                     {card.mainImage && (
                       <Link to={getCategoryUrl(card.mainCategory?._id, card.mainCategory?.name)}>
-                        <img 
+                        <LazyImage 
                           src={getCardImageUrl(card)}
                           alt={card.title}
-                          loading={card.order === 1 ? "eager" : "lazy"}
-                          fetchpriority={card.order === 1 ? "high" : "auto"}
-                          decoding="async"
+                          enableModernFormats={true}
+                          priority={card.order === 1}
+                          optimizedImage={card.optimizedMainImage || null}
                           className="w-full aspect-square object-cover rounded-sm mb-1 hover:opacity-90 transition-opacity cursor-pointer"
-                          onError={(e) => {
-                            e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="300" viewBox="0 0 300 300"><rect width="300" height="300" fill="%23f8fafc"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="16" fill="%23475569">${card.title}</text></svg>`;
-                          }}
                         />
                       </Link>
                     )}
@@ -142,26 +140,26 @@ const DynamicHomepageCards = () => {
                       {card.title}
                     </h3>
                     <div className="grid grid-cols-2 gap-0.5 mb-1">
-                      {card.subcategoryItems.map((item, idx) => (
-                        <div key={idx} className="text-center">
-                          <Link to={getCategoryUrl(item.category._id, item.category.name)}>
-                            <img 
-                              src={getSubcategoryImageUrl(item)}
-                              alt={item.name}
-                              loading={card.order === 1 ? "eager" : "lazy"}
-                              fetchpriority={card.order === 1 && idx < 2 ? "high" : "auto"}
-                              decoding="async"
-                              className="w-full aspect-square object-cover rounded-sm mb-0.5 hover:opacity-80 transition-opacity"
-                              onError={(e) => {
-                                e.target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%23f8fafc"/><text x="50%" y="50%" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="10" fill="%23475569">${item.name}</text></svg>`;
-                              }}
-                            />
-                          </Link>
-                          <p className="text-[10px] font-medium text-gray-700">
-                            {item.name}
-                          </p>
-                        </div>
-                      ))}
+                      {card.subcategoryItems.map((item, idx) => {
+                        const optimizedItem = card.optimizedSubcategoryItems?.[idx];
+                        return (
+                          <div key={idx} className="text-center">
+                            <Link to={getCategoryUrl(item.category._id, item.category.name)}>
+                              <LazyImage 
+                                src={getSubcategoryImageUrl(item)}
+                                alt={item.name}
+                                enableModernFormats={true}
+                                priority={card.order === 1 && idx < 2}
+                                optimizedImage={optimizedItem?.optimizedImage || null}
+                                className="w-full aspect-square object-cover rounded-sm mb-0.5 hover:opacity-80 transition-opacity"
+                              />
+                            </Link>
+                            <p className="text-[10px] font-medium text-gray-700">
+                              {item.name}
+                            </p>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
