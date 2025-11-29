@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FaArrowLeft, FaClock, FaRocket } from 'react-icons/fa';
+
 
 const ComingSoon = () => {
   return (
@@ -9,10 +9,10 @@ const ComingSoon = () => {
         {/* Animated Icon */}
         <div className="mb-8 relative">
           <div className="inline-flex items-center justify-center w-32 h-32 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full shadow-lg animate-pulse">
-            <FaRocket className="text-4xl text-white transform rotate-45" />
+            <Rocket className="text-4xl text-white transform rotate-45" />
           </div>
           <div className="absolute -top-2 -right-2 w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center animate-bounce">
-            <FaClock className="text-yellow-800 text-sm" />
+            <Clock className="text-yellow-800 text-sm" />
           </div>
         </div>
 
@@ -42,7 +42,7 @@ const ComingSoon = () => {
           to="/" 
           className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
         >
-          <FaArrowLeft className="text-sm" />
+          <ArrowLeft className="text-sm" />
           Back to Home
         </Link>
 

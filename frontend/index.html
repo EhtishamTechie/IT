@@ -139,6 +139,7 @@
       var script = document.createElement('script');
       script.async = true;
       script.defer = true;
+      script.type = 'module'; // Phase 2.3: Load as ES module for modern browsers
       script.src = 'https://connect.facebook.net/en_US/fbevents.js';
       document.head.appendChild(script);
       
@@ -260,6 +261,22 @@
     
     <div id="root"></div>
     
+    <!-- Phase 2.3: Module/NoModule Pattern for Modern JS -->
+    <!-- Modern browsers get optimized ES2020 code -->
     <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Legacy browsers get polyfilled version (only if needed) -->
+    <!-- Note: Vite automatically handles this with legacy plugin if configured -->
+    <script nomodule>
+      // Fallback message for very old browsers
+      if (!('Promise' in window)) {
+        document.getElementById('root').innerHTML = 
+          '<div style="padding:20px;text-align:center;font-family:Arial">'+
+          '<h2>Browser Update Required</h2>'+
+          '<p>Please upgrade to a modern browser to use this website.</p>'+
+          '<p>Recommended: Chrome, Firefox, Safari, or Edge (latest versions)</p>'+
+          '</div>';
+      }
+    </script>
   </body>
 </html>

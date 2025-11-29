@@ -12,8 +12,7 @@ import {
     InputAdornment,
     IconButton
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
+import { Search, X } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { getImageUrl } from '../../../../config';
 
@@ -79,7 +78,7 @@ const ProductSelectionModal = ({
                     Select {selectionMode === 'primary' ? 'Primary' : 'Secondary'} Product
                 </Typography>
                 <IconButton onClick={onClose} size="small">
-                    <CloseIcon />
+                    <X />
                 </IconButton>
             </DialogTitle>
 
@@ -96,7 +95,7 @@ const ProductSelectionModal = ({
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
-                                    <SearchIcon color="action" />
+                                    <Search color="action" />
                                 </InputAdornment>
                             ),
                             endAdornment: searchTerm && (
@@ -105,7 +104,7 @@ const ProductSelectionModal = ({
                                         size="small"
                                         onClick={() => setSearchTerm('')}
                                     >
-                                        <CloseIcon fontSize="small" />
+                                        <X fontSize="small" />
                                     </IconButton>
                                 </InputAdornment>
                             ),

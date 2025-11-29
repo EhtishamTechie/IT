@@ -7,7 +7,7 @@ import {
     Box,
     IconButton
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import { X } from 'lucide-react';
 import { config } from '../../../../config';
 
 const ProductCard = ({ 
@@ -42,7 +42,7 @@ const ProductCard = ({
                 }}
                 onClick={() => onRemove && onRemove(product)}
             >
-                <CloseIcon fontSize="small" />
+                <X fontSize="small" />
             </IconButton>
 
             <CardMedia

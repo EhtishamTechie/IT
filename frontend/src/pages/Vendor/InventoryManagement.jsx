@@ -1,17 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  FiPackage, 
-  FiAlertTriangle, 
-  FiTrendingUp, 
-  FiBarChart2,
-  FiSearch,
-  FiPlus,
-  FiEdit,
-  FiEye,
-  FiFilter,
-  FiDownload,
-  FiRefreshCw
-} from 'react-icons/fi';
+
 import inventoryService from '../../services/inventoryService';
 
 const InventoryManagement = () => {
@@ -222,7 +210,7 @@ const InventoryManagement = () => {
         <div className="space-y-6">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <FiRefreshCw className="w-8 h-8 animate-spin text-orange-500" />
+              <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
             </div>
           ) : overview ? (
             <>
@@ -231,7 +219,7 @@ const InventoryManagement = () => {
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <FiPackage className="h-8 w-8 text-blue-600" />
+                      <Package className="h-8 w-8 text-blue-600" />
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
@@ -245,7 +233,7 @@ const InventoryManagement = () => {
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <FiTrendingUp className="h-8 w-8 text-green-600" />
+                      <TrendingUp className="h-8 w-8 text-green-600" />
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
@@ -259,7 +247,7 @@ const InventoryManagement = () => {
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex items-center">
                     <div className="flex-shrink-0">
-                      <FiAlertTriangle className="h-8 w-8 text-yellow-600" />
+                      <AlertTriangle className="h-8 w-8 text-yellow-600" />
                     </div>
                     <div className="ml-5 w-0 flex-1">
                       <dl>
@@ -337,7 +325,7 @@ const InventoryManagement = () => {
                       {overview.alerts.slice(0, 5).map((alert, index) => (
                         <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                           <div className="flex items-center space-x-3">
-                            <FiAlertTriangle className={`w-5 h-5 ${getAlertSeverityColor(alert.severity)}`} />
+                            <AlertTriangle className={`w-5 h-5 ${getAlertSeverityColor(alert.severity)}`} />
                             <div>
                               <p className="font-medium text-gray-900">{alert.productName}</p>
                               <p className="text-sm text-gray-600">{alert.message}</p>
@@ -366,7 +354,7 @@ const InventoryManagement = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                 <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
                     type="text"
                     placeholder="Search products..."
@@ -426,14 +414,14 @@ const InventoryManagement = () => {
               <h3 className="text-lg font-medium text-gray-900">Inventory Items</h3>
               <div className="flex space-x-2">
                 <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
-                  <FiDownload className="w-4 h-4 inline mr-2" />
+                  <Download className="w-4 h-4 inline mr-2" />
                   Export
                 </button>
                 <button 
                   onClick={fetchInventoryItems}
                   className="px-4 py-2 text-sm font-medium text-white bg-orange-600 border border-transparent rounded-md hover:bg-orange-700"
                 >
-                  <FiRefreshCw className="w-4 h-4 inline mr-2" />
+                  <RefreshCw className="w-4 h-4 inline mr-2" />
                   Refresh
                 </button>
               </div>
@@ -441,7 +429,7 @@ const InventoryManagement = () => {
 
             {loading ? (
               <div className="flex justify-center items-center h-64">
-                <FiRefreshCw className="w-8 h-8 animate-spin text-orange-500" />
+                <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -492,10 +480,10 @@ const InventoryManagement = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-2">
                             <button className="text-indigo-600 hover:text-indigo-900">
-                              <FiEye className="w-4 h-4" />
+                              <Eye className="w-4 h-4" />
                             </button>
                             <button className="text-gray-600 hover:text-gray-900">
-                              <FiEdit className="w-4 h-4" />
+                              <Edit className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -506,7 +494,7 @@ const InventoryManagement = () => {
 
                 {inventoryItems.length === 0 && (
                   <div className="text-center py-12">
-                    <FiPackage className="mx-auto h-12 w-12 text-gray-400" />
+                    <Package className="mx-auto h-12 w-12 text-gray-400" />
                     <h3 className="mt-2 text-sm font-medium text-gray-900">No inventory items</h3>
                     <p className="mt-1 text-sm text-gray-500">Get started by adding products to your inventory.</p>
                   </div>
@@ -553,7 +541,7 @@ const InventoryManagement = () => {
           
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <FiRefreshCw className="w-8 h-8 animate-spin text-orange-500" />
+              <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
             </div>
           ) : (
             <div className="divide-y divide-gray-200">
@@ -562,7 +550,7 @@ const InventoryManagement = () => {
                   <div key={index} className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start space-x-4">
-                        <FiAlertTriangle className={`w-6 h-6 mt-0.5 ${getAlertSeverityColor(alert.severity)}`} />
+                        <AlertTriangle className={`w-6 h-6 mt-0.5 ${getAlertSeverityColor(alert.severity)}`} />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2">
                             <h4 className="text-sm font-medium text-gray-900">{alert.productName}</h4>
@@ -585,7 +573,7 @@ const InventoryManagement = () => {
                 ))
               ) : (
                 <div className="text-center py-12">
-                  <FiAlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
+                  <AlertTriangle className="mx-auto h-12 w-12 text-gray-400" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">No active alerts</h3>
                   <p className="mt-1 text-sm text-gray-500">All your inventory items are properly stocked.</p>
                 </div>
@@ -600,7 +588,7 @@ const InventoryManagement = () => {
         <div className="space-y-6">
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <FiRefreshCw className="w-8 h-8 animate-spin text-orange-500" />
+              <RefreshCw className="w-8 h-8 animate-spin text-orange-500" />
             </div>
           ) : analytics ? (
             <>

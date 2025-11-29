@@ -10,7 +10,8 @@ import CardContent from '@mui/material/CardContent';
 import CardActions from '@mui/material/CardActions';
 import CircularProgress from '@mui/material/CircularProgress';
 import Pagination from '@mui/material/Pagination';
-import { Preview as PreviewIcon, ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+import { Eye, ArrowLeft } from 'lucide-react';
+
 import CategorySelector from './CategorySelector';
 import ProductSelectionModal from './ProductSelectionModal';
 import { toast } from 'react-toastify';
@@ -267,7 +268,7 @@ const SpecialProductsManager = ({ type }) => {
                     </Typography>
                     <Button
                         onClick={() => setIsPreviewMode(!isPreviewMode)}
-                        startIcon={<PreviewIcon />}
+                        startIcon={<Eye />}
                     >
                         {isPreviewMode ? 'Exit Preview' : 'Preview Layout'}
                     </Button>

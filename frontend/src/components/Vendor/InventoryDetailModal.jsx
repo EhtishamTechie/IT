@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiX, FiPackage, FiEdit, FiPlus, FiMinus, FiSave, FiAlert } from 'react-icons/fi';
+
 import inventoryService from '../../services/inventoryService';
 
 const InventoryDetailModal = ({ inventoryId, isOpen, onClose, onUpdate }) => {
@@ -90,7 +90,7 @@ const InventoryDetailModal = ({ inventoryId, isOpen, onClose, onUpdate }) => {
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
-            <FiPackage className="w-6 h-6 text-orange-600" />
+            <Package className="w-6 h-6 text-orange-600" />
             <h2 className="text-xl font-semibold text-gray-900">
               {inventory?.product?.name || 'Inventory Details'}
             </h2>
@@ -99,7 +99,7 @@ const InventoryDetailModal = ({ inventoryId, isOpen, onClose, onUpdate }) => {
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <FiX className="w-6 h-6" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
@@ -242,7 +242,7 @@ const InventoryDetailModal = ({ inventoryId, isOpen, onClose, onUpdate }) => {
             {adjustmentMode && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                  <FiAlert className="w-5 h-5 mr-2 text-yellow-600" />
+                  <AlertCircle className="w-5 h-5 mr-2 text-yellow-600" />
                   Stock Adjustment
                 </h4>
                 <div className="space-y-4">
@@ -297,7 +297,7 @@ const InventoryDetailModal = ({ inventoryId, isOpen, onClose, onUpdate }) => {
                     disabled={loading}
                     className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                   >
-                    <FiSave className="w-4 h-4 mr-2" />
+                    <Save className="w-4 h-4 mr-2" />
                     Save Changes
                   </button>
                   <button
@@ -317,7 +317,7 @@ const InventoryDetailModal = ({ inventoryId, isOpen, onClose, onUpdate }) => {
                     disabled={loading || !adjustmentData.adjustment || !adjustmentData.reason}
                     className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50"
                   >
-                    <FiSave className="w-4 h-4 mr-2" />
+                    <Save className="w-4 h-4 mr-2" />
                     Apply Adjustment
                   </button>
                   <button
@@ -336,14 +336,14 @@ const InventoryDetailModal = ({ inventoryId, isOpen, onClose, onUpdate }) => {
                     onClick={() => setEditMode(true)}
                     className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
                   >
-                    <FiEdit className="w-4 h-4 mr-2" />
+                    <Edit className="w-4 h-4 mr-2" />
                     Edit Settings
                   </button>
                   <button
                     onClick={() => setAdjustmentMode(true)}
                     className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
                   >
-                    <FiPlus className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4 mr-2" />
                     Adjust Stock
                   </button>
                 </>

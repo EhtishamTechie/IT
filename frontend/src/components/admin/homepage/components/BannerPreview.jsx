@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography, IconButton, Paper } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import { ArrowLeft } from 'lucide-react';
 import { getImageUrl } from '../../../../config';
 
 const BannerPreview = ({ 
@@ -40,7 +40,7 @@ const BannerPreview = ({
             <Paper sx={{ p: 3 }}>
                 <Box mb={2} display="flex" alignItems="center">
                     <IconButton onClick={onBackClick} sx={{ mr: 2 }}>
-                        <ArrowBackIcon />
+                        <ArrowLeft />
                     </IconButton>
                     <Typography variant="h6">Banner Preview</Typography>
                 </Box>
@@ -55,7 +55,7 @@ const BannerPreview = ({
         <Paper sx={{ p: 3 }}>
             <Box mb={2} display="flex" alignItems="center">
                 <IconButton onClick={onBackClick} sx={{ mr: 2 }}>
-                    <ArrowBackIcon />
+                    <ArrowLeft />
                 </IconButton>
                 <Typography variant="h6">Banner Preview</Typography>
             </Box>

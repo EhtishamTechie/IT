@@ -17,8 +17,8 @@ import {
     Modal,
     Pagination
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PreviewIcon from '@mui/icons-material/Preview';
+
+
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { getApiUrl } from '../../../config';

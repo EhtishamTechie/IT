@@ -9,7 +9,8 @@ import {
     Paper,
     TextField
 } from '@mui/material';
-import PreviewIcon from '@mui/icons-material/Preview';
+
+import { Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../../api';
 import ProductCard from './components/ProductCard';
@@ -468,7 +469,7 @@ const BannerManagement = () => {
             <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
                 <Typography variant="h5">Banner Management</Typography>
                 <Button
-                    startIcon={isPreviewMode ? null : <PreviewIcon />}
+                    startIcon={isPreviewMode ? null : <Eye />}
                     onClick={() => setIsPreviewMode(!isPreviewMode)}
                 >
                     {isPreviewMode ? 'Back to Edit' : 'Preview'}

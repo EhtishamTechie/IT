@@ -19,11 +19,8 @@ import {
     Grid,
     Pagination
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PreviewIcon from '@mui/icons-material/Preview';
-import SearchIcon from '@mui/icons-material/Search';
-import ClearIcon from '@mui/icons-material/Clear';
-import CloseIcon from '@mui/icons-material/Close';
+
+import { Eye, Search, Trash2, X } from 'lucide-react';
 import { toast } from 'react-toastify';
 import API from '../../../api';
 import { config, getImageUrl } from '../../../config';
@@ -930,7 +927,7 @@ const BannerManagement = () => {
             <Box mb={4} display="flex" justifyContent="space-between" alignItems="center">
                 <Typography variant="h5">Banner Management</Typography>
                 <Button
-                    startIcon={isPreviewMode ? null : <PreviewIcon />}
+                    startIcon={isPreviewMode ? null : <Eye />}
                     onClick={() => setIsPreviewMode(!isPreviewMode)}
                 >
                     {isPreviewMode ? 'Back to Edit' : 'Preview'}
@@ -1100,7 +1097,7 @@ const BannerManagement = () => {
                                                 onClick={() => handleRemoveProduct(selectedPrimaryProduct, true)}
                                                 color="error"
                                             >
-                                                <DeleteIcon fontSize="small" />
+                                                <Trash2 fontSize="small" />
                                             </IconButton>
                                         </CardActions>
                                     </Card>
@@ -1164,7 +1161,7 @@ const BannerManagement = () => {
                                                         onClick={() => handleRemoveProduct(product)}
                                                         color="error"
                                                     >
-                                                        <DeleteIcon fontSize="small" />
+                                                        <Trash2 fontSize="small" />
                                                     </IconButton>
                                                 </CardActions>
                                             </Card>
@@ -1221,7 +1218,7 @@ const BannerManagement = () => {
                             size="small"
                             sx={{ ml: 2 }}
                         >
-                            <CloseIcon />
+                            <X />
                         </IconButton>
                     </Box>
                     
@@ -1237,7 +1234,7 @@ const BannerManagement = () => {
                         InputProps={{
                             startAdornment: (
                                 <InputAdornment position="start">
-                                    <SearchIcon color="action" />
+                                    <Search color="action" />
                                 </InputAdornment>
                             ),
                             endAdornment: searchTerm && (
@@ -1249,7 +1246,7 @@ const BannerManagement = () => {
                                             setFilteredProducts(categoryProducts);
                                         }}
                                     >
-                                        <ClearIcon fontSize="small" />
+                                        <X fontSize="small" />
                                     </IconButton>
                                 </InputAdornment>
                             )

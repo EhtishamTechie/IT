@@ -17,8 +17,8 @@ import {
     Tabs,
     TextField
 } from '@mui/material';
-import DeleteIcon from '@mui/icons-material/Delete';
-import PreviewIcon from '@mui/icons-material/Preview';
+
+
 import { toast } from 'react-toastify';
 import { getApiUrl, getImageUrl } from '../../../utils/api';
 import CategorySelector from './CategorySelector';

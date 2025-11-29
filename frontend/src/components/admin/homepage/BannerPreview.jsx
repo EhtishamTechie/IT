@@ -5,7 +5,7 @@ import {
     Card,
     IconButton,
 } from '@mui/material';
-import { ArrowBack as ArrowBackIcon } from '@mui/icons-material';
+
 import { getImageUrl, config } from '../../../config';
 
 const getProductImage = (product) => {
