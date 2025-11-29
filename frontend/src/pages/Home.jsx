@@ -13,14 +13,14 @@ const PremiumProductDisplay = lazy(() => import('../components/PremiumProductDis
 const AmazonStyleProductDisplay = lazy(() => import('../components/AmazonStyleProductDisplay'));
 const ModernProductGrid = lazy(() => import('../components/ModernProductGrid'));
 
-// Ultra-lightweight skeleton - no heavy animations
+// Ultra-lightweight skeleton - no heavy animations - Phase 3.4: Reserve space to prevent CLS
 const SectionSkeleton = () => (
-  <div className="w-full py-8 px-4 bg-gray-50">
+  <div className="w-full py-8 px-4 bg-gray-50" style={{ minHeight: '320px' }}>
     <div className="max-w-7xl mx-auto">
       <div className="h-6 bg-gray-200 rounded w-32 mb-4"></div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded h-48 border border-gray-100"></div>
+          <div key={i} className="bg-white rounded border border-gray-100" style={{ aspectRatio: '1/1.3', minHeight: '240px' }}></div>
         ))}
       </div>
     </div>
