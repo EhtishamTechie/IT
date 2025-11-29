@@ -14,13 +14,15 @@ const connectDB = async () => {
   }
 };
 
-// Category Schema (simplified)
-const categorySchema = new mongoose.Schema({
+// HomepageCategory Schema (correct model for carousel)
+const homepageCategorySchema = new mongoose.Schema({
+  categoryId: mongoose.Schema.Types.ObjectId,
   name: String,
-  imageUrl: String
-}, { collection: 'categories' });
+  imageUrl: String,
+  displayOrder: Number
+}, { collection: 'homepagecategories' });
 
-const Category = mongoose.model('Category', categorySchema);
+const HomepageCategory = mongoose.model('HomepageCategory', homepageCategorySchema);
 
 const syncCategoryImages = async () => {
   console.log('\n============================================================');
@@ -43,9 +45,9 @@ const syncCategoryImages = async () => {
 
   console.log(`📂 Found ${files.length} image files in uploads/homepage-categories/\n`);
 
-  // Get all categories from database
-  const categories = await Category.find();
-  console.log(`📊 Found ${categories.length} categories in database\n`);
+  // Get all homepage categories from database
+  const categories = await HomepageCategory.find();
+  console.log(`📊 Found ${categories.length} homepage categories in database\n`);
 
   let updatedCount = 0;
   let skippedCount = 0;
