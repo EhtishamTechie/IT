@@ -13,7 +13,7 @@ export default defineConfig({
     dedupe: ['react', 'react-dom', 'react-is', 'prop-types'] // Prevent duplicate React instances
   },
   build: {
-    // Aggressive optimization for fastest initial load
+    // Phase 2.2: Aggressive optimization for fastest initial load
     rollupOptions: {
       treeshake: {
         moduleSideEffects: false,
@@ -41,18 +41,25 @@ export default defineConfig({
               id.includes('node_modules/@emotion')) {
             return 'mui';
           }
-          if (id.includes('node_modules/recharts')) {
+          if (id.includes('node_modules/recharts') ||
+              id.includes('node_modules/d3-') ||
+              id.includes('node_modules/victory')) {
             return 'charts';
           }
+          // Phase 2.2: Split lucide-react icons for better tree-shaking
           if (id.includes('node_modules/lucide-react')) {
             return 'icons';
           }
+          // Phase 2.2: Separate framer-motion (heavy animation library)
           if (id.includes('node_modules/framer-motion')) {
             return 'animation';
           }
-          // Utilities - small, rarely change
-          if (id.includes('node_modules/axios') ||
-              id.includes('node_modules/lodash') ||
+          // Phase 2.2: Utilities - keep small and separate
+          if (id.includes('node_modules/axios')) {
+            return 'utils';
+          }
+          // Phase 2.2: Remove lodash from utils, use lodash-es instead
+          if (id.includes('node_modules/lodash-es') ||
               id.includes('node_modules/jwt-decode') ||
               id.includes('node_modules/clsx')) {
             return 'utils';
@@ -68,25 +75,29 @@ export default defineConfig({
         assetFileNames: 'assets/[name].[hash].[ext]'
       },
     },
-    // Maximum optimization
+    // Phase 2.2: Maximum optimization
     minify: 'esbuild',
-    target: 'es2020',
+    target: 'es2020', // Modern browsers only - smaller output
     cssCodeSplit: true,
-    cssMinify: 'esbuild', // More aggressive CSS minification
-    sourcemap: false,
-    assetsInlineLimit: 4096, // Increased to 4KB - reduce HTTP requests
-    chunkSizeWarningLimit: 400,
-    reportCompressedSize: false,
-    // Production optimizations
+    cssMinify: 'esbuild',
+    sourcemap: false, // No sourcemaps in production
+    assetsInlineLimit: 4096, // Inline small assets
+    chunkSizeWarningLimit: 500,
+    reportCompressedSize: false, // Faster builds
+    // Phase 2.2: Production optimizations
     esbuildOptions: {
-      drop: ['console', 'debugger'],
+      drop: ['console', 'debugger'], // Remove console.* and debugger
       legalComments: 'none',
       treeShaking: true,
       minifyIdentifiers: true,
       minifySyntax: true,
       minifyWhitespace: true,
-      pure: ['console.log', 'console.info', 'console.debug', 'console.warn'],
-      target: 'es2020'
+      // Phase 2.2: Mark pure functions for better tree-shaking
+      pure: ['console.log', 'console.info', 'console.debug', 'console.warn', 'console.error'],
+      target: 'es2020',
+      supported: {
+        'top-level-await': true
+      }
     },
     commonjsOptions: {
       include: [/node_modules/],
@@ -105,12 +116,15 @@ export default defineConfig({
       'react-router-dom',
       'hoist-non-react-statics'
     ],
+    // Phase 2.2: Exclude heavy libraries from pre-bundling for better code-splitting
     exclude: [
       'recharts',
-      'framer-motion'
+      'framer-motion',
+      '@mui/material',
+      '@mui/icons-material'
     ],
     esbuildOptions: {
-      target: 'es2015',
+      target: 'es2020',
     },
   },
   server: {
