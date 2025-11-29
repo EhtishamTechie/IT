@@ -2,7 +2,7 @@ const sharp = require('sharp');
 const fs = require('fs').promises;
 const path = require('path');
 
-const CATEGORY_DIR = path.join(__dirname, '..', 'uploads', 'category-carousel');
+const CATEGORY_DIR = path.join(__dirname, '..', 'uploads', 'homepage-categories');
 
 async function optimizeAllCategoryImages() {
   console.log('🚀 Optimizing ALL category carousel images...\n');
