@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../config';
+import LazyImage from './LazyImage';
 
 // Simple lazy loading hook
 const useLazyLoading = () => {
@@ -29,27 +30,6 @@ const useLazyLoading = () => {
   return [ref, inView];
 };
 
-// Lazy loading image component
-const LazyImage = ({ src, alt, className, ...props }) => {
-  const [imageRef, inView] = useLazyLoading();
-  const [loaded, setLoaded] = useState(false);
-
-  return (
-    <div ref={imageRef} className={className}>
-      {inView && (
-        <img
-          src={src}
-          alt={alt}
-          loading="lazy"
-          className={`transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
-          onLoad={() => setLoaded(true)}
-          {...props}
-        />
-      )}
-    </div>
-  );
-};
-
 const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = [] }) => {
   const navigate = useNavigate();
   const [scrollPositions, setScrollPositions] = useState({});
@@ -67,7 +47,8 @@ const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = []
         products: cat.selectedProducts.map(product => ({
           id: product._id,
           title: product.title,
-          image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+          image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
+          optimizedImage: product.optimizedImage || null
         }))
       }));
       setProductSections(sections);
@@ -321,6 +302,9 @@ const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = []
                     src={getImageUrl('products', product.image)}
                     alt={product.title || `Product ${product.id}`}
                     className="w-full h-32 sm:h-48 lg:h-72 object-cover transition-transform duration-300 group-hover:scale-105"
+                    optimizedImage={product.optimizedImage}
+                    enableModernFormats={true}
+                    priority={false}
                     onError={(e) => {
                       e.target.src = '/uploads/products/placeholder-image.jpg';
                     }}

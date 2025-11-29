@@ -209,7 +209,38 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
       if (!imagePath) return null;
       if (imagePath.startsWith('/uploads/')) return imagePath;
       if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
-      return `/uploads/homepage-categories/${imagePath}`;
+      
+      const fullPath = `/uploads/homepage-categories/${imagePath}`;
+      
+      // Check if file exists, if not try to find a matching file with same timestamp
+      const fs = require('fs');
+      const uploadsDir = path.join(__dirname, '..', 'uploads', 'homepage-categories');
+      const filename = path.basename(fullPath);
+      const absolutePath = path.join(uploadsDir, filename);
+      
+      // If file doesn't exist, try to find a similar file (same timestamp)
+      if (!fs.existsSync(absolutePath)) {
+        const timestamp = filename.match(/category-(\d+)/)?.[1];
+        if (timestamp) {
+          try {
+            const files = fs.readdirSync(uploadsDir);
+            // Find any file with the same timestamp (could be .webp, .jpeg, etc.)
+            const matchingFile = files.find(f => 
+              f.includes(`category-${timestamp}`) && 
+              !f.includes('-300w') && 
+              !f.includes('-600w') &&
+              /\.(jpg|jpeg|png|webp)$/i.test(f)
+            );
+            if (matchingFile) {
+              return `/uploads/homepage-categories/${matchingFile}`;
+            }
+          } catch (err) {
+            console.error(`Error finding matching file for ${filename}:`, err);
+          }
+        }
+      }
+      
+      return fullPath;
     };
 
     // Construct optimized response
