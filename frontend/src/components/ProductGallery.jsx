@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { getImageUrl } from '../config';
+import LazyImage from './LazyImage';
 
 const ProductGallery = ({ product }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -30,7 +31,8 @@ const ProductGallery = ({ product }) => {
       items.push({
         type: 'image',
         src: product.image,
-        alt: 'Primary Product Image'
+        alt: 'Primary Product Image',
+        optimizedImage: product.optimizedImage || null
       });
       addedImages.add(product.image);
     }
@@ -39,10 +41,16 @@ const ProductGallery = ({ product }) => {
     if (product.images && Array.isArray(product.images)) {
       product.images.forEach((image, index) => {
         if (!addedImages.has(image)) {
+          // Find corresponding optimizedImages data
+          const optimizedImageData = product.optimizedImages && product.optimizedImages[index] 
+            ? product.optimizedImages[index] 
+            : null;
+          
           items.push({
             type: 'image',
             src: image,
-            alt: `Product Image ${index + 1}`
+            alt: `Product Image ${index + 1}`,
+            optimizedImage: optimizedImageData
           });
           addedImages.add(image);
         }
@@ -50,7 +58,7 @@ const ProductGallery = ({ product }) => {
     }
     
     return items;
-  }, [product.video, product.images, product.image, videoError]);
+  }, [product.video, product.images, product.image, product.optimizedImage, product.optimizedImages, videoError]);
 
   const currentMedia = mediaItems[currentIndex];
 
@@ -111,8 +119,8 @@ const ProductGallery = ({ product }) => {
 
   return (
     <div className="w-full space-y-4">
-      {/* Main Media Display */}
-      <div className="relative w-full h-80 lg:h-96 bg-gray-100 rounded-lg overflow-hidden shadow-lg">
+      {/* Main Media Display - Square aspect ratio for product images */}
+      <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden shadow-lg">
         {currentMedia?.type === 'video' ? (
           <div className="relative w-full h-full">
             <video
@@ -149,14 +157,15 @@ const ProductGallery = ({ product }) => {
             </div>
           </div>
         ) : (
-          <img
-            src={getImageUrl('products', currentMedia.src)}
+          <LazyImage
+            src={currentMedia.src}
             alt={currentMedia.alt}
-            className="w-full h-full object-contain bg-white"
-            onError={(e) => {
-              console.error('Image failed to load:', currentMedia.src);
-              e.target.style.display = 'none';
-            }}
+            optimizedImage={currentMedia.optimizedImage}
+            enableModernFormats={true}
+            priority={currentIndex === 0}
+            className="w-full h-full object-cover bg-white"
+            width={800}
+            height={800}
           />
         )}
 
@@ -213,13 +222,15 @@ const ProductGallery = ({ product }) => {
                     </video>
                   </div>
                 ) : (
-                  <img
-                    src={getImageUrl('products', media.src)}
+                  <LazyImage
+                    src={media.src}
                     alt={media.alt}
+                    optimizedImage={media.optimizedImage}
+                    enableModernFormats={true}
+                    priority={false}
                     className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
+                    width={64}
+                    height={64}
                   />
                 )}
               </button>
