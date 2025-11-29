@@ -28,15 +28,17 @@ const SectionSkeleton = () => (
 );
 
 const Home = () => {
-  // Single API call for all homepage data
+  // Phase 4.3: Optimized React Query caching for homepage data
   const { data: homepageData, isLoading } = useQuery({
     queryKey: ['homepage-all'],
     queryFn: async () => {
       const { data } = await axios.get('/api/homepage/all-data');
       return data;
     },
-    staleTime: 5 * 60 * 1000,
-    cacheTime: 30 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes - data considered fresh
+    gcTime: 60 * 60 * 1000, // 1 hour - keep in cache (renamed from cacheTime in v5)
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnReconnect: false, // Don't refetch on reconnect
     // Render immediately with empty data, update when loaded
     placeholderData: { banners: [], categories: [] }
   });

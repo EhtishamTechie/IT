@@ -10,10 +10,10 @@ const cacheHeaders = (req, res, next) => {
     });
   }
   
-  // Images - 1 month cache (products don't change often)
-  else if (path.match(/\.(jpg|jpeg|png|webp|gif|svg|ico)$/)) {
+  // Images - 1 year cache (Phase 4.1: Extended for AVIF/WebP optimized images)
+  else if (path.match(/\.(jpg|jpeg|png|webp|avif|gif|svg|ico)$/)) {
     res.set({
-      'Cache-Control': 'public, max-age=2592000, stale-while-revalidate=86400',
+      'Cache-Control': 'public, max-age=31536000, stale-while-revalidate=86400, immutable',
       'Vary': 'Accept-Encoding',
       'X-Content-Type-Options': 'nosniff'
     });
