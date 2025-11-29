@@ -65,7 +65,8 @@ const AmazonStyleProductDisplay = ({ staticCategories: staticCategoriesProp = []
         products: cat.selectedProducts.map(product => ({
           id: product._id,
           title: product.title,
-          image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null)
+          image: product.image || (product.images && product.images.length > 0 ? product.images[0] : null),
+          optimizedImage: product.optimizedImage || null
         }))
       }));
       setProductSections(sections);
