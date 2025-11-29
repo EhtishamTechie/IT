@@ -53,10 +53,13 @@
     
     <title>International Tijarat - Premium Online Shopping | Fragrances, Jewelry, Mobile Phones & More</title>
     
-    <!-- Google Tag Manager - Heavily Deferred for performance -->
+    <!-- Google Tag Manager - Aggressively Deferred for Phase 2.1 Performance -->
     <script>
-    // Defer GTM loading by 3 seconds or after user interaction
+    // Phase 2.1: Wait for LCP + 5 seconds OR genuine user engagement
     var gtmLoaded = false;
+    var lcpDetected = false;
+    var lcpTime = 0;
+    
     function loadGTM() {
       if (gtmLoaded) return;
       gtmLoaded = true;
@@ -65,19 +68,59 @@
       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
       })(window,document,'script','dataLayer','GTM-K55PGMBD');
+      console.log('✅ GTM loaded after LCP optimization');
     }
-    // Load after page is fully loaded + 3 seconds
-    window.addEventListener('load', function() {
-      setTimeout(loadGTM, 3000);
-    });
-    // Or load on first user interaction
-    ['mousedown', 'keydown', 'touchstart', 'wheel'].forEach(function(evt) {
-      window.addEventListener(evt, loadGTM, { once: true, passive: true });
-    });
+    
+    // Wait for LCP event using PerformanceObserver
+    if ('PerformanceObserver' in window) {
+      try {
+        var lcpObserver = new PerformanceObserver(function(list) {
+          var entries = list.getEntries();
+          var lastEntry = entries[entries.length - 1];
+          lcpDetected = true;
+          lcpTime = lastEntry.renderTime || lastEntry.loadTime;
+          
+          // Load GTM 5 seconds AFTER LCP completes
+          setTimeout(function() {
+            if (!gtmLoaded) loadGTM();
+          }, 5000);
+        });
+        lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+      } catch (e) {
+        // Fallback if PerformanceObserver fails
+        window.addEventListener('load', function() {
+          setTimeout(loadGTM, 5000);
+        });
+      }
+    } else {
+      // Fallback for older browsers: load after page load + 5 seconds
+      window.addEventListener('load', function() {
+        setTimeout(loadGTM, 5000);
+      });
+    }
+    
+    // OR load on genuine user engagement (scroll beyond 50% or 10s on page)
+    var scrollEngaged = false;
+    var timeEngaged = false;
+    
+    window.addEventListener('scroll', function() {
+      if (scrollEngaged || gtmLoaded) return;
+      var scrollPercent = (window.scrollY + window.innerHeight) / document.body.scrollHeight;
+      if (scrollPercent > 0.5) {
+        scrollEngaged = true;
+        loadGTM();
+      }
+    }, { passive: true });
+    
+    // Time-based engagement: 10 seconds on page
+    setTimeout(function() {
+      timeEngaged = true;
+      if (!gtmLoaded) loadGTM();
+    }, 10000);
     </script>
     <!-- End Google Tag Manager -->
  
-    <!-- Meta Pixel Code - Heavily Deferred for performance -->
+    <!-- Meta Pixel Code - Aggressively Deferred for Phase 2.1 Performance -->
     <script>
     // Initialize fbq queue immediately (non-blocking)
     window.fbq = window.fbq || function() {
@@ -88,6 +131,8 @@
     window.fbq.version = '2.0';
     
     var fbLoaded = false;
+    var fbLcpDetected = false;
+    
     function loadFacebookPixel() {
       if (fbLoaded) return;
       fbLoaded = true;
@@ -101,18 +146,52 @@
       script.onload = function() {
         fbq('init', '1122233005539042');
         fbq('track', 'PageView');
+        console.log('✅ Facebook Pixel loaded after LCP optimization');
       };
     }
     
-    // Load after page is fully loaded + 3 seconds
-    window.addEventListener('load', function() {
-      setTimeout(loadFacebookPixel, 3000);
-    }, { once: true });
+    // Wait for LCP event using PerformanceObserver
+    if ('PerformanceObserver' in window) {
+      try {
+        var fbLcpObserver = new PerformanceObserver(function(list) {
+          var entries = list.getEntries();
+          fbLcpDetected = true;
+          
+          // Load Facebook Pixel 5 seconds AFTER LCP completes
+          setTimeout(function() {
+            if (!fbLoaded) loadFacebookPixel();
+          }, 5000);
+        });
+        fbLcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
+      } catch (e) {
+        // Fallback if PerformanceObserver fails
+        window.addEventListener('load', function() {
+          setTimeout(loadFacebookPixel, 5000);
+        });
+      }
+    } else {
+      // Fallback for older browsers: load after page load + 5 seconds
+      window.addEventListener('load', function() {
+        setTimeout(loadFacebookPixel, 5000);
+      });
+    }
     
-    // Or load on first user interaction
-    ['mousedown', 'keydown', 'touchstart', 'wheel'].forEach(function(evt) {
-      window.addEventListener(evt, loadFacebookPixel, { once: true, passive: true });
-    });
+    // OR load on genuine user engagement (scroll beyond 50% or 10s on page)
+    var fbScrollEngaged = false;
+    
+    window.addEventListener('scroll', function() {
+      if (fbScrollEngaged || fbLoaded) return;
+      var scrollPercent = (window.scrollY + window.innerHeight) / document.body.scrollHeight;
+      if (scrollPercent > 0.5) {
+        fbScrollEngaged = true;
+        loadFacebookPixel();
+      }
+    }, { passive: true });
+    
+    // Time-based engagement: 10 seconds on page
+    setTimeout(function() {
+      if (!fbLoaded) loadFacebookPixel();
+    }, 10000);
     </script>
     <!-- End Meta Pixel Code -->
     
