@@ -118,7 +118,7 @@ const ProductGallery = ({ product }) => {
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full max-w-md mx-auto space-y-4">
       {/* Main Media Display - Square aspect ratio for product images */}
       <div className="relative w-full aspect-square bg-gray-100 rounded-lg overflow-hidden shadow-lg">
         {currentMedia?.type === 'video' ? (
