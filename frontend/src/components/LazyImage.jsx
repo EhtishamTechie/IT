@@ -89,7 +89,7 @@ const LazyImage = ({
     // If we have optimizedImage data from backend, use it directly
     if (optimizedImage && format) {
       const formatData = optimizedImage[format]; // 'avif' or 'webp'
-      if (formatData) {
+      if (formatData && Object.keys(formatData).length > 0) {
         const srcSetParts = [];
         
         // Only include sizes that actually exist
@@ -120,6 +120,12 @@ const LazyImage = ({
           console.log(`[LazyImage] Generated srcset for ${format}:`, srcSetParts.join(', '));
           return srcSetParts.join(', ');
         }
+      }
+      
+      // If optimizedImage exists but format data is empty, return undefined
+      // This will cause the source element to be skipped and fallback to original img
+      if (formatData && Object.keys(formatData).length === 0) {
+        return undefined;
       }
     }
     
@@ -207,21 +213,28 @@ const LazyImage = ({
 
   // If modern formats are enabled, use picture element
   if (enableModernFormats && !hasError) {
+    const avifSrcSet = generateSrcSet(imageSrc, responsiveSizes, 'avif');
+    const webpSrcSet = generateSrcSet(imageSrc, responsiveSizes, 'webp');
+    
     return (
       <picture>
-        {/* AVIF - Best compression, modern browsers */}
-        <source 
-          type="image/avif" 
-          srcSet={generateSrcSet(imageSrc, responsiveSizes, 'avif')}
-          sizes={generateSizes()}
-        />
+        {/* AVIF - Best compression, modern browsers - only if available */}
+        {avifSrcSet && (
+          <source 
+            type="image/avif" 
+            srcSet={avifSrcSet}
+            sizes={generateSizes()}
+          />
+        )}
         
-        {/* WebP - Good compression, wide support */}
-        <source 
-          type="image/webp" 
-          srcSet={generateSrcSet(imageSrc, responsiveSizes, 'webp')}
-          sizes={generateSizes()}
-        />
+        {/* WebP - Good compression, wide support - only if available */}
+        {webpSrcSet && (
+          <source 
+            type="image/webp" 
+            srcSet={webpSrcSet}
+            sizes={generateSizes()}
+          />
+        )}
         
         {/* Original format - Fallback */}
         <img
