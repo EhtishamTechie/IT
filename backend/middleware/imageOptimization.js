@@ -210,36 +210,51 @@ const optimizeImage = async (filePath, options = {}) => {
 const optimizeUploadedImages = (options = {}) => {
   return async (req, res, next) => {
     try {
+      console.log('🎯 [IMAGE OPT] Starting image optimization middleware...');
+      console.log('📦 [IMAGE OPT] req.file:', req.file ? req.file.filename : 'none');
+      console.log('📦 [IMAGE OPT] req.files:', req.files ? Object.keys(req.files) : 'none');
+      
       // Handle single file upload
       if (req.file) {
+        console.log('✨ [IMAGE OPT] Optimizing single file:', req.file.path);
         const result = await optimizeImage(req.file.path, options);
         req.file.optimized = result;
+        console.log('✅ [IMAGE OPT] Single file optimized:', result);
       }
       
       // Handle multiple file uploads
       if (req.files) {
         if (Array.isArray(req.files)) {
           // Array of files
+          console.log(`✨ [IMAGE OPT] Optimizing ${req.files.length} files (array)`);
           req.files.optimized = [];
           for (const file of req.files) {
             const result = await optimizeImage(file.path, options);
             req.files.optimized.push(result);
           }
+          console.log(`✅ [IMAGE OPT] ${req.files.length} files optimized (array)`);
         } else {
           // Object with field names as keys
+          console.log('✨ [IMAGE OPT] Optimizing files by field:', Object.keys(req.files));
           for (const fieldName in req.files) {
             const files = req.files[fieldName];
+            console.log(`✨ [IMAGE OPT] Processing field "${fieldName}" with ${files.length} files`);
             for (const file of files) {
+              console.log(`✨ [IMAGE OPT] Optimizing: ${file.path}`);
               const result = await optimizeImage(file.path, options);
               file.optimized = result;
+              console.log(`✅ [IMAGE OPT] File optimized: ${file.filename}`, result);
             }
           }
+          console.log('✅ [IMAGE OPT] All fields optimized');
         }
       }
       
+      console.log('🎯 [IMAGE OPT] Image optimization complete, calling next()');
       next();
     } catch (error) {
-      console.error('Error in image optimization middleware:', error);
+      console.error('❌ [IMAGE OPT] Error in image optimization middleware:', error);
+      console.error('❌ [IMAGE OPT] Stack:', error.stack);
       // Don't fail the upload if optimization fails
       next();
     }
