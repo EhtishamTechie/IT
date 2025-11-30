@@ -86,15 +86,20 @@ const transformProductImages = (product) => {
       rawImages: product.images
     });
 
-    // Helper to add prefix only if needed
+    // Helper to add prefix and normalize extension
     const addUploadPrefix = (imagePath) => {
       if (!imagePath) return null;
-      // If already has /uploads/ prefix, return as-is
-      if (imagePath.startsWith('/uploads/')) return imagePath;
+      
+      // Normalize extension to lowercase
+      const ext = path.extname(imagePath);
+      const normalizedPath = ext ? imagePath.replace(ext, ext.toLowerCase()) : imagePath;
+      
+      // If already has /uploads/ prefix, return normalized
+      if (normalizedPath.startsWith('/uploads/')) return normalizedPath;
       // If has uploads/ prefix (no leading slash), add slash
-      if (imagePath.startsWith('uploads/')) return `/${imagePath}`;
+      if (normalizedPath.startsWith('uploads/')) return `/${normalizedPath}`;
       // Otherwise add /uploads/products/ prefix
-      return `/uploads/products/${imagePath}`;
+      return `/uploads/products/${normalizedPath}`;
     };
 
     // Ensure we have arrays even if empty
