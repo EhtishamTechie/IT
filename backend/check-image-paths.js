@@ -1,7 +1,12 @@
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Product = require('./models/Product');
 
-mongoose.connect('mongodb://localhost:27017/international-tijarat')
+// Use MONGODB_URI from .env (MongoDB Atlas)
+const dbUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/international-tijarat';
+console.log('🔗 Connecting to:', dbUri.includes('@') ? 'MongoDB Atlas' : 'Local MongoDB');
+
+mongoose.connect(dbUri)
   .then(async () => {
     console.log('✅ Connected to MongoDB');
     
