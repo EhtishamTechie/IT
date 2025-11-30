@@ -259,6 +259,11 @@ const applyWatermarkToUploads = async (req, res, next) => {
 
 // Error handling middleware for multer
 const handleUploadError = (error, req, res, next) => {
+  // If no error, continue to next middleware
+  if (!error) {
+    return next();
+  }
+  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
