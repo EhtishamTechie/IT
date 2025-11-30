@@ -25,6 +25,7 @@ const LazyImage = ({
   fallback = '/placeholder-image.jpg',
   onError,
   priority = false,
+  fetchPriority,
   enableModernFormats = true, // Enable WebP/AVIF
   responsiveSizes = [300, 600, 1200], // Responsive breakpoints
   optimizedImage = null, // Backend-provided optimized image paths
@@ -246,6 +247,7 @@ const LazyImage = ({
           srcSet={srcSet || generateSrcSet(imageSrc, responsiveSizes)}
           sizes={sizes || generateSizes()}
           loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : 'auto'}
           decoding="async"
           onError={handleError}
           {...props}
@@ -265,6 +267,7 @@ const LazyImage = ({
       srcSet={srcSet}
       sizes={sizes}
       loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : 'auto'}
       decoding="async"
       onError={handleError}
       {...props}

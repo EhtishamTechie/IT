@@ -102,8 +102,8 @@ const HeroSection = ({ banners = [] }) => {
 
   return (
     <div className="w-full bg-white">
-      {/* Main Hero Banner - Amazon Professional Style - Responsive - Phase 3.4: Fixed height to prevent CLS */}
-      <div className="relative w-full h-[200px] sm:h-48 md:h-56 lg:h-64 overflow-hidden">
+      {/* Main Hero Banner - Phase 3.4: Optimized height for LCP */}
+      <div className="relative w-full h-[180px] sm:h-48 md:h-56 lg:h-64 overflow-hidden">
         <div 
           className="relative sm:absolute inset-0 transition-all duration-1000 ease-in-out"
           style={{ backgroundColor: currentSlideData.bgColor }}
@@ -144,6 +144,7 @@ const HeroSection = ({ banners = [] }) => {
                         src={currentSlideData.mainProduct.image}
                         alt={currentSlideData.mainProduct.title}
                         priority={true}
+                        fetchPriority="high"
                         enableModernFormats={true}
                         optimizedImage={currentSlideData.mainProduct.product?.optimizedImage}
                         width="80"
@@ -156,6 +157,7 @@ const HeroSection = ({ banners = [] }) => {
                       src={currentSlideData.mainProduct.image}
                       alt={currentSlideData.mainProduct.title}
                       priority={true}
+                      fetchPriority="high"
                       enableModernFormats={true}
                       optimizedImage={currentSlideData.mainProduct.product?.optimizedImage}
                       width="80"
