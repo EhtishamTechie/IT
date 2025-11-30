@@ -773,9 +773,15 @@ const addProduct = async (req, res) => {
     console.log('🔍 [DEBUG] req.files?.image:', req.files?.image);
     console.log('🔍 [DEBUG] req.files?.images:', req.files?.images);
     
-    const images = req.files?.images ? req.files.images.map(file => file.filename) : [];
-    const video = req.files?.video ? `products/${req.files.video[0].filename}` : null;
-    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : null;
+    // Helper to normalize filename and add prefix
+    const normalizeFilename = (filename) => {
+      const ext = path.extname(filename);
+      return `products/${filename.replace(ext, ext.toLowerCase())}`;
+    };
+    
+    const images = req.files?.images ? req.files.images.map(file => normalizeFilename(file.filename)) : [];
+    const video = req.files?.video ? normalizeFilename(req.files.video[0].filename) : null;
+    const primaryImage = req.files?.image ? normalizeFilename(req.files.image[0].filename) : null;
 
     console.log('📸 [PRODUCT CREATE] Image processing:', {
       primaryImage,
@@ -1019,9 +1025,15 @@ const updateProduct = async (req, res) => {
     console.log('🔍 [DEBUG UPDATE] req.files?.image:', req.files?.image);
     console.log('🔍 [DEBUG UPDATE] req.files?.images:', req.files?.images);
     
-    const images = req.files?.images ? req.files.images.map(file => file.filename) : undefined;
-    const video = req.files?.video ? `products/${req.files.video[0].filename}` : undefined;
-    const primaryImage = req.files?.image ? `products/${req.files.image[0].filename}` : undefined;
+    // Helper to normalize filename and add prefix
+    const normalizeFilename = (filename) => {
+      const ext = path.extname(filename);
+      return `products/${filename.replace(ext, ext.toLowerCase())}`;
+    };
+    
+    const images = req.files?.images ? req.files.images.map(file => normalizeFilename(file.filename)) : undefined;
+    const video = req.files?.video ? normalizeFilename(req.files.video[0].filename) : undefined;
+    const primaryImage = req.files?.image ? normalizeFilename(req.files.image[0].filename) : undefined;
 
     console.log('📸 [PRODUCT UPDATE] Image processing:', {
       primaryImage,

@@ -98,7 +98,7 @@ const productImageStorage = multer.diskStorage({
   filename: (req, file, cb) => {
     const timestamp = Date.now();
     const random = Math.random().toString(36).substring(2, 11);
-    const ext = path.extname(file.originalname).toUpperCase();
+    const ext = path.extname(file.originalname).toLowerCase();
     const filename = `product-${timestamp}-${random}${ext}`;
     console.log('📸 Generated filename for upload (will be prefixed with products/):', filename);
     // Filename only - products/ prefix will be added when storing in database
