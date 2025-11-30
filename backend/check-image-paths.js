@@ -5,26 +5,21 @@ mongoose.connect('mongodb://localhost:27017/international-tijarat')
   .then(async () => {
     console.log('✅ Connected to MongoDB');
     
-    // Find the problematic product
-    const product = await Product.findOne({ slug: 'mens-black-fleece-joggers-sweatpants' });
+    // Find the 5 most recent products
+    const products = await Product.find().sort({ updatedAt: -1 }).limit(5);
     
-    if (product) {
-      console.log('\n📦 Product found:');
-      console.log('Title:', product.title);
-      console.log('Main Image:', product.image);
-      console.log('Additional Images:', product.images);
-      console.log('\n🔍 Full image data:', JSON.stringify(product.images, null, 2));
-    } else {
-      console.log('❌ Product not found');
+    if (products.length > 0) {
+      console.log(`\n📦 Found ${products.length} most recent products:\n`);
       
-      // Find any recent product
-      const recent = await Product.findOne().sort({ createdAt: -1 });
-      if (recent) {
-        console.log('\n📦 Most recent product:');
-        console.log('Title:', recent.title);
-        console.log('Main Image:', recent.image);
-        console.log('Additional Images:', recent.images);
-      }
+      products.forEach((product, index) => {
+        console.log(`${index + 1}. ${product.title}`);
+        console.log(`   Slug: ${product.slug}`);
+        console.log(`   Main Image: ${product.image}`);
+        console.log(`   Additional Images:`, product.images);
+        console.log('');
+      });
+    } else {
+      console.log('❌ No products found in database');
     }
     
     process.exit(0);
