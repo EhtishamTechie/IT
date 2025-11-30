@@ -773,10 +773,10 @@ const addProduct = async (req, res) => {
     console.log('🔍 [DEBUG] req.files?.image:', req.files?.image);
     console.log('🔍 [DEBUG] req.files?.images:', req.files?.images);
     
-    // Helper to normalize filename and add prefix
+    // Helper to normalize filename extension to lowercase
     const normalizeFilename = (filename) => {
       const ext = path.extname(filename);
-      return `products/${filename.replace(ext, ext.toLowerCase())}`;
+      return filename.replace(ext, ext.toLowerCase());
     };
     
     const images = req.files?.images ? req.files.images.map(file => normalizeFilename(file.filename)) : [];
@@ -1025,10 +1025,10 @@ const updateProduct = async (req, res) => {
     console.log('🔍 [DEBUG UPDATE] req.files?.image:', req.files?.image);
     console.log('🔍 [DEBUG UPDATE] req.files?.images:', req.files?.images);
     
-    // Helper to normalize filename and add prefix
+    // Helper to normalize filename extension to lowercase
     const normalizeFilename = (filename) => {
       const ext = path.extname(filename);
-      return `products/${filename.replace(ext, ext.toLowerCase())}`;
+      return filename.replace(ext, ext.toLowerCase());
     };
     
     const images = req.files?.images ? req.files.images.map(file => normalizeFilename(file.filename)) : undefined;
