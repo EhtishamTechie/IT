@@ -150,9 +150,11 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: function (req, file, cb) {
-    // Use consistent naming format: timestamp only
+    // Use consistent naming format: product-timestamp-randomid.ext
     const timestamp = Date.now();
-    const filename = `${timestamp}${path.extname(file.originalname)}`;
+    const randomId = Math.random().toString(36).substring(2, 11);
+    const ext = path.extname(file.originalname).toLowerCase();
+    const filename = `product-${timestamp}-${randomId}${ext}`;
     console.log('📸 Saving product image as:', filename);
     cb(null, filename);
   }
