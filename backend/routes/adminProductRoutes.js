@@ -6,10 +6,21 @@ const multer = require('multer');
 const path = require('path');
 const authAdmin = require('../middleware/authAdmin'); // FIXED MIDDLEWARE
 const { uploadSingleProductImage, uploadProductMedia, handleUploadError } = require('../middleware/uploadMiddleware');
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
 const { getImageUrl } = require('../config/serverConfig');
 
 // Create new product
-router.post('/', authAdmin, uploadProductMedia, async (req, res) => {
+router.post('/', 
+  authAdmin, 
+  uploadProductMedia, 
+  optimizeUploadedImages({ 
+    quality: 85, 
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }),
+  async (req, res) => {
   try {
     console.log('➕ [PRODUCT CREATE] Starting product creation');
     console.log('➕ [PRODUCT CREATE] Raw data received:', req.body);
@@ -447,7 +458,17 @@ router.delete('/:id', authAdmin, async (req, res) => {
 });
 
 // Update a product
-router.put('/:id', authAdmin, uploadProductMedia, async (req, res) => {
+router.put('/:id', 
+  authAdmin, 
+  uploadProductMedia, 
+  optimizeUploadedImages({ 
+    quality: 85, 
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }),
+  async (req, res) => {
   try {
     console.log('🔄 [ADMIN] Updating product:', req.params.id);
     console.log('🔄 [ADMIN] Update data:', req.body);

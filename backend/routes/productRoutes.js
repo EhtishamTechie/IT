@@ -36,16 +36,30 @@ const CATEGORY_CACHE = 3600; // 1 hour
 // Admin-only routes (require admin authentication with cache invalidation)
 router.post('/add', 
   authenticateAdmin, 
-  uploadProductMedia, 
+  uploadProductMedia,
+  // Debug middleware to check if we reach here
+  (req, res, next) => {
+    console.log('🔍 [ROUTE DEBUG] After uploadProductMedia - req.file:', req.file ? req.file.filename : 'none');
+    console.log('🔍 [ROUTE DEBUG] After uploadProductMedia - req.files:', req.files ? Object.keys(req.files) : 'none');
+    console.log('🔍 [ROUTE DEBUG] About to call optimizeUploadedImages middleware');
+    next();
+  },
   // handleUploadError removed - Express error handlers with 4 params only run on errors, blocking the chain
-  optimizeUploadedImages({ 
-    quality: 85, 
-    generateWebP: true,
-    generateAVIF: true,
-    generateResponsive: true,
-    responsiveSizes: [300, 600, 1200]
-  }),
+  (req, res, next) => {
+    console.log('🔍 [ROUTE DEBUG] Calling optimizeUploadedImages function to get middleware...');
+    const middleware = optimizeUploadedImages({ 
+      quality: 85, 
+      generateWebP: true,
+      generateAVIF: true,
+      generateResponsive: true,
+      responsiveSizes: [300, 600, 1200]
+    });
+    console.log('🔍 [ROUTE DEBUG] Got middleware, type:', typeof middleware);
+    console.log('🔍 [ROUTE DEBUG] Calling the middleware function...');
+    middleware(req, res, next);
+  },
   async (req, res, next) => {
+    console.log('🔍 [ROUTE DEBUG] After optimization, before cache invalidation');
     await cacheInvalidator.invalidateProducts();
     next();
   }, 
