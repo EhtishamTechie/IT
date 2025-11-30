@@ -28,16 +28,16 @@ const SectionSkeleton = () => (
 );
 
 const Home = () => {
-  // Phase 4.3: Optimized React Query caching for homepage data
+  // Phase 4.3: Balanced caching - refresh quickly for admin changes
   const { data: homepageData, isLoading } = useQuery({
     queryKey: ['homepage-all'],
     queryFn: async () => {
       const { data } = await axios.get('/api/homepage/all-data');
       return data;
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes - data considered fresh
-    gcTime: 60 * 60 * 1000, // 1 hour - keep in cache (renamed from cacheTime in v5)
-    refetchOnWindowFocus: false, // Don't refetch on window focus
+    staleTime: 30 * 1000, // 30 seconds - refresh to show admin changes
+    gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache
+    refetchOnWindowFocus: true, // Refetch when user returns
     refetchOnReconnect: false, // Don't refetch on reconnect
     // Render immediately with empty data, update when loaded
     placeholderData: { banners: [], categories: [] }

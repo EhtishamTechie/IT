@@ -21,11 +21,12 @@ const cacheHeaders = (req, res, next) => {
   
   // API responses - short cache with revalidation
   else if (path.startsWith('/api/')) {
-    // Products and categories - 5 minutes cache
-    if (path.includes('/products') || path.includes('/categories') || path.includes('/homepage')) {
+    // Admin operations and mutations - NO CACHE (POST, PUT, DELETE, PATCH)
+    if (req.method !== 'GET' || path.includes('/admin')) {
       res.set({
-        'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
-        'Vary': 'Accept-Encoding'
+        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
       });
     }
     // Auth and user-specific - no cache
@@ -34,6 +35,13 @@ const cacheHeaders = (req, res, next) => {
         'Cache-Control': 'private, no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
+      });
+    }
+    // Products and categories - SHORT cache for admin changes to reflect quickly
+    else if (path.includes('/products') || path.includes('/categories') || path.includes('/homepage')) {
+      res.set({
+        'Cache-Control': 'public, max-age=30, must-revalidate',  // Reduced from 300s to 30s
+        'Vary': 'Accept-Encoding'
       });
     }
     // Other API - 1 minute cache

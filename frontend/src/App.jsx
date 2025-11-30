@@ -6,16 +6,16 @@ import { HelmetProvider } from 'react-helmet-async';
 import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 
-// Phase 4.3: Optimized QueryClient with aggressive caching
+// Phase 4.3: Optimized QueryClient with balanced caching
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes - default data freshness
-      gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache (formerly cacheTime)
-      refetchOnWindowFocus: false, // Reduce unnecessary refetches
+      staleTime: 30 * 1000, // 30 seconds - refresh often to show admin changes quickly
+      gcTime: 5 * 60 * 1000, // 5 minutes - keep in cache (formerly cacheTime)
+      refetchOnWindowFocus: true, // Refetch when user returns to tab
       refetchOnReconnect: false, // Reduce unnecessary refetches
-      refetchOnMount: false, // Use cached data if available
+      refetchOnMount: true, // Always check for fresh data on mount
     },
   },
 });
