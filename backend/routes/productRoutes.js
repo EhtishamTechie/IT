@@ -37,7 +37,7 @@ const CATEGORY_CACHE = 3600; // 1 hour
 router.post('/add', 
   authenticateAdmin, 
   uploadProductMedia, 
-  handleUploadError,
+  // handleUploadError removed - Express error handlers with 4 params only run on errors, blocking the chain
   optimizeUploadedImages({ 
     quality: 85, 
     generateWebP: true,
@@ -55,7 +55,7 @@ router.post('/add',
 router.put('/:id', 
   authenticateAdmin, 
   uploadProductMedia, 
-  handleUploadError,
+  // handleUploadError removed - Express error handlers with 4 params only run on errors
   optimizeUploadedImages({ 
     quality: 85, 
     generateWebP: true,
