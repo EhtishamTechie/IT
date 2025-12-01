@@ -107,13 +107,10 @@ const LazyImage = ({
           }
         }
         
-        // If no size-specific variants exist, use full size as fallback
-        if (srcSetParts.length === 0 && formatData['full']) {
-          const fullPath = import.meta.env.DEV && formatData['full'].startsWith('/') 
-            ? `${config.BASE_URL}${formatData['full']}` 
-            : formatData['full'];
-          console.log(`[LazyImage] Using full size fallback for ${format}:`, fullPath);
-          return fullPath; // Return single path, not srcset
+        // If no size-specific variants exist, skip this format (don't use full size in srcset)
+        if (srcSetParts.length === 0) {
+          // Return undefined so this source element is skipped
+          return undefined;
         }
         
         // If we have at least one valid size variant, return the srcset
@@ -219,8 +216,8 @@ const LazyImage = ({
     
     return (
       <picture>
-        {/* AVIF - Best compression, modern browsers - only if available */}
-        {avifSrcSet && (
+        {/* AVIF - Best compression, modern browsers - only if valid srcset */}
+        {avifSrcSet && avifSrcSet.includes(' ') && (
           <source 
             type="image/avif" 
             srcSet={avifSrcSet}
@@ -228,8 +225,8 @@ const LazyImage = ({
           />
         )}
         
-        {/* WebP - Good compression, wide support - only if available */}
-        {webpSrcSet && (
+        {/* WebP - Good compression, wide support - only if valid srcset */}
+        {webpSrcSet && webpSrcSet.includes(' ') && (
           <source 
             type="image/webp" 
             srcSet={webpSrcSet}
@@ -247,7 +244,7 @@ const LazyImage = ({
           srcSet={srcSet}
           sizes={sizes}
           loading={priority ? 'eager' : 'lazy'}
-          fetchPriority={priority ? 'high' : 'auto'}
+          fetchpriority={priority ? 'high' : 'auto'}
           decoding="async"
           onError={handleError}
           {...props}
@@ -267,7 +264,7 @@ const LazyImage = ({
       srcSet={srcSet}
       sizes={sizes}
       loading={priority ? 'eager' : 'lazy'}
-      fetchPriority={priority ? 'high' : 'auto'}
+      fetchpriority={priority ? 'high' : 'auto'}
       decoding="async"
       onError={handleError}
       {...props}

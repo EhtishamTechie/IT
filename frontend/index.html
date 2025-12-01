@@ -44,6 +44,49 @@
     
     <title>International Tijarat - Premium Online Shopping | Fragrances, Jewelry, Mobile Phones & More</title>
     
+    <!-- CRITICAL CSS - Inlined for INSTANT first paint (eliminates white screen) -->
+    <style>
+      /* Instant skeleton - shows your brand IMMEDIATELY */
+      body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f8fafc;overflow-x:hidden}
+      *{box-sizing:border-box}
+      
+      /* Instant header skeleton */
+      .skeleton-header{position:fixed;top:0;left:0;right:0;height:70px;background:#1f2937;box-shadow:0 2px 8px rgba(0,0,0,.1);z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 1rem}
+      .skeleton-logo{width:150px;height:40px;background:#374151;border-radius:4px;animation:pulse 1.5s ease-in-out infinite}
+      .skeleton-search{flex:1;max-width:600px;height:40px;background:#374151;border-radius:20px;margin:0 2rem;animation:pulse 1.5s ease-in-out .2s infinite}
+      .skeleton-icons{display:flex;gap:1rem}
+      .skeleton-icon{width:24px;height:24px;background:#374151;border-radius:50%;animation:pulse 1.5s ease-in-out .4s infinite}
+      
+      /* Instant nav skeleton */
+      .skeleton-nav{position:fixed;top:70px;left:0;right:0;height:50px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:2rem;padding:0 1rem}
+      .skeleton-nav-item{width:80px;height:20px;background:#e5e7eb;border-radius:4px;animation:pulse 1.5s ease-in-out .6s infinite}
+      
+      /* Instant hero skeleton */
+      .skeleton-hero{margin-top:120px;width:100%;height:400px;background:#e5e7eb;position:relative;overflow:hidden}
+      .skeleton-hero::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent 0,rgba(255,255,255,.3) 50%,transparent 100%);animation:shimmer 2s infinite}
+      
+      /* Product grid skeleton */
+      .skeleton-products{max-width:1400px;margin:2rem auto;padding:0 1rem;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.5rem}
+      .skeleton-product{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+      .skeleton-product-img{width:100%;aspect-ratio:1;background:#e5e7eb;position:relative;overflow:hidden}
+      .skeleton-product-img::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0,rgba(255,255,255,.4) 50%,transparent 100%);animation:shimmer 2s infinite}
+      .skeleton-product-text{padding:1rem}
+      .skeleton-title{height:20px;background:#e5e7eb;border-radius:4px;margin-bottom:.5rem;animation:pulse 1.5s ease-in-out infinite}
+      .skeleton-price{height:16px;width:60%;background:#e5e7eb;border-radius:4px;animation:pulse 1.5s ease-in-out .2s infinite}
+      
+      /* Animations */
+      @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+      @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+      
+      /* Hide skeleton when React loads */
+      #skeleton-loader{transition:opacity .3s}
+      #skeleton-loader.hidden{opacity:0;pointer-events:none}
+      
+      /* Fade in real content */
+      #root{opacity:0;transition:opacity .3s}
+      #root.loaded{opacity:1}
+    </style>
+    
     <!-- Google Tag Manager - Aggressively Deferred for Phase 2.1 Performance -->
     <script>
     // Phase 2.1: Wait for LCP + 5 seconds OR genuine user engagement
@@ -222,6 +265,127 @@
     </script>
   </head>
   <body>
+    <!-- INSTANT SKELETON LOADER - Shows your brand structure immediately (NO white screen!) -->
+    <div id="skeleton-loader">
+      <!-- Header skeleton -->
+      <div class="skeleton-header">
+        <div class="skeleton-logo"></div>
+        <div class="skeleton-search"></div>
+        <div class="skeleton-icons">
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-icon"></div>
+          <div class="skeleton-icon"></div>
+        </div>
+      </div>
+      
+      <!-- Nav skeleton -->
+      <div class="skeleton-nav">
+        <div class="skeleton-nav-item"></div>
+        <div class="skeleton-nav-item"></div>
+        <div class="skeleton-nav-item"></div>
+        <div class="skeleton-nav-item"></div>
+        <div class="skeleton-nav-item"></div>
+      </div>
+      
+      <!-- Hero skeleton -->
+      <div class="skeleton-hero"></div>
+      
+      <!-- Products grid skeleton -->
+      <div class="skeleton-products">
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+        <div class="skeleton-product">
+          <div class="skeleton-product-img"></div>
+          <div class="skeleton-product-text">
+            <div class="skeleton-title"></div>
+            <div class="skeleton-price"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Hide skeleton and show real content when React loads -->
+    <script>
+      (function() {
+        // Hide skeleton as soon as React starts rendering
+        var checkReactInterval = setInterval(function() {
+          var root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            // React has rendered!
+            var skeleton = document.getElementById('skeleton-loader');
+            if (skeleton) {
+              skeleton.classList.add('hidden');
+              setTimeout(function() {
+                skeleton.remove();
+              }, 300);
+            }
+            root.classList.add('loaded');
+            clearInterval(checkReactInterval);
+          }
+        }, 50); // Check every 50ms
+        
+        // Fallback: remove skeleton after 3 seconds even if React hasn't loaded
+        setTimeout(function() {
+          var skeleton = document.getElementById('skeleton-loader');
+          if (skeleton) {
+            skeleton.classList.add('hidden');
+            setTimeout(function() {
+              skeleton.remove();
+            }, 300);
+          }
+          document.getElementById('root').classList.add('loaded');
+          clearInterval(checkReactInterval);
+        }, 3000);
+      })();
+    </script>
+    
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-K55PGMBD"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>

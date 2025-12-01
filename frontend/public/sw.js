@@ -60,23 +60,41 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip external resources (Facebook Pixel, Google Analytics, etc.)
+  // These cause CORS errors and should not be cached
+  if (!url.origin.includes('localhost') && 
+      !url.origin.includes('147.93.108.205') && 
+      url.origin !== location.origin) {
+    // Let browser handle external requests without SW interference
+    return;
+  }
+
   // Strategy 1: API requests - Stale While Revalidate
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(
       caches.open(API_CACHE).then((cache) => {
         return cache.match(request).then((cachedResponse) => {
           // Fetch from network in background
-          const fetchPromise = fetch(request).then((networkResponse) => {
-            // Cache the new response
-            if (networkResponse.ok) {
-              cache.put(request, networkResponse.clone());
-            }
-            return networkResponse;
-          });
+          const fetchPromise = fetch(request)
+            .then((networkResponse) => {
+              // Cache the new response
+              if (networkResponse && networkResponse.ok) {
+                cache.put(request, networkResponse.clone());
+              }
+              return networkResponse;
+            })
+            .catch((error) => {
+              console.warn('[SW] API fetch failed:', error);
+              // Return cached response if network fails
+              return cachedResponse;
+            });
 
           // Return cached response immediately (if available), otherwise wait for network
           return cachedResponse || fetchPromise;
         });
+      }).catch((error) => {
+        console.error('[SW] Cache error:', error);
+        return fetch(request); // Fallback to network
       })
     );
     return;
@@ -97,12 +115,23 @@ self.addEventListener('fetch', (event) => {
           }
 
           // Fetch from network and cache
-          return fetch(request).then((networkResponse) => {
-            if (networkResponse.ok) {
-              cache.put(request, networkResponse.clone());
-            }
-            return networkResponse;
-          });
+          return fetch(request)
+            .then((networkResponse) => {
+              if (networkResponse && networkResponse.ok) {
+                cache.put(request, networkResponse.clone());
+              }
+              return networkResponse;
+            })
+            .catch((error) => {
+              console.warn('[SW] Static asset fetch failed:', url.pathname, error);
+              // Return a basic response to prevent crashes
+              return new Response('', { status: 404, statusText: 'Not Found' });
+            });
+        });
+      }).catch((error) => {
+        console.error('[SW] Cache error:', error);
+        return fetch(request).catch(() => {
+          return new Response('', { status: 404, statusText: 'Not Found' });
         });
       })
     );
