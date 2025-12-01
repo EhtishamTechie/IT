@@ -355,7 +355,7 @@
     <script>
       (function() {
         var skeletonHidden = false;
-        var minDisplayTime = 1000; // Show skeleton for at least 1 second
+        var minDisplayTime = 800; // Show skeleton for at least 800ms (faster perception)
         var startTime = Date.now();
         
         // Hide skeleton as soon as React starts rendering REAL CONTENT (not just loading state)

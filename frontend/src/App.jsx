@@ -1,10 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { ThemeProvider } from '@mui/material/styles';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { HelmetProvider } from 'react-helmet-async';
-import CssBaseline from '@mui/material/CssBaseline';
-import theme from './theme';
 
 // Phase 4.3: Optimized QueryClient with balanced caching
 const queryClient = new QueryClient({
@@ -462,8 +459,6 @@ function App() {
   return (
     <HelmetProvider context={helmetContext}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider theme={theme}>
-          <CssBaseline />
           <AuthProvider>
             <AdminProvider>
               <AdminAuthProvider>
@@ -479,7 +474,6 @@ function App() {
               </AdminAuthProvider>
             </AdminProvider>
           </AuthProvider>
-        </ThemeProvider>
       </QueryClientProvider>
     </HelmetProvider>
   );

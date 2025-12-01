@@ -38,7 +38,11 @@ export default defineConfig({
           if (id.includes('node_modules/react-router')) {
             return 'router';
           }
-          // Heavy UI libraries - separate for better caching
+          // React Query - data fetching
+          if (id.includes('node_modules/@tanstack')) {
+            return 'query';
+          }
+          // Heavy UI libraries - separate for better caching (LAZY LOAD THESE)
           if (id.includes('node_modules/@mui') || 
               id.includes('node_modules/@emotion')) {
             return 'mui';
@@ -58,7 +62,7 @@ export default defineConfig({
           }
           // Phase 2.2: Utilities - keep small and separate
           if (id.includes('node_modules/axios')) {
-            return 'utils';
+            return 'api';
           }
           // Phase 2.2: Remove lodash from utils, use lodash-es instead
           if (id.includes('node_modules/lodash-es') ||
@@ -72,35 +76,39 @@ export default defineConfig({
           }
         },
         // Optimize chunk naming for better caching
-        chunkFileNames: 'assets/[name].[hash].js',
-        entryFileNames: 'assets/[name].[hash].js',
-        assetFileNames: 'assets/[name].[hash].[ext]'
+        chunkFileNames: 'assets/js/[name].[hash].js',
+        entryFileNames: 'assets/js/[name].[hash].js',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name.endsWith('.css')) {
+            return 'assets/css/[name].[hash].[ext]';
+          }
+          return 'assets/[name].[hash].[ext]';
+        }
       },
     },
     // Phase 2.2: Maximum optimization
-    minify: 'esbuild',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        passes: 2,
+      },
+      mangle: {
+        safari10: true,
+      },
+      format: {
+        comments: false,
+      },
+    },
     target: 'es2020', // Modern browsers only - smaller output
     cssCodeSplit: true,
-    cssMinify: 'esbuild',
+    cssMinify: true,
     sourcemap: false, // No sourcemaps in production
-    assetsInlineLimit: 4096, // Inline small assets
+    assetsInlineLimit: 2048, // Inline smaller assets only
     chunkSizeWarningLimit: 500,
     reportCompressedSize: false, // Faster builds
-    // Phase 2.2: Production optimizations
-    esbuildOptions: {
-      drop: ['console', 'debugger'], // Remove console.* and debugger
-      legalComments: 'none',
-      treeShaking: true,
-      minifyIdentifiers: true,
-      minifySyntax: true,
-      minifyWhitespace: true,
-      // Phase 2.2: Mark pure functions for better tree-shaking
-      pure: ['console.log', 'console.info', 'console.debug', 'console.warn', 'console.error'],
-      target: 'es2020',
-      supported: {
-        'top-level-await': true
-      }
-    },
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
