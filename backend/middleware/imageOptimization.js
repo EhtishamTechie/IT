@@ -98,27 +98,32 @@ const optimizeImage = async (filePath, options = {}) => {
     if (generateWebP) {
       const webpPath = `${basePath}.webp`;
       
-      // Phase 5.1: Always regenerate WebP even from WebP sources for consistent quality
-      await sharp(filePath)
-        .resize(maxWidth, maxHeight, {
-          fit: 'inside',
-          withoutEnlargement: true
-        })
-        .webp({ 
-          quality: quality - 5,
-          effort: 4 // Good balance of compression and speed
-        })
-        .toFile(webpPath);
-      
-      results.webp = webpPath;
+      // Phase 5.2: Skip WebP generation if source is already WebP (avoid Sharp error)
+      if (ext === '.webp') {
+        console.log(`   Skipping WebP generation - source is already WebP`);
+        results.webp = filePath; // Use original WebP file
+      } else {
+        // Generate WebP from non-WebP sources
+        await sharp(filePath)
+          .resize(maxWidth, maxHeight, {
+            fit: 'inside',
+            withoutEnlargement: true
+          })
+          .webp({ 
+            quality: quality - 5,
+            effort: 4 // Good balance of compression and speed
+          })
+          .toFile(webpPath);
+        
+        results.webp = webpPath;
+      }
     }
     
     // 3. Generate AVIF version (best compression, optimized for speed)
     if (generateAVIF) {
       const avifPath = `${basePath}.avif`;
       
-      // Phase 5.1: Optimized AVIF settings for faster decode
-      // Lower effort = faster decode, slight quality = faster browser rendering
+      // Phase 5.2: ALWAYS generate AVIF, even from WebP sources
       await sharp(filePath)
         .resize(maxWidth, maxHeight, {
           fit: 'inside',
@@ -162,26 +167,32 @@ const optimizeImage = async (filePath, options = {}) => {
           // WebP variant
           if (generateWebP) {
             const webpResponsivePath = `${basePath}-${size}w.webp`;
-            await sharp(filePath)
-              .resize(size, null, {
-                fit: 'inside',
-                withoutEnlargement: true
-              })
-              .webp({ quality: quality - 5, effort: 4 })
-              .toFile(webpResponsivePath);
             
-            results.responsive.webp.push({
-              width: size,
-              path: webpResponsivePath,
-              filename: path.basename(webpResponsivePath)
-            });
+            // Phase 5.2: Skip if source is WebP and target has same path
+            if (ext === '.webp' && webpResponsivePath === `${basePath}-${size}w${ext}`) {
+              console.log(`   Skipping WebP ${size}w - would overwrite source`);
+            } else {
+              await sharp(filePath)
+                .resize(size, null, {
+                  fit: 'inside',
+                  withoutEnlargement: true
+                })
+                .webp({ quality: quality - 5, effort: 4 })
+                .toFile(webpResponsivePath);
+              
+              results.responsive.webp.push({
+                width: size,
+                path: webpResponsivePath,
+                filename: path.basename(webpResponsivePath)
+              });
+            }
           }
           
           // AVIF variant
           if (generateAVIF) {
             const avifResponsivePath = `${basePath}-${size}w.avif`;
             
-            // Phase 5.1: Optimized AVIF for responsive sizes (faster decode)
+            // Phase 5.2: ALWAYS generate AVIF responsive variants
             await sharp(filePath)
               .resize(size, null, {
                 fit: 'inside',
