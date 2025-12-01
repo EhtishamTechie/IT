@@ -100,6 +100,71 @@ router.post('/upload',
 );
 ```
 
+**CRITICAL: Admin Product Routes Configuration**
+
+**Files:** 
+- `backend/routes/adminProductRoutes.js` (lines 9, 11-21, 461-470)
+
+The admin panel uses `/api/admin/products` routes for product management. These routes **MUST** include the `optimizeUploadedImages` middleware to ensure newly uploaded images are optimized.
+
+**Correct Configuration:**
+```javascript
+// Import optimization middleware
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
+
+// POST route for creating products
+router.post('/', 
+  authAdmin, 
+  uploadProductMedia, 
+  optimizeUploadedImages({  // REQUIRED - Add between upload and controller
+    quality: 85,
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }),
+  async (req, res) => {
+    // Controller handles saving
+  }
+);
+
+// PUT route for updating products
+router.put('/:id', 
+  authAdmin, 
+  uploadProductMedia, 
+  optimizeUploadedImages({  // REQUIRED - Also for updates
+    quality: 85,
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }),
+  async (req, res) => {
+    // Controller handles updating
+  }
+);
+```
+
+**Common Mistake:**
+Only adding optimization middleware to `/api/products/add` route (in `productRoutes.js`) but forgetting the admin routes. The admin panel uses `adminProductRoutes.js`, so optimization **must** be configured there.
+
+**Verification:**
+After uploading a product via admin panel, check the server logs for:
+```
+🎯 [IMAGE OPT] Starting image optimization middleware...
+✨ [IMAGE OPT] Optimizing files by field: [ 'image' ]
+✅ Image optimized: product-123456789.jfif
+   Formats: WebP, AVIF
+   Responsive sizes: 2 variants per format (300w, 600w)
+```
+
+**Without this middleware:**
+- Images saved in original format only (JPEG/PNG/WebP)
+- No AVIF variants generated
+- No responsive sizes (300w, 600w, 1200w) created
+- 404 errors in browser when LazyImage tries to load optimized variants
+- Images 3-5x larger than optimized versions
+
 ### 2. getOptimizedImagePaths Function
 
 **Files:** 
@@ -396,9 +461,9 @@ sizes = "(max-width: 640px) 300px, (max-width: 1024px) 600px, 1200px"
 ### 1. Product Image Upload
 
 ```
-Admin/Vendor → Upload Form → POST /api/products
+Admin/Vendor → Upload Form → POST /api/admin/products
                               ↓
-                         Multer Middleware
+                         Multer Middleware (uploadProductMedia)
                               ↓
                     optimizeUploadedImages Middleware
                               ↓
@@ -425,6 +490,25 @@ Admin/Vendor → Upload Form → POST /api/products
                 Store Original Path in Database
             { image: "product-123.jpg" }
 ```
+
+**CRITICAL:** The middleware chain must be in this exact order:
+1. `authAdmin` - Verify user permissions
+2. `uploadProductMedia` - Handle file upload with Multer
+3. `optimizeUploadedImages` - Process uploaded files
+4. Controller - Save to database
+
+**If middleware is missing or out of order:**
+- Images saved in original format only
+- No AVIF/WebP variants generated
+- Frontend gets 404 errors
+- File sizes 3-5x larger than optimized
+
+**Routes requiring optimization:**
+- `POST /api/admin/products` - Create product (adminProductRoutes.js)
+- `PUT /api/admin/products/:id` - Update product (adminProductRoutes.js)
+- `POST /api/products/add` - Public product creation (productRoutes.js)
+
+**Note:** Admin panel exclusively uses `/api/admin/products` routes. Optimization middleware must be present in `adminProductRoutes.js`.
 
 ### 2. Image Retrieval Flow
 
@@ -739,23 +823,130 @@ pm2 restart it-api
 
 ### Issue 5: Upload Not Generating Optimized Images
 
-**Cause:** `optimizeUploadedImages` middleware not configured correctly.
+**Symptoms:**
+- Images uploaded via admin panel remain in original format (JPEG/PNG/WebP)
+- No AVIF variants generated
+- No responsive sizes (300w, 600w, 1200w) created
+- Browser shows 404 errors for `-300w.avif`, `-600w.avif`, etc.
+- Network tab shows original image loading (150KB+) instead of optimized AVIF (15-30KB)
+- No optimization logs appearing: `🎯 [IMAGE OPT] Starting...`
 
-**Check route configuration:**
+**Root Cause:** `optimizeUploadedImages` middleware missing from admin product routes.
+
+**Critical Understanding:**
+The admin panel posts to `/api/admin/products` (defined in `adminProductRoutes.js`), NOT `/api/products/add` (defined in `productRoutes.js`). Adding optimization middleware only to `productRoutes.js` has NO effect on admin uploads.
+
+**Solution:**
+
+1. **Verify current configuration:**
+```bash
+cd /var/www/internationaltijarat/backend
+grep -n "optimizeUploadedImages" routes/adminProductRoutes.js
+```
+
+If the command returns nothing, the middleware is missing.
+
+2. **Add optimization middleware to admin routes:**
+
+**File:** `backend/routes/adminProductRoutes.js`
+
 ```javascript
-router.post('/upload',
-  upload.single('image'),
-  optimizeUploadedImages({     // Must be after upload.single
-    generateWebP: true,        // Enable WebP
-    generateAVIF: true,        // Enable AVIF
-    generateResponsive: true,  // Enable responsive sizes
+// At the top with other imports (around line 9)
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
+
+// In POST route (around line 11-21)
+router.post('/', 
+  authAdmin, 
+  uploadProductMedia, 
+  optimizeUploadedImages({
+    quality: 85,
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
     responsiveSizes: [300, 600, 1200]
   }),
   async (req, res) => {
-    // Handle upload
+    // Controller code...
+  }
+);
+
+// In PUT route (around line 461-470)
+router.put('/:id', 
+  authAdmin, 
+  uploadProductMedia, 
+  optimizeUploadedImages({
+    quality: 85,
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }),
+  async (req, res) => {
+    // Controller code...
   }
 );
 ```
+
+3. **Restart the API:**
+```bash
+pm2 restart it-api
+pm2 logs it-api --lines 50
+```
+
+4. **Test upload:**
+- Upload a new product via admin panel
+- Watch for logs:
+  ```
+  🎯 [IMAGE OPT] Starting image optimization middleware...
+  ✨ [IMAGE OPT] Optimizing files by field: [ 'image' ]
+  📦 [IMAGE OPT] Processing file: product-123456789.jpg
+  ✅ Image optimized: product-123456789.jpg
+     Formats: WebP, AVIF
+     Responsive sizes: 2 variants per format (300w, 600w)
+  ```
+
+5. **Verify files created:**
+```bash
+cd /var/www/internationaltijarat/backend/uploads/products
+ls -lh product-123456789*
+
+# Should show:
+# product-123456789.jpg       (original)
+# product-123456789.webp      (WebP full)
+# product-123456789.avif      (AVIF full)
+# product-123456789-300w.webp (WebP 300px)
+# product-123456789-600w.webp (WebP 600px)
+# product-123456789-300w.avif (AVIF 300px)
+# product-123456789-600w.avif (AVIF 600px)
+```
+
+6. **Check frontend:**
+- Open product page in browser
+- Inspect Network tab
+- Should load `.avif` files (15-30KB) instead of original (150KB+)
+- No 404 errors for optimized variants
+
+**Debugging Route Usage:**
+
+To confirm which route the admin panel uses:
+
+```javascript
+// Add temporary debug middleware in adminProductRoutes.js
+router.post('/', (req, res, next) => {
+  console.log('🔍 Admin product POST route hit');
+  next();
+}, authAdmin, uploadProductMedia, optimizeUploadedImages({...}), async (req, res) => {
+  // ...
+});
+```
+
+Then upload a product and check logs. If you see `🔍 Admin product POST route hit`, you're on the right route.
+
+**Common Mistakes:**
+- Adding middleware to wrong route file (`productRoutes.js` instead of `adminProductRoutes.js`)
+- Placing middleware after controller instead of between upload and controller
+- Forgetting to restart PM2 after code changes
+- Not importing `optimizeUploadedImages` at top of file
 
 ### Issue 6: Images Not Lazy Loading
 
@@ -979,7 +1170,221 @@ node scripts/optimize-all-products.js
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 29, 2025  
+## Troubleshooting Route Configuration
+
+### How to Identify Which Routes Need Optimization
+
+If images are not being optimized, follow this systematic approach:
+
+#### Step 1: Identify the Upload Endpoint
+
+1. **Check browser Network tab:**
+   - Upload a product via admin panel
+   - Look for POST request in Network tab
+   - Note the URL: `/api/admin/products` vs `/api/products/add`
+
+2. **Check frontend code:**
+```bash
+# Search for API calls in frontend
+cd /var/www/internationaltijarat/frontend
+grep -r "products" src/pages/admin/ | grep -i "post\|put"
+```
+
+#### Step 2: Find the Backend Route File
+
+Route patterns:
+- `/api/admin/products` → `backend/routes/adminProductRoutes.js`
+- `/api/products/add` → `backend/routes/productRoutes.js`
+- `/api/vendor/products` → `backend/routes/vendorRoutes.js`
+
+```bash
+# Search for route definitions
+cd /var/www/internationaltijarat/backend
+grep -r "router.post" routes/ | grep -i product
+```
+
+#### Step 3: Verify Middleware Chain
+
+Open the identified route file and check POST/PUT routes:
+
+```javascript
+// ❌ WRONG - Missing optimization
+router.post('/', 
+  authAdmin, 
+  uploadProductMedia,  // Multer uploads file
+  async (req, res) => {
+    // Directly saves to database - no optimization!
+  }
+);
+
+// ✅ CORRECT - Has optimization
+router.post('/', 
+  authAdmin, 
+  uploadProductMedia,
+  optimizeUploadedImages({...}),  // Processes uploaded file
+  async (req, res) => {
+    // Saves optimized file data
+  }
+);
+```
+
+#### Step 4: Check Import Statement
+
+Verify the file imports the optimization middleware:
+
+```javascript
+// At top of route file
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
+```
+
+#### Step 5: Test with Debug Logging
+
+Add temporary logging to confirm route execution:
+
+```javascript
+router.post('/', 
+  (req, res, next) => {
+    console.log('🔍 Route hit:', req.path);
+    console.log('🔍 Has files:', req.files ? 'Yes' : 'No');
+    next();
+  },
+  authAdmin, 
+  uploadProductMedia,
+  optimizeUploadedImages({...}),
+  async (req, res) => {
+    console.log('🔍 Controller reached');
+    // ...
+  }
+);
+```
+
+Upload a product and check PM2 logs:
+```bash
+pm2 logs it-api --lines 100 | grep "🔍"
+```
+
+#### Step 6: Verify Optimization Execution
+
+Look for these logs after upload:
+```
+🎯 [IMAGE OPT] Starting image optimization middleware...
+✨ [IMAGE OPT] Optimizing files by field: [ 'image' ]
+📦 [IMAGE OPT] Processing file: product-123.jpg
+✅ Image optimized: product-123.jpg
+```
+
+If missing → Middleware not in chain
+If present → Check file system for generated variants
+
+### Quick Checklist
+
+Use this checklist when images aren't optimizing:
+
+- [ ] **Identified upload endpoint** (Network tab shows exact URL)
+- [ ] **Found correct route file** (adminProductRoutes.js, productRoutes.js, etc.)
+- [ ] **Verified import** (`const { optimizeUploadedImages } = require(...)`)
+- [ ] **Checked middleware order** (upload → optimize → controller)
+- [ ] **Middleware configured** (generateWebP, generateAVIF, responsiveSizes)
+- [ ] **Restarted PM2** (`pm2 restart it-api`)
+- [ ] **Tested upload** (uploaded new product)
+- [ ] **Checked logs** (saw 🎯, ✨, 📦, ✅ emoji markers)
+- [ ] **Verified files** (ls -lh uploads/products/product-*-300w.avif)
+- [ ] **Tested frontend** (Network tab loads .avif files, no 404s)
+
+### Common Route Scenarios
+
+#### Scenario 1: Admin Panel Not Optimizing
+
+**Problem:** Admin uploads products but no AVIF/WebP generated
+
+**Solution:** Add middleware to `adminProductRoutes.js`:
+```javascript
+// File: backend/routes/adminProductRoutes.js
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
+
+router.post('/', authAdmin, uploadProductMedia, 
+  optimizeUploadedImages({
+    quality: 85,
+    generateWebP: true,
+    generateAVIF: true,
+    generateResponsive: true,
+    responsiveSizes: [300, 600, 1200]
+  }), 
+  async (req, res) => { /* ... */ }
+);
+```
+
+#### Scenario 2: Vendor Panel Not Optimizing
+
+**Problem:** Vendor uploads work but no optimization
+
+**Solution:** Add middleware to `vendorRoutes.js` or `vendorProductRoutes.js`:
+```javascript
+// File: backend/routes/vendorRoutes.js
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
+
+router.post('/products', authVendor, uploadProductMedia,
+  optimizeUploadedImages({...}),
+  async (req, res) => { /* ... */ }
+);
+```
+
+#### Scenario 3: Public API Not Optimizing
+
+**Problem:** Public product creation endpoint missing optimization
+
+**Solution:** Add middleware to `productRoutes.js`:
+```javascript
+// File: backend/routes/productRoutes.js
+const { optimizeUploadedImages } = require('../middleware/imageOptimization');
+
+router.post('/add', authUser, uploadProductMedia,
+  optimizeUploadedImages({...}),
+  async (req, res) => { /* ... */ }
+);
+```
+
+### Testing Optimization After Fix
+
+After adding middleware:
+
+1. **Restart API:**
+```bash
+pm2 restart it-api
+pm2 logs it-api --lines 0 --raw
+```
+
+2. **Upload test product:**
+   - Use admin panel to upload new product
+   - Use unique filename to track: `test-optimization-123.jpg`
+
+3. **Watch logs in real-time:**
+```bash
+pm2 logs it-api --raw | grep -E "🎯|✨|📦|✅"
+```
+
+4. **Check generated files:**
+```bash
+cd /var/www/internationaltijarat/backend/uploads/products
+ls -lh test-optimization-123*
+# Should show 7+ files (original + WebP + AVIF variants)
+```
+
+5. **Test frontend:**
+   - Open product page
+   - DevTools → Network tab → Filter by "Img"
+   - Should see requests for `.avif` files
+   - No 404 errors
+   - File sizes should be 15-50KB instead of 150KB+
+
+### Document History
+
+- **v1.0** (Nov 29, 2025): Initial documentation
+- **v1.1** (Nov 30, 2025): Added admin route configuration section and troubleshooting for missing optimization middleware
+
+---
+
+**Document Version:** 1.1  
+**Last Updated:** November 30, 2025  
 **Author:** Development Team  
 **Status:** Production Ready ✅

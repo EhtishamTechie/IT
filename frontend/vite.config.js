@@ -14,6 +14,8 @@ export default defineConfig({
   },
   build: {
     // Phase 2.2: Aggressive optimization for fastest initial load
+    // Phase 5: Copy service worker to dist
+    copyPublicDir: true,
     rollupOptions: {
       treeshake: {
         moduleSideEffects: false,

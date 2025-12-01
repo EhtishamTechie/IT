@@ -84,6 +84,14 @@ const getOptimizedImagePaths = (originalPath) => {
  */
 router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req, res) => {
   try {
+    // Phase 5: Aggressive HTTP caching for sub-1-second loads
+    // Cache in browser for 2 minutes, CDN for 5 minutes
+    res.set({
+      'Cache-Control': 'public, max-age=120, stale-while-revalidate=300',
+      'CDN-Cache-Control': 'public, max-age=300',
+      'Vary': 'Accept-Encoding'
+    });
+    
     console.log('🚀 Fetching all homepage data (parallel queries)...');
     const startTime = Date.now();
 
@@ -138,7 +146,7 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
         .select('products')
         .populate({
           path: 'products',
-          select: 'title price image images discount rating slug stock description vendor'
+          select: 'title price image discount rating slug' // Phase 5: Removed stock, description, vendor, images
         })
         .lean(),
 
@@ -147,11 +155,11 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
         .select('products')
         .populate({
           path: 'products',
-          select: 'title price image images discount rating slug stock description vendor'
+          select: 'title price image discount rating slug' // Phase 5: Removed stock, description, vendor, images
         })
         .lean(),
 
-      // 6. New Arrivals (Latest 20 products)
+      // 6. New Arrivals (Latest 20 products) - Phase 5: Reduced to 12 for faster load
       // Include products with approvalStatus 'approved' OR undefined (for legacy products)
       Product.find({ 
         $or: [
@@ -160,9 +168,9 @@ router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req,
           { approvalStatus: undefined }
         ]
       })
-        .select('title price image images discount rating slug stock createdAt')
+        .select('title price image discount rating slug') // Phase 5: Minimal fields
         .sort({ createdAt: -1 })
-        .limit(20)
+        .limit(12) // Phase 5: Reduced from 20 to 12
         .lean()
     ]);
 
