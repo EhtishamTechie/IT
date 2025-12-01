@@ -79,11 +79,11 @@
       @keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
       
       /* Hide skeleton when React loads */
-      #skeleton-loader{transition:opacity .3s}
+      #skeleton-loader{position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:#f8fafc;transition:opacity .3s ease-in-out}
       #skeleton-loader.hidden{opacity:0;pointer-events:none}
       
-      /* Fade in real content */
-      #root{opacity:0;transition:opacity .3s}
+      /* Fade in real content - keep hidden until fully loaded */
+      #root{opacity:0;transition:opacity .5s ease-in-out;min-height:100vh}
       #root.loaded{opacity:1}
     </style>
     
@@ -354,11 +354,47 @@
     <!-- Hide skeleton and show real content when React loads -->
     <script>
       (function() {
-        // Hide skeleton as soon as React starts rendering
+        var skeletonHidden = false;
+        var minDisplayTime = 1000; // Show skeleton for at least 1 second
+        var startTime = Date.now();
+        
+        // Hide skeleton as soon as React starts rendering REAL CONTENT (not just loading state)
         var checkReactInterval = setInterval(function() {
           var root = document.getElementById('root');
-          if (root && root.children.length > 0) {
-            // React has rendered!
+          var elapsedTime = Date.now() - startTime;
+          
+          if (root && root.children.length > 0 && !skeletonHidden) {
+            // Check if we have actual content (not just a loading spinner)
+            var hasHeader = root.querySelector('header');
+            var hasNav = root.querySelector('nav');
+            var hasMain = root.querySelector('main');
+            var hasContent = root.querySelector('[class*="product"]') || 
+                           root.querySelector('[class*="card"]') ||
+                           root.querySelector('[class*="banner"]');
+            var hasSubstantialText = root.innerText.length > 100;
+            
+            var hasRealContent = (hasHeader || hasNav) && (hasMain || hasContent || hasSubstantialText);
+            
+            // Only hide skeleton if we have real content AND minimum time has passed
+            if (hasRealContent && elapsedTime >= minDisplayTime) {
+              skeletonHidden = true;
+              var skeleton = document.getElementById('skeleton-loader');
+              if (skeleton) {
+                skeleton.classList.add('hidden');
+                setTimeout(function() {
+                  skeleton.remove();
+                }, 300);
+              }
+              root.classList.add('loaded');
+              clearInterval(checkReactInterval);
+            }
+          }
+        }, 100); // Check every 100ms
+        
+        // Fallback: remove skeleton after 5 seconds even if React hasn't fully loaded
+        setTimeout(function() {
+          if (!skeletonHidden) {
+            skeletonHidden = true;
             var skeleton = document.getElementById('skeleton-loader');
             if (skeleton) {
               skeleton.classList.add('hidden');
@@ -366,23 +402,10 @@
                 skeleton.remove();
               }, 300);
             }
-            root.classList.add('loaded');
+            document.getElementById('root').classList.add('loaded');
             clearInterval(checkReactInterval);
           }
-        }, 50); // Check every 50ms
-        
-        // Fallback: remove skeleton after 3 seconds even if React hasn't loaded
-        setTimeout(function() {
-          var skeleton = document.getElementById('skeleton-loader');
-          if (skeleton) {
-            skeleton.classList.add('hidden');
-            setTimeout(function() {
-              skeleton.remove();
-            }, 300);
-          }
-          document.getElementById('root').classList.add('loaded');
-          clearInterval(checkReactInterval);
-        }, 3000);
+        }, 5000);
       })();
     </script>
     

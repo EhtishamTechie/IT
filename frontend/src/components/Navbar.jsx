@@ -49,6 +49,8 @@ const Navbar = () => {
   const [loadingCategories, setLoadingCategories] = useState(true);
   const categoriesRef = useRef(null);
   const mobileMenuRef = useRef(null);
+  const hoverTimeoutRef = useRef(null); // Add timeout ref for delayed closing
+  const mainCategoriesTimeoutRef = useRef(null); // Timeout for main categories hover
   const navigate = useNavigate();
   
   // Use cart and auth contexts
@@ -160,12 +162,24 @@ const Navbar = () => {
           </Link>
 
           {/* Search Bar - Amazon Style */}
-          <div className="hidden md:flex flex-1 max-w-xl mx-6 relative">
+          <div 
+            className="hidden md:flex flex-1 max-w-xl mx-6 relative"
+            onMouseEnter={() => {
+              if (mainCategoriesTimeoutRef.current) {
+                clearTimeout(mainCategoriesTimeoutRef.current);
+                mainCategoriesTimeoutRef.current = null;
+              }
+              setShowHorizontalCategories(true);
+            }}
+            onMouseLeave={() => {
+              mainCategoriesTimeoutRef.current = setTimeout(() => {
+                setShowHorizontalCategories(false);
+              }, 200);
+            }}
+          >
             <form onSubmit={handleSearch} className="flex w-full">
               <div 
                 className="bg-gray-700 border border-r-0 border-gray-600 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent hover:bg-gray-600 transition-colors duration-200 relative cursor-pointer"
-                onMouseEnter={() => setShowHorizontalCategories(true)}
-                onMouseLeave={() => setShowHorizontalCategories(false)}
               >
                 <span className="text-gray-200">Main Categories</span>
               </div>
@@ -365,8 +379,18 @@ const Navbar = () => {
       {showHorizontalCategories && (
         <div 
           className="bg-gray-800 border-b border-gray-700 shadow-sm"
-          onMouseEnter={() => setShowHorizontalCategories(true)}
-          onMouseLeave={() => setShowHorizontalCategories(false)}
+          onMouseEnter={() => {
+            if (mainCategoriesTimeoutRef.current) {
+              clearTimeout(mainCategoriesTimeoutRef.current);
+              mainCategoriesTimeoutRef.current = null;
+            }
+            setShowHorizontalCategories(true);
+          }}
+          onMouseLeave={() => {
+            mainCategoriesTimeoutRef.current = setTimeout(() => {
+              setShowHorizontalCategories(false);
+            }, 200);
+          }}
         >
           <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
             <div className="hidden md:block">
@@ -416,7 +440,13 @@ const Navbar = () => {
                 </button>
 
               {catOpen && (
-                <div className="absolute left-0 top-full mt-1 w-64 bg-white shadow-xl rounded-lg border border-gray-200 z-50">
+                <div 
+                  className="absolute left-0 w-64 z-50" 
+                  style={{ top: 'calc(100% - 1px)' }}
+                  onMouseEnter={() => setCatOpen(true)}
+                  onMouseLeave={() => setCatOpen(false)}
+                >
+                  <div className="bg-white shadow-xl rounded-lg border border-gray-200">
                   <div className="max-h-96 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                     {loadingCategories ? (
                       <div className="flex items-center justify-center py-8">
@@ -435,13 +465,22 @@ const Navbar = () => {
                           key={main} 
                           className="relative"
                           onMouseEnter={(e) => {
+                            // Clear any pending timeout
+                            if (hoverTimeoutRef.current) {
+                              clearTimeout(hoverTimeoutRef.current);
+                              hoverTimeoutRef.current = null;
+                            }
                             setHoveredCategory(main);
-                            // Get the position of this category item relative to the dropdown
                             const rect = e.currentTarget.getBoundingClientRect();
-                            const parentRect = e.currentTarget.closest('.absolute').getBoundingClientRect();
+                            const parentRect = e.currentTarget.closest('.overflow-y-auto').getBoundingClientRect();
                             setSubmenuPosition(rect.top - parentRect.top);
                           }}
-                          onMouseLeave={() => setHoveredCategory(null)}
+                          onMouseLeave={(e) => {
+                            // Delay closing to allow moving to submenu
+                            hoverTimeoutRef.current = setTimeout(() => {
+                              setHoveredCategory(null);
+                            }, 150);
+                          }}
                         >
                           <Link
                             to={`/category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
@@ -466,12 +505,42 @@ const Navbar = () => {
                   
                   {/* Subcategories panel - appears to the right aligned with hovered category */}
                   {hoveredCategory && categories[hoveredCategory]?.length > 0 && (
-                    <div 
-                      className="absolute left-full top-0 ml-1 w-64 bg-white shadow-xl rounded-lg border border-gray-200 z-50"
-                      style={{ top: `${submenuPosition}px` }}
-                      onMouseEnter={() => setHoveredCategory(hoveredCategory)}
-                      onMouseLeave={() => setHoveredCategory(null)}
-                    >
+                    <>
+                      {/* Invisible bridge to prevent gap */}
+                      <div 
+                        className="submenu-bridge absolute w-2 h-full z-40"
+                        style={{ 
+                          left: '100%',
+                          top: 0,
+                          pointerEvents: 'auto'
+                        }}
+                        onMouseEnter={() => {
+                          if (hoverTimeoutRef.current) {
+                            clearTimeout(hoverTimeoutRef.current);
+                            hoverTimeoutRef.current = null;
+                          }
+                        }}
+                      />
+                      <div 
+                        className="submenu-panel absolute w-64 z-50"
+                        style={{ 
+                          left: 'calc(100% + 2px)',
+                          top: `${submenuPosition}px`
+                        }}
+                        onMouseEnter={() => {
+                          if (hoverTimeoutRef.current) {
+                            clearTimeout(hoverTimeoutRef.current);
+                            hoverTimeoutRef.current = null;
+                          }
+                          setHoveredCategory(hoveredCategory);
+                        }}
+                        onMouseLeave={() => {
+                          hoverTimeoutRef.current = setTimeout(() => {
+                            setHoveredCategory(null);
+                          }, 150);
+                        }}
+                      >
+                        <div className="bg-white shadow-xl rounded-lg border border-gray-200">
                       <div className="max-h-96 overflow-y-auto py-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
                         <div className="px-4 py-2 border-b border-gray-200 bg-orange-50">
                           <p className="text-sm font-semibold text-orange-600">{hoveredCategory}</p>
@@ -491,8 +560,11 @@ const Navbar = () => {
                           </Link>
                         ))}
                       </div>
-                    </div>
+                      </div>
+                      </div>
+                    </>
                   )}
+                  </div>
                 </div>
               )}
               </div>
