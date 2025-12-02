@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const ProductInfo = ({ 
   product, 
@@ -87,9 +88,13 @@ const ProductInfo = ({
             <h3 className="text-lg font-semibold mb-2">Categories</h3>
             <div className="flex flex-wrap gap-2">
               {allCategories.map((catName, index) => (
-                <span key={index} className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+                <Link
+                  key={index}
+                  to={`/category-group/${catName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm hover:bg-blue-200 hover:text-blue-900 transition-colors duration-200 cursor-pointer"
+                >
                   {catName}
-                </span>
+                </Link>
               ))}
             </div>
           </div>

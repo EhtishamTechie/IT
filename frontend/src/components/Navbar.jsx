@@ -41,6 +41,7 @@ const LocationIcon = (props) => (
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [catOpen, setCatOpen] = useState(false); // For secondary nav dropdown
+  const [mobileCatOpen, setMobileCatOpen] = useState(false); // For mobile category dropdown
   const [showHorizontalCategories, setShowHorizontalCategories] = useState(false); // For horizontal category bar
   const [hoveredCategory, setHoveredCategory] = useState(null); // Track which category is hovered
   const [submenuPosition, setSubmenuPosition] = useState(0); // Track submenu Y position
@@ -628,63 +629,95 @@ const Navbar = () => {
       {isOpen && (
         <div ref={mobileMenuRef} className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg z-40 border-t border-gray-200">
           <div className="px-4 pt-2 pb-4 space-y-1 max-h-96 overflow-y-auto">
-            {[...mainPages, ...otherPages].map((page) => (
-              <NavLink
-                key={page.label}
-                to={page.path}
-                className={({ isActive }) => 
-                  `block py-3 px-3 rounded-md text-base font-medium transition-colors duration-150 ${
-                    isActive ? 'bg-orange-50 text-orange-600 border-l-4 border-orange-500' : 'text-gray-700 hover:bg-gray-50 hover:text-orange-500'
-                  }`
-                }
-                onClick={() => setIsOpen(false)}
-              >
-                {page.label}
-              </NavLink>
-            ))}
+            {/* Home Button */}
+            <NavLink
+              to="/"
+              className={({ isActive }) => 
+                `block py-3 px-3 rounded-md text-base font-medium transition-colors duration-150 ${
+                  isActive ? 'bg-orange-50 text-orange-600 border-l-4 border-orange-500' : 'text-gray-700 hover:bg-gray-50 hover:text-orange-500'
+                }`
+              }
+              onClick={() => setIsOpen(false)}
+            >
+              Home
+            </NavLink>
+
+            {/* Shop Button */}
+            <NavLink
+              to="/products"
+              className={({ isActive }) => 
+                `block py-3 px-3 rounded-md text-base font-medium transition-colors duration-150 ${
+                  isActive ? 'bg-orange-50 text-orange-600 border-l-4 border-orange-500' : 'text-gray-700 hover:bg-gray-50 hover:text-orange-500'
+                }`
+              }
+              onClick={() => setIsOpen(false)}
+            >
+              Shop
+            </NavLink>
+
+            {/* Categories Dropdown Button */}
+            <button
+              onClick={() => setMobileCatOpen(!mobileCatOpen)}
+              className="w-full flex items-center justify-between py-3 px-3 rounded-md text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-orange-500 transition-colors duration-150"
+            >
+              <span>Categories</span>
+              <ChevronDownIcon className={`w-5 h-5 transition-transform duration-200 ${mobileCatOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Categories Dropdown Content */}
+            {mobileCatOpen && (
+              <div className="pl-4 space-y-2 bg-gray-50 rounded-md p-2">
+                <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                  {loadingCategories ? (
+                    <div className="flex items-center justify-center py-4">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                      <span className="ml-2 text-sm text-gray-600">Loading...</span>
+                    </div>
+                  ) : (
+                    Object.entries(categories)
+                      .sort(([a], [b]) => a.localeCompare(b))
+                      .map(([main, subs]) => (
+                        <div key={main} className="mb-3">
+                          <Link
+                            to={`/category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                            className="flex items-center justify-between font-medium text-sm text-gray-800 hover:text-orange-600 py-1"
+                            onClick={() => {
+                              setIsOpen(false);
+                              setMobileCatOpen(false);
+                            }}
+                          >
+                            <span>{main}</span>
+                            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
+                          {subs.length > 0 && (
+                            <ul className="ml-3 mt-1 space-y-1">
+                              {subs.sort().map((sub, i) => (
+                                <li key={i}>
+                                  <Link
+                                    to={`/category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
+                                    className="block py-1 text-sm text-gray-600 hover:text-orange-500"
+                                    onClick={() => {
+                                      setIsOpen(false);
+                                      setMobileCatOpen(false);
+                                    }}
+                                  >
+                                    {sub}
+                                  </Link>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))
+                  )}
+                </div>
+              </div>
+            )}
 
             <hr className="my-3 border-gray-200" />
-            
-            <div className="px-3 py-2">
-              <p className="font-semibold text-gray-800 mb-3">Categories</p>
-              {/* ADDED: Scrollable container for mobile categories too */}
-              <div className="max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                {Object.entries(categories)
-                  .sort(([a], [b]) => a.localeCompare(b)) // Sort main categories alphabetically
-                  .map(([main, subs]) => (
-                  <div key={main} className="mb-3">
-                    <div className="flex justify-between items-center">
-                      <span className="font-medium text-sm text-gray-700">{main}</span>
-                      <Link
-                        to={`/category-group/${main.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
-                        className="text-xs text-orange-500 hover:underline"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        View All
-                      </Link>
-                    </div>
-                    {subs.length > 0 && (
-                      <ul className="ml-2 mt-1 space-y-1">
-                        {subs.sort().map((sub, i) => ( // Sort subcategories alphabetically
-                          <li key={i}>
-                            <Link
-                              to={`/category-group/${sub.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`}
-                              className="block py-1 text-sm text-gray-600 hover:text-orange-500"
-                              onClick={() => setIsOpen(false)}
-                            >
-                              {sub}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            
-            <hr className="my-3 border-gray-200" />
-            
+
             {/* Mobile Authentication Menu */}
             {isVendorAuthenticated ? (
               <div className="space-y-1">
@@ -732,6 +765,20 @@ const Navbar = () => {
                   <UserIcon className="w-5 h-5 mr-1" />
                   Profile
                 </NavLink>
+                <NavLink
+                  to="/orders"
+                  className={({ isActive }) => 
+                    `flex items-center py-3 px-3 rounded-md text-base font-medium transition-colors duration-150 ${
+                      isActive ? 'bg-orange-50 text-orange-600' : 'text-gray-700 hover:bg-gray-50 hover:text-orange-500'
+                    }`
+                  }
+                  onClick={() => setIsOpen(false)}
+                >
+                  <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  My Orders
+                </NavLink>
                 <button
                   onClick={() => {
                     logout();
@@ -767,8 +814,40 @@ const Navbar = () => {
                 >
                   Register
                 </NavLink>
+                <NavLink
+                  to="/vendor/login"
+                  className={({ isActive }) => 
+                    `flex items-center py-3 px-3 rounded-md text-base font-medium transition-colors duration-150 ${
+                      isActive ? 'bg-green-50 text-green-600' : 'text-green-700 hover:bg-green-50 hover:text-green-600'
+                    }`
+                  }
+                  onClick={() => setIsOpen(false)}
+                >
+                  <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                  Sell with Us
+                </NavLink>
               </div>
             )}
+
+            <hr className="my-3 border-gray-200" />
+
+            {/* Other Navigation Pages */}
+            {[...mainPages.filter(p => p.label !== 'Shop' && p.label !== 'Home'), ...otherPages].map((page) => (
+              <NavLink
+                key={page.label}
+                to={page.path}
+                className={({ isActive }) => 
+                  `block py-3 px-3 rounded-md text-base font-medium transition-colors duration-150 ${
+                    isActive ? 'bg-orange-50 text-orange-600 border-l-4 border-orange-500' : 'text-gray-700 hover:bg-gray-50 hover:text-orange-500'
+                  }`
+                }
+                onClick={() => setIsOpen(false)}
+              >
+                {page.label}
+              </NavLink>
+            ))}
           </div>
         </div>
       )}
