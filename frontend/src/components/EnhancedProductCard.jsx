@@ -132,8 +132,8 @@ const EnhancedProductCard = ({
 
   const handleQuickView = (e) => {
     e.stopPropagation();
-    // Quick view functionality can be implemented later
-    console.log('Quick view for product:', product.title);
+    // Navigate to product detail page
+    navigate(`/product/${product._id || product.id}`);
   };
 
   // Get the primary image (dedicated primary image field takes precedence)
@@ -260,11 +260,72 @@ const EnhancedProductCard = ({
           </div>
         )}
 
-        {/* Hover overlay */}
+        {/* Hover overlay with actions */}
         <div className={`
-          absolute inset-0 bg-black/20 transition-opacity duration-300
-          ${isHovered ? 'opacity-100' : 'opacity-0'}
-        `} />
+          absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent 
+          transition-all duration-300 flex flex-col items-center justify-end p-4 gap-2
+          ${isHovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}
+        `}>
+          {/* Size selector dropdown - only show if product has sizes */}
+          {product.hasSizes && product.availableSizes && product.availableSizes.length > 0 && (
+            <select
+              value={selectedSize}
+              onChange={(e) => {
+                e.stopPropagation();
+                setSelectedSize(e.target.value);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full px-3 py-2 text-sm font-medium bg-white text-gray-900 rounded-lg 
+                       border-2 border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-500
+                       transition-all cursor-pointer shadow-lg"
+            >
+              <option value="">Select Size</option>
+              {product.availableSizes.filter(size => {
+                const stock = product.sizeStock?.[size] || 0;
+                return stock > 0;
+              }).map(size => (
+                <option key={size} value={size}>
+                  {size} (Stock: {product.sizeStock?.[size] || 0})
+                </option>
+              ))}
+            </select>
+          )}
+
+          {/* Add to Cart button */}
+          {showAddToCart && (
+            <button
+              onClick={handleAddToCart}
+              disabled={isAddingToCart || (product.stock !== undefined && product.stock <= 0)}
+              className={`
+                w-full flex items-center justify-center gap-2 px-4 py-2.5 
+                rounded-lg font-semibold text-sm transition-all shadow-lg
+                ${isAddingToCart || (product.stock !== undefined && product.stock <= 0)
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white transform hover:scale-105'
+                }
+              `}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {isAddingToCart ? 'Adding...' : 
+               (product.stock !== undefined && product.stock <= 0) ? 'Out of Stock' : 
+               isInCart ? `In Cart (${cartQuantity})` : 'Add to Cart'}
+            </button>
+          )}
+
+          {/* Quick View button */}
+          {showQuickView && (
+            <button
+              onClick={handleQuickView}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 
+                       rounded-lg bg-white/90 text-gray-700 hover:bg-white hover:text-orange-600 
+                       transition-all shadow-md hover:scale-105 font-medium text-sm"
+              aria-label="Quick view"
+            >
+              <Eye className="w-4 h-4" />
+              Quick View
+            </button>
+          )}
+        </div>
         </div>
       </div>
 
