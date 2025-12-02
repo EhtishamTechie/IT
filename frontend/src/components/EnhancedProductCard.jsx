@@ -352,17 +352,15 @@ const EnhancedProductCard = ({
           </div>
 
           {/* Stock Status */}
-          <div className="text-right">
-            {product.stock !== undefined ? (
-              product.stock > 0 ? (
+          {product.stock !== undefined && (
+            <div className="text-right">
+              {product.stock > 0 ? (
                 <span className="text-[8px] text-green-600 font-medium bg-green-50 px-1 py-0.5 rounded-full">In Stock</span>
               ) : (
                 <span className="text-[8px] text-red-600 font-medium bg-red-50 px-1 py-0.5 rounded-full">Out of Stock</span>
-              )
-            ) : (
-              <span className="text-[8px] text-gray-500 bg-gray-50 px-1 py-0.5 rounded-full">Stock N/A</span>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Rating if available */}
