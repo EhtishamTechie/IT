@@ -11,13 +11,109 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
   const [loadedImages, setLoadedImages] = useState(new Set());
   const [homepageCategories, setHomepageCategories] = useState(homepageCategoriesProp);
   const [loading, setLoading] = useState(false);
-  
+  const [isTouching, setIsTouching] = useState(false);
+  const scrollRef = useRef(null);
+  const autoScrollTimeoutRef = useRef(null);
+  const lastScrollTime = useRef(Date.now());
+
   // Update categories when props change
   useEffect(() => {
     if (homepageCategoriesProp && homepageCategoriesProp.length > 0) {
       setHomepageCategories(homepageCategoriesProp);
     }
   }, [homepageCategoriesProp]);
+
+  // Initialize scroll position to middle section for seamless infinite scroll
+  useEffect(() => {
+    if (scrollRef.current && homepageCategories.length > 0) {
+      const scrollElement = scrollRef.current;
+      const categoryWidth = 250; // Width per category
+      const middlePosition = homepageCategories.length * categoryWidth;
+      scrollElement.scrollLeft = middlePosition;
+    }
+  }, [homepageCategories]);
+
+  // Handle infinite scroll looping
+  useEffect(() => {
+    if (!scrollRef.current || homepageCategories.length === 0) return;
+
+    const scrollElement = scrollRef.current;
+    const categoryWidth = 250;
+    const singleSetWidth = homepageCategories.length * categoryWidth;
+
+    const handleScroll = () => {
+      const scrollLeft = scrollElement.scrollLeft;
+      
+      // If scrolled to near the beginning, jump to the middle set
+      if (scrollLeft < categoryWidth) {
+        scrollElement.scrollLeft = singleSetWidth + scrollLeft;
+      }
+      // If scrolled to near the end, jump back to the middle set
+      else if (scrollLeft > singleSetWidth * 2 - categoryWidth) {
+        scrollElement.scrollLeft = singleSetWidth + (scrollLeft - singleSetWidth * 2);
+      }
+
+      // Detect user scrolling and pause auto-scroll temporarily
+      const now = Date.now();
+      if (now - lastScrollTime.current < 50) {
+        // User is actively scrolling
+        setIsTouching(true);
+        
+        // Clear existing timeout
+        if (autoScrollTimeoutRef.current) {
+          clearTimeout(autoScrollTimeoutRef.current);
+        }
+        
+        // Resume auto-scroll after 3 seconds of inactivity
+        autoScrollTimeoutRef.current = setTimeout(() => {
+          setIsTouching(false);
+        }, 3000);
+      }
+      
+      lastScrollTime.current = now;
+    };
+
+    scrollElement.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      scrollElement.removeEventListener('scroll', handleScroll);
+      if (autoScrollTimeoutRef.current) {
+        clearTimeout(autoScrollTimeoutRef.current);
+      }
+    };
+  }, [homepageCategories]);
+
+  // Auto-scroll functionality with smooth animation
+  useEffect(() => {
+    if (!scrollRef.current || homepageCategories.length === 0) return;
+    if (isPaused || isTouching) return;
+
+    const scrollElement = scrollRef.current;
+    const scrollSpeed = 0.5; // Reduced for smoother scrolling
+    let animationFrameId;
+    let lastTimestamp = 0;
+
+    const autoScroll = (timestamp) => {
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const deltaTime = timestamp - lastTimestamp;
+      
+      // Only scroll if enough time has passed (60 FPS)
+      if (deltaTime >= 16.67 && !isPaused && !isTouching && scrollElement) {
+        scrollElement.scrollLeft += scrollSpeed;
+        lastTimestamp = timestamp;
+      }
+      
+      animationFrameId = requestAnimationFrame(autoScroll);
+    };
+
+    animationFrameId = requestAnimationFrame(autoScroll);
+
+    return () => {
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [homepageCategories, isPaused, isTouching]);
 
   // Stats images
   const statsImages = {
@@ -164,18 +260,24 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
         </div>
 
         {/* Full Width Infinite Carousel Container */}
-        <div className="relative w-full">
+        <div className="relative w-full overflow-hidden">
           <div 
-            className="overflow-hidden carousel-container"
+            ref={scrollRef}
+            className="overflow-x-scroll carousel-container scrollbar-hide"
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
+            style={{
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              scrollBehavior: 'smooth'
+            }}
           >
             {/* Infinite Moving Track */}
             <div 
-              className={`flex ${isPaused ? 'animate-infinite-scroll paused' : 'animate-infinite-scroll'}`}
+              className="flex"
               style={{
-                width: `${infiniteCategories.length * 250}px`,
-                minWidth: '100%',
+                width: 'max-content'
               }}
             >
               {infiniteCategories.map((category, index) => (
