@@ -7,7 +7,19 @@ import { trackPageView, debugAnalytics } from '../utils/analytics';
  * Automatically tracks page views on route changes for SPA
  */
 export const useAnalytics = () => {
-  const location = useLocation();
+  let location;
+  
+  try {
+    location = useLocation();
+  } catch (error) {
+    // Router context not available yet, skip tracking
+    console.warn('useAnalytics: Router context not available');
+    return null;
+  }
+  
+  if (!location) {
+    return null;
+  }
 
   useEffect(() => {
     // Track page view on route change (important for SPA)

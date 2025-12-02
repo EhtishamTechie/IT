@@ -1,4 +1,4 @@
-// Aggressive caching middleware for production performance
+// Aggressive caching middleware for production performance + Cloudflare CDN optimization
 const cacheHeaders = (req, res, next) => {
   const path = req.path;
   
@@ -6,6 +6,7 @@ const cacheHeaders = (req, res, next) => {
   if (path.match(/\.(js|css|woff2?|ttf|otf|eot)$/)) {
     res.set({
       'Cache-Control': 'public, max-age=31536000, immutable',
+      'CDN-Cache-Control': 'public, max-age=31536000, immutable', // Cloudflare-specific
       'Vary': 'Accept-Encoding'
     });
   }
@@ -14,6 +15,7 @@ const cacheHeaders = (req, res, next) => {
   else if (path.match(/\.(jpg|jpeg|png|webp|avif|gif|svg|ico)$/)) {
     res.set({
       'Cache-Control': 'public, max-age=31536000, stale-while-revalidate=86400, immutable',
+      'CDN-Cache-Control': 'public, max-age=31536000, immutable', // Cloudflare edge cache for 1 year
       'Vary': 'Accept-Encoding',
       'X-Content-Type-Options': 'nosniff'
     });
@@ -40,7 +42,8 @@ const cacheHeaders = (req, res, next) => {
     // Products and categories - SHORT cache for admin changes to reflect quickly
     else if (path.includes('/products') || path.includes('/categories') || path.includes('/homepage')) {
       res.set({
-        'Cache-Control': 'public, max-age=30, must-revalidate',  // Reduced from 300s to 30s
+        'Cache-Control': 'public, max-age=30, must-revalidate',  // Browser: 30s
+        'CDN-Cache-Control': 'public, max-age=120', // Cloudflare edge: 2 minutes (longer than browser)
         'Vary': 'Accept-Encoding'
       });
     }
@@ -48,6 +51,7 @@ const cacheHeaders = (req, res, next) => {
     else {
       res.set({
         'Cache-Control': 'public, max-age=60, stale-while-revalidate=30',
+        'CDN-Cache-Control': 'public, max-age=120', // Cloudflare edge: 2 minutes
         'Vary': 'Accept-Encoding'
       });
     }
