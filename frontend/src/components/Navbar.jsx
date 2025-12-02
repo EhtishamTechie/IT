@@ -145,7 +145,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between h-16">
           
           {/* Logo - Enhanced */}
-          <Link to="/" className="flex items-center space-x-2 group">
+          <Link to="/" className="flex items-center space-x-2 group flex-shrink-0">
           <div className="flex items-center space-x-2">
             <div className="bg-transparent">
               <img
@@ -161,9 +161,9 @@ const Navbar = () => {
           </div>
           </Link>
 
-          {/* Search Bar - Amazon Style */}
+          {/* Search Bar - Responsive */}
           <div 
-            className="hidden md:flex flex-1 max-w-xl mx-6 relative"
+            className="flex-1 max-w-[140px] mx-1 md:max-w-xl md:mx-6 relative"
             onMouseEnter={() => {
               if (mainCategoriesTimeoutRef.current) {
                 clearTimeout(mainCategoriesTimeoutRef.current);
@@ -179,7 +179,7 @@ const Navbar = () => {
           >
             <form onSubmit={handleSearch} className="flex w-full">
               <div 
-                className="bg-gray-700 border border-r-0 border-gray-600 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent hover:bg-gray-600 transition-colors duration-200 relative cursor-pointer"
+                className="hidden md:block bg-gray-700 border border-r-0 border-gray-600 rounded-l-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent hover:bg-gray-600 transition-colors duration-200 relative cursor-pointer"
               >
                 <span className="text-gray-200">Main Categories</span>
               </div>
@@ -187,14 +187,14 @@ const Navbar = () => {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products..."
-                className="bg-gray-800 text-white flex-1 border border-gray-600 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder-gray-400"
+                placeholder="Search..."
+                className="bg-gray-800 text-white flex-1 min-w-0 w-full border border-gray-600 px-1.5 md:px-4 py-1 md:py-2 text-[10px] md:text-sm focus:outline-none focus:ring-1 md:focus:ring-2 focus:ring-orange-500 focus:border-transparent placeholder-gray-400 md:rounded-none rounded-l-md"
               />
               <button
                 type="submit"
-                className="bg-orange-500 hover:bg-orange-600 px-4 py-2 rounded-r-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="bg-orange-500 hover:bg-orange-600 px-1.5 md:px-4 py-1 md:py-2 rounded-r-md transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 flex-shrink-0"
               >
-                <SearchIcon className="w-5 h-5 text-white" />
+                <SearchIcon className="w-3.5 h-3.5 md:w-5 md:h-5 text-white" />
               </button>
             </form>
           </div>
@@ -341,16 +341,9 @@ const Navbar = () => {
           </div>
 
           {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center space-x-4">
-            {/* Mobile Search Icon */}
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-white hover:text-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-md p-1"
-              aria-label="Toggle search and menu"
-            >
-              <SearchIcon className="w-6 h-6" />
-            </button>
-            <Link to="/cart" className="relative text-white hover:text-orange-500">
+          <div className="flex items-center space-x-2 flex-shrink-0">
+            {/* Mobile Cart */}
+            <Link to="/cart" className="relative text-white hover:text-orange-500 md:hidden">
               <ShoppingCartIcon className="w-6 h-6" />
               {cartStats.totalItems > 0 && (
                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-semibold rounded-full min-w-[16px] h-[16px] flex items-center justify-center px-1 shadow-lg border-2 border-white">
@@ -358,9 +351,11 @@ const Navbar = () => {
                 </span>
               )}
             </Link>
+            
+            {/* Mobile Menu Toggle */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="text-white hover:text-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-md p-1"
+              className="text-white hover:text-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-500 rounded-md p-1 md:hidden"
               aria-label="Toggle menu"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -632,25 +627,6 @@ const Navbar = () => {
       {/* Mobile Menu */}
       {isOpen && (
         <div ref={mobileMenuRef} className="md:hidden absolute top-full left-0 right-0 bg-white shadow-lg z-40 border-t border-gray-200">
-          {/* Mobile Search */}
-          <div className="px-4 py-3 border-b border-gray-200">
-            <form onSubmit={handleSearch} className="flex">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search products..."
-                className="flex-1 border border-gray-300 rounded-l-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-orange-500"
-              />
-              <button
-                type="submit"
-                className="bg-orange-500 hover:bg-orange-500 px-4 py-2 rounded-r-md"
-              >
-                <SearchIcon className="w-5 h-5 text-white" />
-              </button>
-            </form>
-          </div>
-
           <div className="px-4 pt-2 pb-4 space-y-1 max-h-96 overflow-y-auto">
             {[...mainPages, ...otherPages].map((page) => (
               <NavLink
