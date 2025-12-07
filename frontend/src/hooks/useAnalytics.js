@@ -5,23 +5,26 @@ import { trackPageView, debugAnalytics } from '../utils/analytics';
 /**
  * Custom hook for GTM analytics integration
  * Automatically tracks page views on route changes for SPA
+ * 
+ * Note: This hook must be used inside a Router context (BrowserRouter)
+ * Returns null if Router context is not available (graceful degradation)
  */
 export const useAnalytics = () => {
-  let location;
+  // Use try-catch to handle Router context not being available yet
+  let location = null;
   
   try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
     location = useLocation();
   } catch (error) {
-    // Router context not available yet, skip tracking
-    console.warn('useAnalytics: Router context not available');
-    return null;
-  }
-  
-  if (!location) {
+    // Router context not available, analytics won't track
+    // This is expected during SSR or before Router is mounted
     return null;
   }
 
   useEffect(() => {
+    if (!location) return;
+    
     // Track page view on route change (important for SPA)
     const pagePath = location.pathname + location.search;
     

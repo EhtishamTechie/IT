@@ -7,14 +7,45 @@ import LazyImage from './LazyImage';
 const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                           
   const [isPaused, setIsPaused] = useState(false);
+  const [isMouseOverCard, setIsMouseOverCard] = useState(false);
   const [failedImages, setFailedImages] = useState(new Set());
   const [loadedImages, setLoadedImages] = useState(new Set());
   const [homepageCategories, setHomepageCategories] = useState(homepageCategoriesProp);
   const [loading, setLoading] = useState(false);
-  const [isTouching, setIsTouching] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const scrollRef = useRef(null);
+  const isPausedRef = useRef(false);
   const autoScrollTimeoutRef = useRef(null);
   const lastScrollTime = useRef(Date.now());
+  const savedScrollPosition = useRef(0);
+
+  // Sync isPaused with isMouseOverCard
+  useEffect(() => {
+    if (!isMobile) {
+      setIsPaused(isMouseOverCard);
+      isPausedRef.current = isMouseOverCard;
+    } else {
+      setIsPaused(false);
+      isPausedRef.current = false;
+    }
+  }, [isMouseOverCard, isMobile]);
+
+  // Initialize isPausedRef on mount
+  useEffect(() => {
+    isPausedRef.current = false;
+  }, []);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Update categories when props change
   useEffect(() => {
@@ -23,86 +54,36 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
     }
   }, [homepageCategoriesProp]);
 
-  // Initialize scroll position to middle section for seamless infinite scroll
+  // Initialize scroll position to start for mobile, middle for desktop
   useEffect(() => {
     if (scrollRef.current && homepageCategories.length > 0) {
       const scrollElement = scrollRef.current;
-      const categoryWidth = 250; // Width per category
-      const middlePosition = homepageCategories.length * categoryWidth;
-      scrollElement.scrollLeft = middlePosition;
+      
+      // On mobile, just start at the beginning - simple and intuitive
+      if (isMobile) {
+        scrollElement.scrollLeft = 0;
+      }
     }
-  }, [homepageCategories]);
+  }, [homepageCategories, isMobile]);
 
-  // Handle infinite scroll looping
+  // Auto-scroll functionality (desktop only)
   useEffect(() => {
-    if (!scrollRef.current || homepageCategories.length === 0) return;
+    if (!scrollRef.current || homepageCategories.length === 0 || isMobile) return;
 
     const scrollElement = scrollRef.current;
-    const categoryWidth = 250;
-    const singleSetWidth = homepageCategories.length * categoryWidth;
-
-    const handleScroll = () => {
-      const scrollLeft = scrollElement.scrollLeft;
-      
-      // If scrolled to near the beginning, jump to the middle set
-      if (scrollLeft < categoryWidth) {
-        scrollElement.scrollLeft = singleSetWidth + scrollLeft;
-      }
-      // If scrolled to near the end, jump back to the middle set
-      else if (scrollLeft > singleSetWidth * 2 - categoryWidth) {
-        scrollElement.scrollLeft = singleSetWidth + (scrollLeft - singleSetWidth * 2);
-      }
-
-      // Detect user scrolling and pause auto-scroll temporarily
-      const now = Date.now();
-      if (now - lastScrollTime.current < 50) {
-        // User is actively scrolling
-        setIsTouching(true);
-        
-        // Clear existing timeout
-        if (autoScrollTimeoutRef.current) {
-          clearTimeout(autoScrollTimeoutRef.current);
-        }
-        
-        // Resume auto-scroll after 3 seconds of inactivity
-        autoScrollTimeoutRef.current = setTimeout(() => {
-          setIsTouching(false);
-        }, 3000);
-      }
-      
-      lastScrollTime.current = now;
-    };
-
-    scrollElement.addEventListener('scroll', handleScroll, { passive: true });
-    
-    return () => {
-      scrollElement.removeEventListener('scroll', handleScroll);
-      if (autoScrollTimeoutRef.current) {
-        clearTimeout(autoScrollTimeoutRef.current);
-      }
-    };
-  }, [homepageCategories]);
-
-  // Auto-scroll functionality with smooth animation
-  useEffect(() => {
-    if (!scrollRef.current || homepageCategories.length === 0) return;
-    if (isPaused || isTouching) return;
-
-    const scrollElement = scrollRef.current;
-    const scrollSpeed = 0.5; // Reduced for smoother scrolling
+    const scrollSpeed = 1; // Increased speed
     let animationFrameId;
-    let lastTimestamp = 0;
 
-    const autoScroll = (timestamp) => {
-      if (!lastTimestamp) lastTimestamp = timestamp;
-      const deltaTime = timestamp - lastTimestamp;
-      
-      // Only scroll if enough time has passed (60 FPS)
-      if (deltaTime >= 16.67 && !isPaused && !isTouching && scrollElement) {
+    const autoScroll = () => {
+      if (!isPausedRef.current && scrollElement) {
         scrollElement.scrollLeft += scrollSpeed;
-        lastTimestamp = timestamp;
+        
+        // Reset to beginning when reaching far end (simple approach)
+        const maxScroll = scrollElement.scrollWidth - scrollElement.clientWidth;
+        if (scrollElement.scrollLeft >= maxScroll - 100) {
+          scrollElement.scrollLeft = 0;
+        }
       }
-      
       animationFrameId = requestAnimationFrame(autoScroll);
     };
 
@@ -113,7 +94,7 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
         cancelAnimationFrame(animationFrameId);
       }
     };
-  }, [homepageCategories, isPaused, isTouching]);
+  }, [homepageCategories, isMobile]);
 
   // Stats images
   const statsImages = {
@@ -263,14 +244,16 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
         <div className="relative w-full overflow-hidden">
           <div 
             ref={scrollRef}
-            className="overflow-x-scroll carousel-container scrollbar-hide"
-            onMouseEnter={() => setIsPaused(true)}
-            onMouseLeave={() => setIsPaused(false)}
+            className="carousel-container scrollbar-hide overflow-x-scroll"
+            onMouseDown={(e) => !isMobile && e.preventDefault()}
+            onTouchStart={(e) => !isMobile && e.preventDefault()}
             style={{
               WebkitOverflowScrolling: 'touch',
               scrollbarWidth: 'none',
               msOverflowStyle: 'none',
-              scrollBehavior: 'smooth'
+              scrollBehavior: isMobile ? 'smooth' : 'auto',
+              cursor: isMobile ? 'grab' : 'default',
+              userSelect: isMobile ? 'none' : 'auto'
             }}
           >
             {/* Infinite Moving Track */}
@@ -284,13 +267,21 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
                 <div 
                   key={`${category._id}-${Math.floor(index / homepageCategories.length)}`}
                   className="flex-shrink-0 w-44 sm:w-52 md:w-60 px-2 sm:px-3"
+                  onMouseEnter={() => !isMobile && setIsMouseOverCard(true)}
+                  onMouseLeave={() => !isMobile && setIsMouseOverCard(false)}
                 >
                   <div className="group cursor-pointer transform transition-all duration-300 hover:scale-105">
                     {/* Category Card */}
                     <div className="relative bg-white rounded-xl sm:rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden h-52 sm:h-56 md:h-64">
                       {/* Image Container */}
                       <div className="relative h-36 sm:h-40 md:h-48 overflow-hidden bg-gray-100">
-                        <Link to={`/category-group/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`} className="block w-full h-full">
+                        <Link 
+                          to={`/category-group/${category.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}`} 
+                          className="block w-full h-full"
+                          style={{ pointerEvents: 'auto' }}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onTouchStart={(e) => e.stopPropagation()}
+                        >
                           <LazyImage 
                             src={category.imageUrl}
                             alt={category.name}
@@ -341,38 +332,42 @@ const CategoryCarousel = ({ categories: homepageCategoriesProp = [] }) => {
             </div>
           </div>
 
-          {/* Navigation Arrows */}
-          <button 
-            onClick={() => setIsPaused(!isPaused)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 group border border-gray-200"
-            aria-label={isPaused ? "Play carousel" : "Pause carousel"}
-          >
-            {isPaused ? (
-              <svg className="w-6 h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            ) : (
-              <svg className="w-6 h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-              </svg>
-            )}
-          </button>
-          
-          <button 
-            onClick={() => setIsPaused(!isPaused)}
-            className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-10 bg-white hover:bg-gray-50 rounded-full p-2 sm:p-3 shadow-lg hover:shadow-xl transition-all duration-300 group border border-gray-200"
-            aria-label={isPaused ? "Play carousel" : "Pause carousel"}
-          >
-            {isPaused ? (
-              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            ) : (
-              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-              </svg>
-            )}
-          </button>
+          {/* Navigation Arrows (Desktop Only) */}
+          {!isMobile && (
+            <>
+              <button 
+                onClick={() => setIsPaused(!isPaused)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 group border border-gray-200"
+                aria-label={isPaused ? "Play carousel" : "Pause carousel"}
+              >
+                {isPaused ? (
+                  <svg className="w-6 h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  </svg>
+                )}
+              </button>
+              
+              <button 
+                onClick={() => setIsPaused(!isPaused)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white hover:bg-gray-50 rounded-full p-3 shadow-lg hover:shadow-xl transition-all duration-300 group border border-gray-200"
+                aria-label={isPaused ? "Play carousel" : "Pause carousel"}
+              >
+                {isPaused ? (
+                  <svg className="w-6 h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-gray-600 group-hover:text-orange-500" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  </svg>
+                )}
+              </button>
+            </>
+          )}
         </div>
 
 
