@@ -227,7 +227,7 @@ const SimpleOrderHistoryPage = () => {
                             </div>
                             <div className="flex items-center">
                               <CurrencyDollarIcon className="h-4 w-4 mr-1" />
-                              ${order.totalAmount}
+                              PKR {order.totalAmount}
                             </div>
                             <div className="flex items-center">
                               <ShoppingCartIcon className="h-4 w-4 mr-1" />
