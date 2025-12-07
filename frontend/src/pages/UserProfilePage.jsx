@@ -392,12 +392,11 @@ const UserProfilePage = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Security</h3>
               <div className="space-y-3">
-                <button className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                <button 
+                  onClick={() => navigate('/change-password')}
+                  className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                >
                   <span className="text-gray-700">Change Password</span>
-                  <span className="text-gray-400">→</span>
-                </button>
-                <button className="w-full flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                  <span className="text-gray-700">Privacy Settings</span>
                   <span className="text-gray-400">→</span>
                 </button>
               </div>

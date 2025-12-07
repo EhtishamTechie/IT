@@ -55,6 +55,7 @@ const CartPage = lazy(() => import('./pages/CartPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const RegisterPage = lazy(() => import('./pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'));
 const ContactUsPage = lazy(() => import('./pages/ContactUsPage'));
 const AboutUsPage = lazy(() => import('./pages/AboutUsPage'));
 const BlogPage = lazy(() => import('./pages/BlogPage'));
@@ -67,6 +68,7 @@ const ComingSoon = lazy(() => import('./components/ComingSoon'));
 
 // User Pages
 const UserProfilePage = lazy(() => import('./pages/UserProfilePage'));
+const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'));
 const SimpleOrderHistoryPage = lazy(() => import('./pages/SimpleOrderHistoryPage'));
 const SimpleOrderDetailPage = lazy(() => import('./pages/SimpleOrderDetailPage'));
 const OrderConfirmationPage = lazy(() => import('./pages/OrderConfirmationPage'));
@@ -153,6 +155,7 @@ const AppContent = () => {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<RegisterPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/ContactUsPage" element={<ContactUsPage />} />
           <Route path="/contact" element={<ContactUsPage />} />
           <Route path="/AboutUsPage" element={<AboutUsPage />} />
@@ -171,6 +174,16 @@ const AppContent = () => {
               <Suspense fallback={<PageLoader />}>
                 <ProtectedRoute>
                   <UserProfilePage />
+                </ProtectedRoute>
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/change-password" 
+            element={
+              <Suspense fallback={<PageLoader />}>
+                <ProtectedRoute>
+                  <ChangePasswordPage />
                 </ProtectedRoute>
               </Suspense>
             } 

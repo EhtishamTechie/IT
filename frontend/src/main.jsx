@@ -14,7 +14,8 @@ document.head.appendChild(link);
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 
 // Phase 5: Register service worker for aggressive caching (sub-1-second repeat visits)
-if ('serviceWorker' in navigator) {
+// Only in production to avoid interfering with development HMR and debugging
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')

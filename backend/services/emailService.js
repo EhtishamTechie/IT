@@ -516,6 +516,149 @@ class EmailService {
   }
 
   /**
+   * Send OTP email for password reset
+   */
+  async sendPasswordResetOTP(email, otp, name = '') {
+    // Validate email format first
+    const formatValidation = this.validateEmailAddress(email);
+    if (!formatValidation.valid) {
+      console.error('❌ Email validation failed for password reset:', email, '-', formatValidation.error);
+      return { success: false, error: formatValidation.error, suggestion: formatValidation.suggestion };
+    }
+
+    // Validate email domain (with DNS check)
+    const domainValidation = await this.validateEmailDomain(email);
+    if (!domainValidation.valid) {
+      console.error('❌ Email domain validation failed for password reset:', email, '-', domainValidation.error);
+      return { success: false, error: domainValidation.error };
+    }
+
+    // Development mode simulation
+    if (this.isDevelopmentMode) {
+      console.log('📧 [DEV MODE] Password reset email would be sent to:', email);
+      console.log('📧 [DEV MODE] OTP Code:', otp);
+      console.log('📧 [DEV MODE] User Name:', name || 'N/A');
+      console.log('📧 [DEV MODE] Simulating successful email delivery...');
+      
+      // Simulate email sending delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return { 
+        success: true, 
+        messageId: `dev-reset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        developmentMode: true 
+      };
+    }
+
+    // Production mode - real email sending
+    const mailOptions = {
+      from: {
+        name: 'International Tijarat',
+        address: process.env.EMAIL_USER || 'noreply@internationaltijarat.com'
+      },
+      to: email,
+      subject: 'Reset Your Password - International Tijarat',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <style>
+            body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; }
+            .container { background: #f9f9f9; padding: 20px; }
+            .header { background: #e74c3c; color: white; padding: 20px; text-align: center; }
+            .content { background: white; padding: 30px; margin: 20px 0; border-radius: 8px; }
+            .otp-code { 
+              font-size: 32px; 
+              font-weight: bold; 
+              color: #e74c3c; 
+              text-align: center; 
+              padding: 20px; 
+              background: #fee; 
+              border: 2px dashed #e74c3c; 
+              border-radius: 8px; 
+              margin: 20px 0; 
+              letter-spacing: 5px;
+            }
+            .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+            .warning { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🔒 Password Reset Request</h1>
+            </div>
+            <div class="content">
+              <h2>Reset Your Password</h2>
+              <p>Hello${name ? ' ' + name : ''},</p>
+              <p>We received a request to reset your password for your International Tijarat account. Use the OTP code below to proceed:</p>
+              
+              <div class="otp-code">${otp}</div>
+              
+              <div class="warning">
+                <strong>⚠️ Security Notice:</strong>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  <li>This OTP is valid for <strong>10 minutes only</strong></li>
+                  <li>Never share this code with anyone</li>
+                  <li>If you didn't request this, please ignore this email</li>
+                  <li>Your password will remain unchanged unless you complete the reset process</li>
+                </ul>
+              </div>
+              
+              <p><strong>How to reset your password:</strong></p>
+              <ol>
+                <li>Enter the OTP code shown above</li>
+                <li>Create a new strong password</li>
+                <li>Confirm your new password</li>
+                <li>You're all set!</li>
+              </ol>
+              
+              <p>If you didn't request a password reset, you can safely ignore this email. Your account is secure.</p>
+              
+              <p>Need help? Contact us at support@internationaltijarat.com</p>
+              
+              <p>Best regards,<br>International Tijarat Security Team</p>
+            </div>
+            <div class="footer">
+              <p>© 2025 International Tijarat. All rights reserved.</p>
+              <p>This email was sent to ${email}</p>
+              <p>For security reasons, this email cannot be replied to.</p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    try {
+      const result = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Password reset email sent successfully to:', email);
+      return { success: true, messageId: result.messageId };
+    } catch (error) {
+      console.error('❌ Failed to send password reset email:', error);
+      
+      // Provide specific error messages based on SMTP error codes
+      let errorMessage = 'Failed to send password reset email';
+      
+      if (error.code === 'EENVELOPE' || error.code === 'EENVELOPE_ADDRESS') {
+        errorMessage = 'Invalid email address. Please check your email and try again.';
+      } else if (error.code === 'EAUTH') {
+        errorMessage = 'Email service authentication failed. Please contact support.';
+      } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNECTION') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.responseCode === 550) {
+        errorMessage = 'Email address not found or invalid. Please check your email address.';
+      } else if (error.responseCode === 554) {
+        errorMessage = 'Email rejected by the server. Please contact support.';
+      } else if (error.message && error.message.includes('Invalid mail command')) {
+        errorMessage = 'Invalid email address format. Please enter a valid email.';
+      }
+      
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
    * Send welcome email after successful verification
    */
   async sendWelcomeEmail(email, name, userType = 'customer') {
@@ -1182,6 +1325,7 @@ module.exports = {
   // Add direct exports of instance methods for backward compatibility
   sendCustomerVerificationOTP: emailService.sendCustomerVerificationOTP.bind(emailService),
   sendVendorVerificationOTP: emailService.sendVendorVerificationOTP.bind(emailService),
+  sendPasswordResetOTP: emailService.sendPasswordResetOTP.bind(emailService),
   sendVendorApplicationConfirmation: emailService.sendVendorApplicationConfirmation.bind(emailService),
   sendVendorApplicationApproval: emailService.sendVendorApplicationApproval.bind(emailService),
   sendVendorApplicationRejection: emailService.sendVendorApplicationRejection.bind(emailService),
