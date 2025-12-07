@@ -11,7 +11,10 @@ import {
   MessageCircle,
   Mail,
   Save,
-  X
+  X,
+  Upload,
+  Image as ImageIcon,
+  GripVertical
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl, getImageUrl } from '../../config';
@@ -22,6 +25,9 @@ const WholesaleManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState(null);
+  const [productImagePreviews, setProductImagePreviews] = useState([]);
+  const [existingProductImages, setExistingProductImages] = useState([]);
+  const [draggedImageIndex, setDraggedImageIndex] = useState(null);
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,6 +40,7 @@ const WholesaleManagement = () => {
     categoryDescription: '',
     supplierName: '',
     profileImage: null,
+    productImages: [],
     contactNumber: '',
     whatsappNumber: '',
     email: '',
@@ -140,6 +147,85 @@ const WholesaleManagement = () => {
     return Array.isArray(value) ? value : [];
   };
 
+  // Handle product images selection
+  const handleProductImagesChange = (e) => {
+    const files = Array.from(e.target.files);
+    
+    // Limit to 10 images total
+    const remainingSlots = 10 - existingProductImages.length - productImagePreviews.length;
+    const filesToAdd = files.slice(0, remainingSlots);
+    
+    if (files.length > remainingSlots) {
+      alert(`You can only upload ${remainingSlots} more image(s). Maximum 10 images allowed.`);
+    }
+    
+    // Create previews for new images
+    const newPreviews = filesToAdd.map((file, index) => ({
+      id: `preview-${Date.now()}-${index}`,
+      file,
+      preview: URL.createObjectURL(file),
+      isNew: true
+    }));
+    
+    setProductImagePreviews([...productImagePreviews, ...newPreviews]);
+    setFormData({...formData, productImages: [...formData.productImages, ...filesToAdd]});
+  };
+
+  // Remove preview image (for new uploads)
+  const removePreviewImage = (previewId) => {
+    const updatedPreviews = productImagePreviews.filter(p => p.id !== previewId);
+    const updatedFiles = formData.productImages.filter((_, index) => {
+      const preview = productImagePreviews[index];
+      return preview && preview.id !== previewId;
+    });
+    
+    setProductImagePreviews(updatedPreviews);
+    setFormData({...formData, productImages: updatedFiles});
+  };
+
+  // Delete existing product image
+  const deleteExistingImage = async (imageId) => {
+    if (!window.confirm('Are you sure you want to delete this image?')) return;
+    
+    try {
+      const token = localStorage.getItem('adminToken');
+      await axios.delete(
+        `${getApiUrl()}/wholesale/admin/suppliers/${editingSupplier._id}/images/${imageId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      
+      // Update existing images state
+      setExistingProductImages(existingProductImages.filter(img => img._id !== imageId));
+      alert('Image deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting image:', error);
+      alert('Failed to delete image');
+    }
+  };
+
+  // Drag and drop handlers for reordering
+  const handleDragStart = (index) => {
+    setDraggedImageIndex(index);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedImageIndex === null || draggedImageIndex === index) return;
+    
+    // Reorder preview images
+    const newPreviews = [...productImagePreviews];
+    const draggedItem = newPreviews[draggedImageIndex];
+    newPreviews.splice(draggedImageIndex, 1);
+    newPreviews.splice(index, 0, draggedItem);
+    
+    setProductImagePreviews(newPreviews);
+    setDraggedImageIndex(index);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedImageIndex(null);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -178,6 +264,13 @@ const WholesaleManagement = () => {
         submitData.append('profileImage', formData.profileImage);
       }
       
+      // Add product images (multiple files)
+      if (formData.productImages && formData.productImages.length > 0) {
+        formData.productImages.forEach((file) => {
+          submitData.append('productImages', file);
+        });
+      }
+      
       const response = await axios[method](url, submitData, {
         headers: { 
           Authorization: `Bearer ${token}`,
@@ -205,6 +298,7 @@ const WholesaleManagement = () => {
       categoryDescription: supplier.categoryDescription || '',
       supplierName: supplier.supplierName,
       profileImage: null, // Reset file input for editing
+      productImages: [], // Reset for new uploads
       contactNumber: supplier.contactNumber,
       whatsappNumber: supplier.whatsappNumber,
       email: supplier.email || '',
@@ -215,6 +309,9 @@ const WholesaleManagement = () => {
       businessHours: supplier.businessHours || '',
       displayOrder: supplier.displayOrder || 0
     });
+    // Load existing product images
+    setExistingProductImages(supplier.productImages || []);
+    setProductImagePreviews([]);
     setShowAddModal(true);
   };
 
@@ -259,6 +356,7 @@ const WholesaleManagement = () => {
       categoryDescription: '',
       supplierName: '',
       profileImage: null,
+      productImages: [],
       contactNumber: '',
       whatsappNumber: '',
       email: '',
@@ -269,6 +367,10 @@ const WholesaleManagement = () => {
       businessHours: '',
       displayOrder: 0
     });
+    // Reset product images state
+    setProductImagePreviews([]);
+    setExistingProductImages([]);
+    setDraggedImageIndex(null);
   };
 
   if (loading) {
@@ -364,6 +466,17 @@ const WholesaleManagement = () => {
                         {supplier.address && (
                           <div className="text-sm text-gray-500">{supplier.address}</div>
                         )}
+                        
+                        {/* Product Images Count Badge */}
+                        {supplier.productImages && supplier.productImages.length > 0 && (
+                          <div className="mt-1">
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                              <ImageIcon className="w-3 h-3 mr-1" />
+                              {supplier.productImages.length} Product Images
+                            </span>
+                          </div>
+                        )}
+                        
                         {supplier.specialties && supplier.specialties.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-1">
                             {supplier.specialties.slice(0, 2).map((specialty, idx) => (
@@ -580,6 +693,109 @@ const WholesaleManagement = () => {
                         className="w-24 h-24 object-contain rounded-lg border bg-white p-2"
                       />
                       <p className="text-xs text-gray-500 mt-1">Current logo (select new file to replace)</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Product Images Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Product Images (Max 10)
+                    <span className="text-xs text-gray-500 ml-2">Show your product portfolio</span>
+                  </label>
+                  
+                  {/* File Input */}
+                  <div className="mb-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleProductImagesChange}
+                      disabled={existingProductImages.length + productImagePreviews.length >= 10}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      {existingProductImages.length + productImagePreviews.length}/10 images uploaded
+                    </p>
+                  </div>
+
+                  {/* Image Preview Gallery */}
+                  {(existingProductImages.length > 0 || productImagePreviews.length > 0) && (
+                    <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                      {/* Existing Images */}
+                      {existingProductImages.map((image, index) => (
+                        <div
+                          key={image._id}
+                          className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-orange-500 transition-all"
+                        >
+                          <img
+                            src={getImageUrl('wholesale-suppliers', image.optimized?.jpg_300 || image.filename)}
+                            alt={image.altText || `Product ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => deleteExistingImage(image._id)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            title="Delete image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          {/* Display Order Badge */}
+                          <div className="absolute bottom-1 left-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                            #{index + 1}
+                          </div>
+                        </div>
+                      ))}
+
+                      {/* New Image Previews */}
+                      {productImagePreviews.map((preview, index) => (
+                        <div
+                          key={preview.id}
+                          draggable
+                          onDragStart={() => handleDragStart(index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragEnd={handleDragEnd}
+                          className="relative group aspect-square rounded-lg overflow-hidden border-2 border-orange-300 hover:border-orange-500 transition-all cursor-move"
+                        >
+                          <img
+                            src={preview.preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Drag Handle */}
+                          <div className="absolute top-1 left-1 bg-black bg-opacity-60 text-white rounded p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+                          {/* Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => removePreviewImage(preview.id)}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                            title="Remove image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          {/* New Badge */}
+                          <div className="absolute bottom-1 left-1 bg-green-500 text-white text-xs px-2 py-1 rounded font-medium">
+                            NEW
+                          </div>
+                          {/* Display Order */}
+                          <div className="absolute bottom-1 right-1 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                            #{existingProductImages.length + index + 1}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Empty State */}
+                  {existingProductImages.length === 0 && productImagePreviews.length === 0 && (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                      <Upload className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600">No product images uploaded yet</p>
+                      <p className="text-xs text-gray-500 mt-1">Upload images to showcase your products</p>
                     </div>
                   )}
                 </div>

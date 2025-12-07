@@ -9,16 +9,25 @@ import {
   Users, 
   Store,
   Search,
-  Filter
+  Filter,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  Image as ImageIcon
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl, getImageUrl } from '../config';
+import LazyImage from '../components/LazyImage';
 
 const ContactWholeseller = () => {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
   useEffect(() => {
     fetchSuppliers();
@@ -29,6 +38,14 @@ const ContactWholeseller = () => {
       setLoading(true);
       const response = await axios.get(`${getApiUrl()}/wholesale/suppliers`);
       if (response.data.success) {
+        console.log('📦 [WHOLESALE] Fetched suppliers:', response.data.data);
+        // Log first supplier's images for debugging
+        if (response.data.data.length > 0 && response.data.data[0].suppliers.length > 0) {
+          console.log('📸 [WHOLESALE] First supplier images:', {
+            profileImage: response.data.data[0].suppliers[0].profileImage,
+            productImages: response.data.data[0].suppliers[0].productImages
+          });
+        }
         setSuppliers(response.data.data);
       }
     } catch (error) {
@@ -48,6 +65,42 @@ const ContactWholeseller = () => {
   const handlePhoneCall = (phoneNumber) => {
     window.location.href = `tel:${phoneNumber}`;
   };
+
+  // Lightbox functions
+  const openLightbox = (images, index) => {
+    console.log('🖼️ [LIGHTBOX] Opening with images:', images);
+    console.log('🖼️ [LIGHTBOX] Starting at index:', index);
+    console.log('🖼️ [LIGHTBOX] Total images:', images?.length);
+    setLightboxImages(images);
+    setLightboxIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxImages([]);
+    setLightboxIndex(0);
+  };
+
+  const nextImage = () => {
+    setLightboxIndex((prev) => (prev + 1) % lightboxImages.length);
+  };
+
+  const prevImage = () => {
+    setLightboxIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  };
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (!lightboxOpen) return;
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') nextImage();
+      if (e.key === 'ArrowLeft') prevImage();
+    };
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [lightboxOpen, lightboxImages]);
 
   const filteredSuppliers = suppliers.filter(category => {
     const matchesCategory = selectedCategory === 'all' || category.categoryName === selectedCategory;
@@ -136,60 +189,52 @@ const ContactWholeseller = () => {
                   </div>
                 </div>
 
-                {/* Suppliers Grid */}
-                <div className="p-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {category.suppliers.map((supplier, supplierIndex) => (
-                      <div key={supplierIndex} className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow">
-                        {/* Card Content with Logo on Left, Details on Right */}
-                        <div className="flex gap-4 mb-4">
-                          {/* Large Logo on Left */}
-                          <div className="flex-shrink-0">
-                            {supplier.profileImage ? (
-                              <img
-                                src={getImageUrl('wholesale-suppliers', supplier.profileImage)}
-                                alt={`${supplier.supplierName} logo`}
-                                className="w-24 h-24 object-contain rounded-lg border-2 border-gray-200"
-                                onError={(e) => {
-                                  e.target.style.display = 'none';
-                                  e.target.nextSibling.style.display = 'flex';
-                                }}
-                              />
-                            ) : null}
-                            <div className={`w-24 h-24 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center ${supplier.profileImage ? 'hidden' : 'flex'}`}>
-                              <Store className="w-12 h-12 text-white" />
-                            </div>
+                {/* Suppliers List - Each supplier in its own row */}
+                <div className="p-6 space-y-6">
+                  {category.suppliers.map((supplier, supplierIndex) => (
+                    <div key={supplierIndex} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                      {/* Left: Supplier Card (Takes 1/3 width on desktop) */}
+                      <div className="lg:col-span-1 border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow h-fit">
+                        {/* Profile Logo */}
+                        <div className="flex items-center gap-3 mb-4">
+                          {supplier.profileImage ? (
+                            <img
+                              src={getImageUrl('wholesale-suppliers', supplier.profileImage)}
+                              alt={`${supplier.supplierName} logo`}
+                              className="w-16 h-16 object-contain rounded-lg border-2 border-gray-200"
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <div className={supplier.profileImage ? 'w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center hidden' : 'w-16 h-16 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center'}>
+                            <Store className="w-8 h-8 text-white" />
                           </div>
-
-                          {/* Supplier Info on Right */}
+                          
+                          {/* Supplier Name */}
                           <div className="flex-1 min-w-0">
-                            {/* Supplier Header */}
-                            <div className="mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900 mb-2 truncate">{supplier.supplierName}</h3>
-                              {supplier.specialties && supplier.specialties.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mb-3">
-                                  {supplier.specialties.slice(0, 2).map((specialty, idx) => (
-                                    <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                                      {specialty}
-                                    </span>
-                                  ))}
-                                  {supplier.specialties.length > 2 && (
-                                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
-                                      +{supplier.specialties.length - 2} more
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900">{supplier.supplierName}</h3>
                           </div>
                         </div>
+
+                        {/* Specialties */}
+                        {supplier.specialties && supplier.specialties.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-4">
+                            {supplier.specialties.map((specialty, idx) => (
+                              <span key={idx} className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                {specialty}
+                              </span>
+                            ))}
+                          </div>
+                        )}
 
                         {/* Supplier Details */}
                         <div className="space-y-2 mb-4 text-sm text-gray-600">
                           {supplier.address && (
                             <div className="flex items-start space-x-2">
                               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              <span>{supplier.address}</span>
+                              <span className="line-clamp-2">{supplier.address}</span>
                             </div>
                           )}
                           {supplier.minimumOrderQuantity && (
@@ -207,7 +252,7 @@ const ContactWholeseller = () => {
                           {supplier.deliveryAreas && supplier.deliveryAreas.length > 0 && (
                             <div className="flex items-start space-x-2">
                               <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                              <span>Delivery: {supplier.deliveryAreas.slice(0, 2).join(', ')}{supplier.deliveryAreas.length > 2 ? '...' : ''}</span>
+                              <span>Delivery: {supplier.deliveryAreas.join(', ')}</span>
                             </div>
                           )}
                         </div>
@@ -243,8 +288,58 @@ const ContactWholeseller = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </div>
+
+                      {/* Right: Product Gallery (Takes 2/3 width on desktop) */}
+                      <div className="lg:col-span-2">
+                        {supplier.productImages && supplier.productImages.length > 0 ? (
+                          <div className="border border-gray-200 rounded-lg p-5 h-full">
+                            <div className="flex items-center justify-between mb-4">
+                              <h4 className="text-lg font-semibold text-gray-900">Product Gallery</h4>
+                              <span className="text-sm text-gray-600">{supplier.productImages.length} images</span>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              {supplier.productImages.map((image, imgIdx) => {
+                                // Transform optimized structure for LazyImage with full paths
+                                const optimizedForLazy = image.optimized ? {
+                                  avif: {
+                                    '300w': getImageUrl('wholesale-suppliers', image.optimized.avif_300),
+                                    '600w': getImageUrl('wholesale-suppliers', image.optimized.avif_600)
+                                  },
+                                  webp: {
+                                    '300w': getImageUrl('wholesale-suppliers', image.optimized.webp_300),
+                                    '600w': getImageUrl('wholesale-suppliers', image.optimized.webp_600)
+                                  }
+                                } : null;
+
+                                return (
+                                  <div
+                                    key={imgIdx}
+                                    className="aspect-square rounded-lg overflow-hidden cursor-pointer border border-gray-200 group hover:opacity-90 transition-opacity bg-gray-100"
+                                    onClick={() => openLightbox(supplier.productImages, imgIdx)}
+                                  >
+                                    <LazyImage
+                                      src={getImageUrl('wholesale-suppliers', image.filename)}
+                                      alt={image.altText || `Product ${imgIdx + 1}`}
+                                      className="w-full h-full object-cover"
+                                      optimizedImage={optimizedForLazy}
+                                    />
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="border border-gray-200 rounded-lg p-5 h-full flex items-center justify-center bg-gray-50">
+                            <div className="text-center text-gray-400">
+                              <ImageIcon className="w-12 h-12 mx-auto mb-3" />
+                              <p className="text-sm font-medium">No product images available</p>
+                              <p className="text-xs mt-1">Contact supplier for more information</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))}
@@ -275,6 +370,82 @@ const ContactWholeseller = () => {
           </a>
         </div>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxOpen && (
+        <div 
+          className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center"
+          onClick={closeLightbox}
+        >
+          {/* Close Button */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+          >
+            <X className="w-8 h-8" />
+          </button>
+
+          {/* Previous Button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                prevImage();
+              }}
+              className="absolute left-4 text-white hover:text-gray-300 transition-colors z-10"
+            >
+              <ChevronLeft className="w-12 h-12" />
+            </button>
+          )}
+
+          {/* Image Container */}
+          <div 
+            className="max-w-5xl max-h-[90vh] p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <picture>
+              <source 
+                srcSet={`${getImageUrl('wholesale-suppliers', lightboxImages[lightboxIndex]?.optimized?.avif_600)} 600w`}
+                type="image/avif"
+              />
+              <source 
+                srcSet={`${getImageUrl('wholesale-suppliers', lightboxImages[lightboxIndex]?.optimized?.webp_600)} 600w`}
+                type="image/webp"
+              />
+              <img
+                src={getImageUrl('wholesale-suppliers', lightboxImages[lightboxIndex]?.optimized?.jpg_600 || lightboxImages[lightboxIndex]?.filename)}
+                alt={lightboxImages[lightboxIndex]?.altText || 'Product image'}
+                className="max-w-full max-h-[85vh] object-contain rounded-lg"
+              />
+            </picture>
+            
+            {/* Image Counter */}
+            <div className="text-center text-white mt-4">
+              <p className="text-sm">
+                {lightboxIndex + 1} / {lightboxImages.length}
+              </p>
+              {lightboxImages[lightboxIndex]?.altText && (
+                <p className="text-sm text-gray-300 mt-2">
+                  {lightboxImages[lightboxIndex].altText}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Next Button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                nextImage();
+              }}
+              className="absolute right-4 text-white hover:text-gray-300 transition-colors z-10"
+            >
+              <ChevronRight className="w-12 h-12" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

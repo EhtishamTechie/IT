@@ -358,6 +358,29 @@ const uploadWholesaleSupplierImage = multer({
   }
 }).single('profileImage');
 
+// Wholesale supplier product images upload middleware (multiple images)
+const uploadWholesaleSupplierProductImages = multer({
+  storage: wholesaleSupplierStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit per file
+    files: 10 // Allow up to 10 product images
+  }
+}).array('productImages', 10);
+
+// Wholesale supplier ALL images upload middleware (profile + product images)
+const uploadWholesaleSupplierAllImages = multer({
+  storage: wholesaleSupplierStorage,
+  fileFilter: imageFileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit per file
+    files: 11 // 1 profile image + 10 product images
+  }
+}).fields([
+  { name: 'profileImage', maxCount: 1 },
+  { name: 'productImages', maxCount: 10 }
+]);
+
 module.exports = {
   uploadVendorLogo,
   uploadProductImages,
@@ -366,6 +389,8 @@ module.exports = {
   uploadProductMedia,  // New enhanced upload for images + video
   uploadBannerImage,
   uploadWholesaleSupplierImage,
+  uploadWholesaleSupplierProductImages,
+  uploadWholesaleSupplierAllImages,
   applyWatermarkToUploads,
   handleUploadError,
   deleteUploadedFile,

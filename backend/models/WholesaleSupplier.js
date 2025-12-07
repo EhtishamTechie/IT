@@ -20,6 +20,28 @@ const wholesaleSupplierSchema = new mongoose.Schema({
     default: null,
     trim: true
   },
+  productImages: [{
+    filename: {
+      type: String,
+      required: true
+    },
+    originalName: {
+      type: String
+    },
+    optimized: {
+      avif_300: String,
+      avif_600: String,
+      webp_300: String,
+      webp_600: String,
+      jpg_300: String,
+      jpg_600: String
+    },
+    altText: String,
+    displayOrder: {
+      type: Number,
+      default: 0
+    }
+  }],
   contactNumber: {
     type: String,
     required: true,

@@ -7,10 +7,12 @@ const {
   addSupplier,
   updateSupplier,
   deleteSupplier,
-  toggleSupplierStatus
+  toggleSupplierStatus,
+  deleteProductImage,
+  reorderProductImages
 } = require('../controllers/wholesaleController');
 const authAdmin = require('../middleware/authAdmin');
-const { uploadWholesaleSupplierImage, handleUploadError } = require('../middleware/uploadMiddleware');
+const { uploadWholesaleSupplierImage, uploadWholesaleSupplierProductImages, uploadWholesaleSupplierAllImages, handleUploadError } = require('../middleware/uploadMiddleware');
 
 // Public routes
 router.get('/suppliers', getWholesaleSuppliers);
@@ -18,9 +20,11 @@ router.get('/suppliers/category/:categoryName', getSuppliersByCategory);
 
 // Admin routes
 router.get('/admin/suppliers', authAdmin, getAllSuppliersAdmin);
-router.post('/admin/suppliers', authAdmin, uploadWholesaleSupplierImage, handleUploadError, addSupplier);
-router.put('/admin/suppliers/:id', authAdmin, uploadWholesaleSupplierImage, handleUploadError, updateSupplier);
+router.post('/admin/suppliers', authAdmin, uploadWholesaleSupplierAllImages, handleUploadError, addSupplier);
+router.put('/admin/suppliers/:id', authAdmin, uploadWholesaleSupplierAllImages, handleUploadError, updateSupplier);
 router.delete('/admin/suppliers/:id', authAdmin, deleteSupplier);
 router.patch('/admin/suppliers/:id/toggle-status', authAdmin, toggleSupplierStatus);
+router.delete('/admin/suppliers/:id/images/:imageId', authAdmin, deleteProductImage);
+router.patch('/admin/suppliers/:id/images/reorder', authAdmin, reorderProductImages);
 
 module.exports = router;
