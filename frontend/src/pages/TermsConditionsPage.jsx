@@ -46,7 +46,7 @@ const TermsConditionsPage = () => {
               <h2 className="text-3xl font-bold text-gray-900 mb-6 border-l-4 border-orange-500 pl-4">Agreement to Terms</h2>
               <div className="prose prose-lg text-gray-700 leading-relaxed">
                 <p className="mb-4">
-                  Welcome to International Tijarat. These Terms and Conditions ("Terms", "Terms and Conditions") govern your relationship with the International Tijarat website and e-commerce platform ("Service") operated by International Tijarat ("us", "we", or "our").
+                  Welcome to International Tijarat. These Terms and Conditions govern your relationship with the International Tijarat website and e-commerce platform operated by International Tijarat.
                 </p>
                 <p className="mb-4">
                   By accessing and using our Service, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service.

@@ -46,7 +46,7 @@ const PrivacyPolicyPage = () => {
               <h2 className="text-3xl font-bold text-gray-900 mb-6 border-l-4 border-orange-500 pl-4">Introduction</h2>
               <div className="prose prose-lg text-gray-700 leading-relaxed">
                 <p className="mb-4">
-                  Welcome to International Tijarat ("we," "our," or "us"). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our e-commerce platform.
+                  Welcome to International Tijarat. We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our e-commerce platform.
                 </p>
                 <p className="mb-4">
                   By using our platform, you consent to the data practices described in this policy. If you do not agree with the practices described in this policy, please do not use our services.
