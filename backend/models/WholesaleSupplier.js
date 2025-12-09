@@ -77,6 +77,10 @@ const wholesaleSupplierSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  description: {
+    type: String,
+    trim: true
+  },
   isActive: {
     type: Boolean,
     default: true

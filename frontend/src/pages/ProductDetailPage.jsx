@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { Phone, Mail, MapPin, Package, MessageCircle } from 'lucide-react';
 import ProductService from "../services/productService";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
@@ -51,6 +52,7 @@ const ProductDetailPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
+  const [activeTab, setActiveTab] = useState('retail'); // 'retail' or 'wholesale'
   
   // Use cart and auth contexts
   const { addToCart, isInCart, getCartItem } = useCart();
@@ -118,6 +120,19 @@ const ProductDetailPage = () => {
         
         if (productData && productData._id) {
           setProduct(productData);
+          
+          console.log('🔍 [PRODUCT DEBUG] Product data:', {
+            title: productData.title,
+            description: productData.description,
+            category: productData.category,
+            mainCategory: productData.mainCategory,
+            subCategory: productData.subCategory,
+            wholesaleAvailable: productData.wholesaleAvailable,
+            hasContact: !!productData.wholesaleContact,
+            contactData: productData.wholesaleContact,
+            hasPricing: productData.wholesalePricing?.length || 0,
+            pricingData: productData.wholesalePricing
+          });
           
           // SEO-optimized title using product's SEO data
           const seoTitle = productData.seo?.title || productData.metaTitle || productData.title;
@@ -479,29 +494,354 @@ const ProductDetailPage = () => {
 
         {/* Product Details */}
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="flex flex-col space-y-6 lg:space-y-0 lg:flex-row">
-            
-            {/* Product Media Gallery - Mobile: Full width with proper spacing */}
+          <div className="flex flex-col lg:flex-row">
+            {/* Product Media Gallery - Always visible */}
             <div className="w-full lg:w-1/2 p-4 lg:p-6 lg:border-r border-gray-200">
-              <ProductGallery product={product} className="h-80 lg:h-96" />
+              <ProductGallery product={product} className="h-48 lg:h-64" />
             </div>
 
-            {/* Product Information - Mobile: Full width with clear separation */}
+            {/* Product Information with Tabs */}
             <div className="w-full lg:w-1/2 p-6 lg:p-6">
-              <ProductInfo 
-                product={product}
-                discountedPrice={discountedPrice}
-                quantity={quantity}
-                selectedSize={selectedSize}
-                setSelectedSize={setSelectedSize}
-                handleQuantityDecrease={handleQuantityDecrease}
-                handleQuantityChange={handleQuantityChange}
-                handleQuantityIncrease={handleQuantityIncrease}
-                handleAddToCart={handleAddToCart}
-                handleBuyNow={handleBuyNow}
-                isAddingToCart={isAddingToCart}
-                extractCategoryNames={extractCategoryNames}
-              />
+              {/* Tabs - Only show if product has wholesale */}
+              {product?.wholesaleAvailable && (
+                <div className="border-b border-gray-200 mb-6">
+                  <div className="flex">
+                    <button
+                      onClick={() => setActiveTab('retail')}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        activeTab === 'retail'
+                          ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Retail Purchase
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('wholesale')}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        activeTab === 'wholesale'
+                          ? 'text-orange-600 border-b-2 border-orange-600 bg-orange-50'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="flex items-center justify-center gap-2">
+                        <Package className="w-4 h-4" />
+                        Wholesale / Bulk Order
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Retail Tab Content - Show if retail tab is active OR if product doesn't have wholesale */}
+              {(activeTab === 'retail' || !product?.wholesaleAvailable) && (
+                <div className="space-y-4">
+                  {/* Product Title */}
+                  <div>
+                    <h1 className="text-xl lg:text-2xl font-bold text-gray-900 leading-tight break-words" itemProp="name">
+                      {product?.title || 'Product'}
+                    </h1>
+                  </div>
+
+                  {/* Price */}
+                  <div>
+                    <span className="text-2xl lg:text-3xl font-bold text-orange-600">
+                      PKR {(discountedPrice || 0).toFixed(2)}
+                    </span>
+                    {product && product.discount > 0 && (
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-base text-gray-500 line-through">
+                          PKR {(product.price || 0).toFixed(2)}
+                        </span>
+                        <span className="bg-red-500 text-white px-2 py-0.5 rounded-full text-xs font-medium">
+                          {product.discount}% OFF
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stock Status */}
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${product && product.stock > 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className={`text-sm font-medium ${product && product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {product && product.stock > 0 ? 'In Stock' : 'Out of Stock'}
+                    </span>
+                  </div>
+
+                  {/* Size Selection */}
+                  {product?.hasSizes && product?.availableSizes && product.availableSizes.length > 0 && (
+                    <div>
+                      <label className="text-sm font-semibold mb-2 block">Select Size:</label>
+                      <div className="flex flex-wrap gap-2">
+                        {product.availableSizes.map((size) => {
+                          const sizeStockInfo = product.sizeStock?.find(s => s.size === size);
+                          const sizeStock = sizeStockInfo?.stock || 0;
+                          const isOutOfStock = sizeStock === 0;
+                          
+                          return (
+                            <button
+                              key={size}
+                              onClick={() => !isOutOfStock && setSelectedSize(size)}
+                              disabled={isOutOfStock}
+                              className={`px-4 py-2 border-2 rounded-lg text-sm font-medium transition-all ${
+                                selectedSize === size
+                                  ? 'border-orange-500 bg-orange-50 text-orange-600'
+                                  : isOutOfStock
+                                    ? 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed line-through'
+                                    : 'border-gray-300 hover:border-orange-400 text-gray-700'
+                              }`}
+                            >
+                              {size}
+                              {isOutOfStock && <span className="ml-1 text-xs">(Out)</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {selectedSize && (
+                        <p className="text-sm text-gray-600 mt-2">
+                          Stock available: {product.sizeStock?.find(s => s.size === selectedSize)?.stock || 0} units
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Quantity and Action Buttons */}
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm font-semibold">Quantity:</label>
+                      <div className="flex items-center border-2 border-gray-300 rounded-lg">
+                        <button
+                          onClick={handleQuantityDecrease}
+                          className="px-3 py-1 text-lg font-bold hover:bg-gray-100 transition-colors"
+                          disabled={quantity <= 1}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          value={quantity}
+                          onChange={handleQuantityChange}
+                          className="w-14 py-1 text-center border-0 focus:ring-0 text-base font-semibold"
+                          min="1"
+                          max={product?.stock || 999}
+                        />
+                        <button
+                          onClick={handleQuantityIncrease}
+                          className={`px-3 py-1 text-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                            (product?.stock || 0) === 0 
+                            ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                            : quantity >= (product?.stock || 0)
+                              ? 'bg-orange-100 text-orange-600 hover:bg-orange-200'
+                              : 'hover:bg-gray-100'
+                        }`}
+                          disabled={(product?.stock || 0) === 0}
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddToCart}
+                        disabled={(product?.stock || 0) === 0 || isAddingToCart}
+                        className={`flex-1 py-2.5 rounded-lg font-semibold text-base transition-colors ${
+                          (product?.stock || 0) === 0
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-orange-500 text-white hover:bg-orange-600'
+                        }`}
+                      >
+                        {isAddingToCart ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                            <span>Adding...</span>
+                          </div>
+                        ) : (product?.stock || 0) === 0 ? (
+                          'Out of Stock'
+                        ) : (
+                          'Add to Cart'
+                        )}
+                      </button>
+                      
+                      <button
+                        onClick={handleBuyNow}
+                        disabled={(product?.stock || 0) === 0}
+                        className={`flex-1 py-2.5 rounded-lg font-semibold text-base transition-colors ${
+                          (product?.stock || 0) === 0
+                            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        {(product?.stock || 0) === 0 ? 'Out of Stock' : 'Buy Now'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Product Description */}
+                  {product?.description && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <h3 className="text-base font-semibold text-gray-900 mb-2">Description</h3>
+                      <ul className="list-disc list-inside space-y-1.5 text-gray-700 text-xs leading-relaxed">
+                        {product.description.split(/\.(?=\s+[A-Z])|\.(?=\s*$)/).filter(sentence => sentence.trim()).map((sentence, index) => (
+                          <li key={index} className="ml-2">{sentence.trim()}{sentence.trim() && !sentence.trim().endsWith('.') ? '.' : ''}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Categories */}
+                  {(product?.category?.name || product?.mainCategory?.name || product?.subCategory?.name) && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <h3 className="text-base font-semibold text-gray-900 mb-2">Categories</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {product?.mainCategory?.name && (
+                          <button
+                            onClick={() => navigate(`/shop?mainCategory=${product.mainCategory._id || product.mainCategory}`)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors text-xs font-medium"
+                          >
+                            {product.mainCategory.name}
+                          </button>
+                        )}
+                        {product?.subCategory?.name && (
+                          <button
+                            onClick={() => navigate(`/shop?subCategory=${product.subCategory._id || product.subCategory}`)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors text-xs font-medium"
+                          >
+                            {product.subCategory.name}
+                          </button>
+                        )}
+                        {product?.category?.name && (
+                          <button
+                            onClick={() => navigate(`/shop?category=${product.category._id || product.category}`)}
+                            className="px-3 py-1.5 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 transition-colors text-xs font-medium"
+                          >
+                            {product.category.name}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Sold By */}
+                  {product?.vendor?.businessName && (
+                    <div className="pt-4 border-t border-gray-200">
+                      <h3 className="text-base font-semibold text-gray-900 mb-2">Sold by</h3>
+                      <p className="text-orange-600 font-medium text-sm">{product.vendor.businessName}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Wholesale Tab Content */}
+              {activeTab === 'wholesale' && product?.wholesaleAvailable && (
+                <div className="space-y-6">
+                  {/* Wholesale Badge */}
+                  <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                    <Package className="w-4 h-4 mr-1" />
+                    Wholesale Available
+                  </div>
+
+                  {/* Supplier Information */}
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Supplier Information</h3>
+                    
+                    {product.wholesaleContact?.supplierName && (
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-600">Supplier</p>
+                        <p className="text-base font-medium text-gray-900">{product.wholesaleContact.supplierName}</p>
+                      </div>
+                    )}
+
+                    {product.wholesaleContact?.minimumOrderQuantity && (
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-600">Minimum Order</p>
+                        <p className="text-base font-medium text-gray-900">{product.wholesaleContact.minimumOrderQuantity}</p>
+                      </div>
+                    )}
+
+                    {product.wholesaleContact?.deliveryAreas && product.wholesaleContact.deliveryAreas.length > 0 && (
+                      <div className="mb-3">
+                        <p className="text-sm text-gray-600 mb-1">Delivery Areas</p>
+                        <div className="flex flex-wrap gap-2">
+                          {product.wholesaleContact.deliveryAreas.map((area, index) => (
+                            <span key={index} className="inline-flex items-center px-2 py-1 bg-white text-gray-700 text-xs rounded border border-gray-300">
+                              <MapPin className="w-3 h-3 mr-1" />
+                              {area}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Wholesale Pricing Table */}
+                  {product.wholesalePricing && product.wholesalePricing.length > 0 ? (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4">Bulk Pricing</h3>
+                      <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                          <thead>
+                            <tr className="bg-gray-100">
+                              <th className="px-4 py-3 text-left text-sm font-medium text-gray-700 border">Quantity Range</th>
+                              <th className="px-4 py-3 text-right text-sm font-medium text-gray-700 border">Price Per Unit</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {product.wholesalePricing.map((range, index) => (
+                              <tr key={index} className="hover:bg-gray-50">
+                                <td className="px-4 py-3 text-sm text-gray-900 border">
+                                  {range.minQuantity} - {range.maxQuantity} units
+                                </td>
+                                <td className="px-4 py-3 text-sm font-semibold text-green-600 border text-right">
+                                  ₨{range.pricePerUnit.toLocaleString()}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-3">
+                        * Prices are per unit. Total cost = Quantity × Price per unit
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <p className="text-sm text-blue-800">
+                        <strong>Contact for Pricing</strong> - Get custom quotes based on your order quantity
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Contact Buttons */}
+                  <div className="flex gap-3">
+                    {product.wholesaleContact?.whatsappNumber && (
+                      <button
+                        onClick={() => {
+                          const message = `Hi! I'm interested in wholesale purchase of "${product.title}". Please share details about bulk pricing and availability.`;
+                          window.open(`https://wa.me/${product.wholesaleContact.whatsappNumber}?text=${encodeURIComponent(message)}`, '_blank');
+                        }}
+                        className="flex-1 bg-green-500 hover:bg-green-600 text-white px-4 py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                      >
+                        <MessageCircle className="w-5 h-5" />
+                        <span className="font-medium">WhatsApp</span>
+                      </button>
+                    )}
+                    
+                    {product.wholesaleContact?.contactNumber && (
+                      <button
+                        onClick={() => window.open(`tel:${product.wholesaleContact.contactNumber}`, '_self')}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2.5 rounded-lg transition-colors shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                      >
+                        <Phone className="w-5 h-5" />
+                        <span className="font-medium">Call</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

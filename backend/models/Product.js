@@ -198,6 +198,55 @@ const productSchema = new mongoose.Schema({
     type: Number,
     default: 10
   },
+  // Wholesale functionality
+  wholesaleAvailable: {
+    type: Boolean,
+    default: false
+  },
+  wholesaleContact: {
+    supplierName: {
+      type: String,
+      trim: true
+    },
+    whatsappNumber: {
+      type: String,
+      trim: true
+    },
+    contactNumber: {
+      type: String,
+      trim: true
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true
+    },
+    minimumOrderQuantity: {
+      type: String,
+      trim: true
+    },
+    deliveryAreas: [{
+      type: String,
+      trim: true
+    }]
+  },
+  wholesalePricing: [{
+    minQuantity: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    maxQuantity: {
+      type: Number,
+      required: true,
+      min: 1
+    },
+    pricePerUnit: {
+      type: Number,
+      required: true,
+      min: 0
+    }
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -290,6 +339,8 @@ productSchema.index({ createdAt: -1 });
 productSchema.index({ slug: 1 });
 productSchema.index({ seoKeywords: 1 });
 productSchema.index({ 'title': 'text', 'description': 'text', 'metaTitle': 'text', 'metaDescription': 'text' });
+// Wholesale Index
+productSchema.index({ wholesaleAvailable: 1, isActive: 1 });
 
 // Update timestamp on save
 productSchema.pre('save', function(next) {

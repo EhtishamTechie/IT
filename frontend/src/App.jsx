@@ -87,6 +87,8 @@ const PropertyDetailPage = lazy(() => import('./pages/PropertyDetailPage'));
 
 // Wholesale Pages
 const ContactWholeseller = lazy(() => import('./pages/ContactWholeseller'));
+const WholesaleProducts = lazy(() => import('./pages/WholesaleProducts'));
+const WholesaleSupplierDetail = lazy(() => import('./pages/WholesaleSupplierDetail'));
 
 // Admin Pages - Lazy load to avoid loading in main bundle
 const AdminPage = lazy(() => import('./pages/Admin/AdminPage'));
@@ -243,6 +245,8 @@ const AppContent = () => {
           
           {/* Wholesale Routes */}
           <Route path="/contact-wholeseller" element={<ContactWholeseller />} />
+          <Route path="/wholesale" element={<WholesaleProducts />} />
+          <Route path="/wholesale/:supplierId" element={<WholesaleSupplierDetail />} />
           
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLoginPage />} />

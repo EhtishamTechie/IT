@@ -531,6 +531,57 @@ router.put('/:id',
       }
     }
 
+    // Parse wholesale fields
+    let parsedWholesaleContact = undefined;
+    let parsedWholesalePricing = undefined;
+    const wholesaleAvailable = req.body.wholesaleAvailable;
+    
+    if (wholesaleAvailable !== undefined) {
+      console.log('🔄 [ADMIN] Processing wholesale fields...');
+      
+      if (wholesaleAvailable === true || wholesaleAvailable === 'true') {
+        // Parse wholesaleContact
+        if (req.body.wholesaleContact) {
+          try {
+            parsedWholesaleContact = typeof req.body.wholesaleContact === 'string'
+              ? JSON.parse(req.body.wholesaleContact)
+              : req.body.wholesaleContact;
+            console.log('✅ [ADMIN] Parsed wholesale contact:', parsedWholesaleContact);
+          } catch (e) {
+            console.error('❌ [ADMIN] Failed to parse wholesaleContact:', e.message);
+            parsedWholesaleContact = {};
+          }
+        }
+        
+        // Parse wholesalePricing
+        if (req.body.wholesalePricing) {
+          try {
+            let pricing = req.body.wholesalePricing;
+            console.log('🔄 [ADMIN] Raw pricing type:', typeof pricing);
+            
+            if (typeof pricing === 'string') {
+              pricing = JSON.parse(pricing);
+              console.log('🔄 [ADMIN] Parsed pricing array:', pricing);
+            }
+            
+            if (Array.isArray(pricing)) {
+              parsedWholesalePricing = pricing.map(range => ({
+                minQuantity: Number(range.minQuantity),
+                maxQuantity: Number(range.maxQuantity),
+                pricePerUnit: Number(range.pricePerUnit)
+              }));
+              console.log('✅ [ADMIN] Final pricing with numbers:', parsedWholesalePricing);
+            } else {
+              parsedWholesalePricing = [];
+            }
+          } catch (e) {
+            console.error('❌ [ADMIN] Failed to parse wholesalePricing:', e.message);
+            parsedWholesalePricing = [];
+          }
+        }
+      }
+    }
+
     // Prepare update data
     const updateData = {
       ...req.body,
@@ -545,6 +596,17 @@ router.put('/:id',
       updateData.availableSizes = parsedAvailableSizes;
       if (parsedSizeStock !== undefined) {
         updateData.sizeStock = parsedSizeStock;
+      }
+    }
+
+    // Add wholesale fields if present
+    if (wholesaleAvailable !== undefined) {
+      updateData.wholesaleAvailable = wholesaleAvailable === true || wholesaleAvailable === 'true';
+      if (parsedWholesaleContact !== undefined) {
+        updateData.wholesaleContact = parsedWholesaleContact;
+      }
+      if (parsedWholesalePricing !== undefined) {
+        updateData.wholesalePricing = parsedWholesalePricing;
       }
     }
 

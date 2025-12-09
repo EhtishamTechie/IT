@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   getWholesaleSuppliers,
   getSuppliersByCategory,
+  getSupplierById,
   getAllSuppliersAdmin,
   addSupplier,
   updateSupplier,
@@ -17,6 +18,7 @@ const { uploadWholesaleSupplierImage, uploadWholesaleSupplierProductImages, uplo
 // Public routes
 router.get('/suppliers', getWholesaleSuppliers);
 router.get('/suppliers/category/:categoryName', getSuppliersByCategory);
+router.get('/supplier/:id', getSupplierById);
 
 // Admin routes
 router.get('/admin/suppliers', authAdmin, getAllSuppliersAdmin);

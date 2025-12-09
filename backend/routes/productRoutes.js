@@ -16,6 +16,7 @@ const {
   searchProducts,
   getFeaturedProducts,
   getPremiumProducts,
+  getWholesaleProducts,
   getTrendingProducts,
   getNewArrivals,
   getProductsByMainCategory,
@@ -102,6 +103,7 @@ router.get('/all', cacheService.middleware(PRODUCT_LIST_CACHE), getAllProducts);
 router.get('/search', searchProducts); // Don't cache search results
 router.get('/featured', cacheService.middleware(PRODUCT_LIST_CACHE), getFeaturedProducts);
 router.get('/premium', cacheService.middleware(PRODUCT_LIST_CACHE), getPremiumProducts); // New premium products endpoint
+router.get('/wholesale', cacheService.middleware(PRODUCT_LIST_CACHE), getWholesaleProducts); // Wholesale products endpoint
 router.get('/trending', cacheService.middleware(PRODUCT_LIST_CACHE), getTrendingProducts);
 router.get('/new-arrivals', cacheService.middleware(PRODUCT_LIST_CACHE), getNewArrivals);
 router.get('/categories', cacheService.middleware(CATEGORY_CACHE), getCategories);

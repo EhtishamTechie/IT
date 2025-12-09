@@ -77,6 +77,37 @@ const getSuppliersByCategory = async (req, res) => {
   }
 };
 
+// Get single supplier by ID (Public)
+const getSupplierById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const supplier = await WholesaleSupplier.findOne({ 
+      _id: id,
+      isActive: true 
+    }).lean();
+
+    if (!supplier) {
+      return res.status(404).json({
+        success: false,
+        message: 'Supplier not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: supplier
+    });
+
+  } catch (error) {
+    console.error('Error fetching supplier details:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch supplier details'
+    });
+  }
+};
+
 // Admin: Get all suppliers (including inactive) with pagination
 const getAllSuppliersAdmin = async (req, res) => {
   try {
@@ -608,6 +639,7 @@ const reorderProductImages = async (req, res) => {
 module.exports = {
   getWholesaleSuppliers,
   getSuppliersByCategory,
+  getSupplierById,
   getAllSuppliersAdmin,
   addSupplier,
   updateSupplier,

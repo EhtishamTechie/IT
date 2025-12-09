@@ -17,7 +17,8 @@ import {
   FileText,
   Hash,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Store
 } from 'lucide-react';
 import axios from 'axios';
 import { getApiUrl, config } from '../../config';
@@ -76,7 +77,18 @@ const ProductManagement = () => {
     // Size fields
     hasSizes: false,
     availableSizes: [],
-    sizeStock: {} // {XS: 10, S: 20, M: 15, ...}
+    sizeStock: {}, // {XS: 10, S: 20, M: 15, ...}
+    // Wholesale fields
+    wholesaleAvailable: false,
+    wholesaleContact: {
+      supplierName: '',
+      whatsappNumber: '',
+      contactNumber: '',
+      email: '',
+      minimumOrderQuantity: '',
+      deliveryAreas: []
+    },
+    wholesalePricing: []
   });
 
   // Create mappings for category IDs to names and vice versa
@@ -340,6 +352,21 @@ const ProductManagement = () => {
         submitData.append('sizeStock', JSON.stringify(formData.sizeStock));
       }
       
+      // Add wholesale fields
+      submitData.append('wholesaleAvailable', formData.wholesaleAvailable);
+      if (formData.wholesaleAvailable) {
+        submitData.append('wholesaleContact', JSON.stringify(formData.wholesaleContact));
+        if (formData.wholesalePricing && formData.wholesalePricing.length > 0) {
+          // Filter out incomplete ranges
+          const validPricing = formData.wholesalePricing.filter(range => 
+            range.minQuantity && range.maxQuantity && range.pricePerUnit
+          );
+          if (validPricing.length > 0) {
+            submitData.append('wholesalePricing', JSON.stringify(validPricing));
+          }
+        }
+      }
+      
       // Send categories as arrays with proper IDs
       if (formData.mainCategory) {
         submitData.append('mainCategory', formData.mainCategory);
@@ -592,7 +619,18 @@ const ProductManagement = () => {
         // Size fields
         hasSizes: product.hasSizes || false,
         availableSizes: Array.isArray(product.availableSizes) ? product.availableSizes : [],
-        sizeStock: product.sizeStock || {}
+        sizeStock: product.sizeStock || {},
+        // Wholesale fields
+        wholesaleAvailable: product.wholesaleAvailable || false,
+        wholesaleContact: product.wholesaleContact || {
+          supplierName: '',
+          whatsappNumber: '',
+          contactNumber: '',
+          email: '',
+          minimumOrderQuantity: '',
+          deliveryAreas: []
+        },
+        wholesalePricing: Array.isArray(product.wholesalePricing) ? product.wholesalePricing : []
       });
 
       // Show the form
@@ -631,7 +669,18 @@ const ProductManagement = () => {
       // Size fields
       hasSizes: false,
       availableSizes: [],
-      sizeStock: {}
+      sizeStock: {},
+      // Wholesale fields
+      wholesaleAvailable: false,
+      wholesaleContact: {
+        supplierName: '',
+        whatsappNumber: '',
+        contactNumber: '',
+        email: '',
+        minimumOrderQuantity: '',
+        deliveryAreas: []
+      },
+      wholesalePricing: []
     });
     setEditingProduct(null);
     setShowAddForm(false);
@@ -1592,6 +1641,253 @@ const ProductManagement = () => {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Wholesale Section */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-lg border border-green-200">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <Store className="w-5 h-5 mr-2 text-green-600" />
+                    Wholesale Options
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">B2B</span>
+                  </h3>
+                  
+                  {/* Enable Wholesale Checkbox */}
+                  <div className="mb-6">
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.wholesaleAvailable}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          wholesaleAvailable: e.target.checked
+                        }))}
+                        className="w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                      />
+                      <span className="text-sm font-medium text-gray-900">
+                        Enable wholesale for this product
+                      </span>
+                    </label>
+                    <p className="text-xs text-gray-500 mt-2 ml-8">
+                      When enabled, this product will appear in the wholesale section with bulk pricing options
+                    </p>
+                  </div>
+
+                  {/* Wholesale Contact Information */}
+                  {formData.wholesaleAvailable && (
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Supplier Name *
+                          </label>
+                          <input
+                            type="text"
+                            required={formData.wholesaleAvailable}
+                            value={formData.wholesaleContact.supplierName}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              wholesaleContact: { ...prev.wholesaleContact, supplierName: e.target.value }
+                            }))}
+                            placeholder="Your Business Name"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            WhatsApp Number * (with country code)
+                          </label>
+                          <input
+                            type="text"
+                            required={formData.wholesaleAvailable}
+                            value={formData.wholesaleContact.whatsappNumber}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              wholesaleContact: { ...prev.wholesaleContact, whatsappNumber: e.target.value }
+                            }))}
+                            placeholder="923001234567"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Contact Number
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.wholesaleContact.contactNumber}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              wholesaleContact: { ...prev.wholesaleContact, contactNumber: e.target.value }
+                            }))}
+                            placeholder="+92 300 1234567"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            value={formData.wholesaleContact.email}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              wholesaleContact: { ...prev.wholesaleContact, email: e.target.value }
+                            }))}
+                            placeholder="supplier@business.com"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Minimum Order Quantity
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.wholesaleContact.minimumOrderQuantity}
+                            onChange={(e) => setFormData(prev => ({
+                              ...prev,
+                              wholesaleContact: { ...prev.wholesaleContact, minimumOrderQuantity: e.target.value }
+                            }))}
+                            placeholder="e.g., 10 units, 1 carton"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Delivery Areas (comma-separated)
+                          </label>
+                          <input
+                            type="text"
+                            value={
+                              formData.wholesaleContact.deliveryAreasInput !== undefined
+                                ? formData.wholesaleContact.deliveryAreasInput
+                                : Array.isArray(formData.wholesaleContact.deliveryAreas) 
+                                  ? formData.wholesaleContact.deliveryAreas.join(', ') 
+                                  : ''
+                            }
+                            onChange={(e) => {
+                              const inputValue = e.target.value;
+                              // Store raw string for better typing experience
+                              setFormData(prev => ({
+                                ...prev,
+                                wholesaleContact: { 
+                                  ...prev.wholesaleContact, 
+                                  deliveryAreasInput: inputValue,
+                                  deliveryAreas: inputValue.split(',').map(area => area.trim()).filter(area => area.length > 0)
+                                }
+                              }));
+                            }}
+                            placeholder="Karachi, Lahore, Islamabad"
+                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                          />
+                          <p className="text-xs text-gray-500 mt-1">
+                            Type city names separated by commas (e.g., Karachi, Lahore, Islamabad)
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Wholesale Pricing Ranges */}
+                      <div className="mt-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900">Bulk Pricing (Optional)</h4>
+                            <p className="text-xs text-gray-500 mt-1">Define price ranges for different quantities. Leave empty to show only contact details.</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setFormData(prev => ({
+                              ...prev,
+                              wholesalePricing: [...prev.wholesalePricing, { minQuantity: '', maxQuantity: '', pricePerUnit: '' }]
+                            }))}
+                            className="px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add Range
+                          </button>
+                        </div>
+
+                        {formData.wholesalePricing.length > 0 && (
+                          <div className="space-y-3">
+                            {formData.wholesalePricing.map((range, index) => (
+                              <div key={index} className="grid grid-cols-1 md:grid-cols-4 gap-3 p-4 bg-white border border-gray-200 rounded-lg">
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Min Quantity
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={range.minQuantity}
+                                    onChange={(e) => {
+                                      const newPricing = [...formData.wholesalePricing];
+                                      newPricing[index].minQuantity = e.target.value;
+                                      setFormData(prev => ({ ...prev, wholesalePricing: newPricing }));
+                                    }}
+                                    placeholder="10"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Max Quantity
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    value={range.maxQuantity}
+                                    onChange={(e) => {
+                                      const newPricing = [...formData.wholesalePricing];
+                                      newPricing[index].maxQuantity = e.target.value;
+                                      setFormData(prev => ({ ...prev, wholesalePricing: newPricing }));
+                                    }}
+                                    placeholder="50"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                                    Price Per Unit (₨)
+                                  </label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={range.pricePerUnit}
+                                    onChange={(e) => {
+                                      const newPricing = [...formData.wholesalePricing];
+                                      newPricing[index].pricePerUnit = e.target.value;
+                                      setFormData(prev => ({ ...prev, wholesalePricing: newPricing }));
+                                    }}
+                                    placeholder="1000"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                  />
+                                </div>
+                                <div className="flex items-end">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const newPricing = formData.wholesalePricing.filter((_, i) => i !== index);
+                                      setFormData(prev => ({ ...prev, wholesalePricing: newPricing }));
+                                    }}
+                                    className="w-full px-3 py-2 bg-red-500 text-white text-sm rounded hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                    Remove
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Form Actions */}

@@ -462,7 +462,7 @@ const getProductById = async (req, res) => {
     if (isValidObjectId) {
       // ⚡ OPTIMIZED: Try database lookup with field selection
       product = await Product.findById(productId)
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name')
         .populate('subCategory', 'name')
@@ -515,7 +515,7 @@ const getProduct = async (req, res) => {
     if (isValidObjectId) {
       // ⚡ OPTIMIZED: Try by ID first with field selection
       product = await Product.findById(identifier)
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
@@ -526,7 +526,7 @@ const getProduct = async (req, res) => {
     } else {
       // ⚡ OPTIMIZED: Try by slug with field selection
       product = await Product.findOne({ slug: identifier })
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
@@ -760,6 +760,45 @@ const addProduct = async (req, res) => {
       productData.sizeStock = parsedSizeStock || {};
     }
 
+    // Add wholesale fields if enabled
+    const wholesaleAvailable = req.body.wholesaleAvailable;
+    if (wholesaleAvailable === true || wholesaleAvailable === 'true') {
+      productData.wholesaleAvailable = true;
+      
+      // Parse wholesaleContact
+      if (req.body.wholesaleContact) {
+        try {
+          const contact = typeof req.body.wholesaleContact === 'string' 
+            ? JSON.parse(req.body.wholesaleContact) 
+            : req.body.wholesaleContact;
+          productData.wholesaleContact = contact;
+          console.log('➕ [PRODUCT CREATE] Added wholesale contact');
+        } catch (e) {
+          console.warn('➕ [PRODUCT CREATE] Failed to parse wholesaleContact:', e.message);
+        }
+      }
+      
+      // Parse wholesalePricing
+      if (req.body.wholesalePricing) {
+        try {
+          let pricing = typeof req.body.wholesalePricing === 'string'
+            ? JSON.parse(req.body.wholesalePricing)
+            : req.body.wholesalePricing;
+          // Convert string numbers to actual numbers
+          if (Array.isArray(pricing)) {
+            productData.wholesalePricing = pricing.map(range => ({
+              minQuantity: Number(range.minQuantity),
+              maxQuantity: Number(range.maxQuantity),
+              pricePerUnit: Number(range.pricePerUnit)
+            }));
+            console.log('➕ [PRODUCT CREATE] Added wholesale pricing ranges:', productData.wholesalePricing.length);
+          }
+        } catch (e) {
+          console.warn('➕ [PRODUCT CREATE] Failed to parse wholesalePricing:', e.message);
+        }
+      }
+    }
+
     // If this is a vendor request, assign the vendor to the product
     if (req.vendor) {
       productData.vendor = req.vendor.id;
@@ -860,10 +899,61 @@ const addProduct = async (req, res) => {
 const updateProduct = async (req, res) => {
   try {
     const productId = req.params.id;
-    const updates = { ...req.body };
+    let updates = { ...req.body };
 
     console.log('🔄 [PRODUCT UPDATE] Starting product update for ID:', productId);
     console.log('🔄 [PRODUCT UPDATE] Raw updates received:', updates);
+
+    // ============= PARSE WHOLESALE FIELDS FIRST (BEFORE ANY OTHER PROCESSING) =============
+    // This must happen immediately to avoid Mongoose validation errors
+    if (updates.wholesaleAvailable !== undefined) {
+      console.log('🔄 [WHOLESALE] Processing wholesale fields...');
+      updates.wholesaleAvailable = updates.wholesaleAvailable === true || updates.wholesaleAvailable === 'true';
+      
+      if (updates.wholesaleAvailable) {
+        // Parse wholesaleContact
+        if (updates.wholesaleContact && typeof updates.wholesaleContact === 'string') {
+          try {
+            updates.wholesaleContact = JSON.parse(updates.wholesaleContact);
+            console.log('🔄 [WHOLESALE] Parsed contact:', updates.wholesaleContact);
+          } catch (e) {
+            console.error('❌ [WHOLESALE] Failed to parse contact:', e.message);
+            updates.wholesaleContact = {};
+          }
+        }
+        
+        // Parse wholesalePricing - MUST convert string to array BEFORE Mongoose sees it
+        if (updates.wholesalePricing) {
+          try {
+            let pricing = updates.wholesalePricing;
+            console.log('🔄 [WHOLESALE] Raw pricing type:', typeof pricing);
+            
+            if (typeof pricing === 'string') {
+              pricing = JSON.parse(pricing);
+              console.log('🔄 [WHOLESALE] Parsed pricing:', pricing);
+            }
+            
+            if (Array.isArray(pricing)) {
+              updates.wholesalePricing = pricing.map(range => ({
+                minQuantity: Number(range.minQuantity),
+                maxQuantity: Number(range.maxQuantity),
+                pricePerUnit: Number(range.pricePerUnit)
+              }));
+              console.log('✅ [WHOLESALE] Final pricing:', updates.wholesalePricing);
+            } else {
+              updates.wholesalePricing = [];
+            }
+          } catch (e) {
+            console.error('❌ [WHOLESALE] Failed to parse pricing:', e.message);
+            updates.wholesalePricing = [];
+          }
+        }
+      } else {
+        updates.wholesaleContact = {};
+        updates.wholesalePricing = [];
+      }
+    }
+    // ============= END WHOLESALE PARSING =============
 
     // Handle mainCategory - convert string to ObjectId by looking up Category
     if (updates.mainCategory !== undefined) {
@@ -1607,6 +1697,92 @@ const getPremiumProducts = async (req, res) => {
   }
 };
 
+// Get wholesale products
+const getWholesaleProducts = async (req, res) => {
+  try {
+    const { 
+      category,
+      mainCategory,
+      subCategory,
+      search,
+      minPrice,
+      maxPrice,
+      page = 1,
+      limit = 20,
+      sort = '-createdAt'
+    } = req.query;
+
+    // Build query
+    const query = {
+      wholesaleAvailable: true,
+      isActive: true,
+      isVisible: true
+    };
+
+    // Category filters
+    if (category) {
+      query.category = category;
+    }
+    if (mainCategory) {
+      query.mainCategory = mainCategory;
+    }
+    if (subCategory) {
+      query.subCategory = subCategory;
+    }
+
+    // Search filter
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+        { 'wholesaleContact.supplierName': { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Price filter
+    if (minPrice || maxPrice) {
+      query.price = {};
+      if (minPrice) query.price.$gte = Number(minPrice);
+      if (maxPrice) query.price.$lte = Number(maxPrice);
+    }
+
+    // Calculate pagination
+    const skip = (page - 1) * limit;
+
+    // Fetch products
+    const products = await Product.find(query)
+      .populate('category', 'name displayName')
+      .populate('mainCategory', 'name displayName')
+      .populate('subCategory', 'name displayName')
+      .sort(sort)
+      .skip(skip)
+      .limit(Number(limit))
+      .lean();
+
+    // Count total
+    const total = await Product.countDocuments(query);
+
+    res.json({
+      success: true,
+      products,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / limit),
+        limit: Number(limit)
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching wholesale products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch wholesale products',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
@@ -1616,6 +1792,7 @@ module.exports = {
   deleteProduct,
   getFeaturedProducts,
   getPremiumProducts, // Added premium products
+  getWholesaleProducts, // Added wholesale products
   searchProducts,
   getProductsByCategory,
   getCategories,
