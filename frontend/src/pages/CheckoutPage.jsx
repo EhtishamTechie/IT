@@ -53,24 +53,24 @@ const StepIndicator = ({ currentStep }) => {
   ];
 
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between">
+    <div className="overflow-x-auto pb-2">
+      <div className="flex items-center justify-between min-w-max lg:min-w-0">
         {steps.map((step, index) => (
           <div key={step.number} className="flex items-center">
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium ${
+            <div className={`flex items-center justify-center w-7 h-7 lg:w-8 lg:h-8 rounded-full text-xs lg:text-sm font-medium ${
               currentStep >= step.number 
                 ? 'bg-orange-500 text-white' 
                 : 'bg-gray-200 text-gray-600'
             }`}>
               {step.number}
             </div>
-            <span className={`ml-2 text-sm ${
+            <span className={`ml-1 lg:ml-2 text-xs lg:text-sm whitespace-nowrap ${
               currentStep >= step.number ? 'text-orange-600 font-medium' : 'text-gray-500'
             }`}>
               {step.title}
             </span>
             {index < steps.length - 1 && (
-              <div className={`w-12 h-px mx-4 ${
+              <div className={`w-8 lg:w-12 h-px mx-2 lg:mx-4 ${
                 currentStep > step.number ? 'bg-orange-500' : 'bg-gray-200'
               }`} />
             )}
@@ -129,6 +129,16 @@ const CheckoutPage = () => {
       const productData = buyNowItem.productData || {};
       const price = productData.price || 0;
       const quantity = buyNowItem.quantity || 1;
+      const shipping = productData.shipping || 0;
+      
+      console.log('💰 Buy Now Checkout Stats:', {
+        price,
+        quantity,
+        shipping,
+        totalPrice: price * quantity,
+        productData
+      });
+      
       return {
         totalPrice: price * quantity,
         totalItems: quantity,
@@ -154,6 +164,13 @@ const CheckoutPage = () => {
       try {
         const product = JSON.parse(buyNowData);
         console.log('✅ Found buy now item:', product);
+        console.log('🚚 Buy Now Item Shipping:', product.productData?.shipping);
+        
+        // Ensure shipping is properly parsed as a number
+        if (product.productData) {
+          product.productData.shipping = parseFloat(product.productData.shipping) || 0;
+          console.log('✅ Normalized shipping to:', product.productData.shipping);
+        }
         
         // Buy now item now has standardized structure matching cart items
         setBuyNowItem(product);
@@ -256,19 +273,33 @@ const CheckoutPage = () => {
     // 2. Free shipping if subtotal >= $10,000
     let shippingCost = 0;
     
+    console.log('🚚 Calculating Shipping - Checkout Items:', {
+      items: checkoutStats?.items,
+      isBuyNow: isBuyNowCheckout,
+      subtotal
+    });
+    
     if (checkoutStats?.items && Array.isArray(checkoutStats.items)) {
       const shippingCosts = checkoutStats.items.map(item => {
         // Get shipping cost from product data
         const productShipping = item.productData?.shipping || item.shipping || 0;
+        console.log('📦 Item Shipping:', {
+          itemTitle: item.productData?.title || item.title,
+          productDataShipping: item.productData?.shipping,
+          itemShipping: item.shipping,
+          finalShipping: productShipping
+        });
         return parseFloat(productShipping) || 0;
       });
       
       // Get maximum shipping cost
       shippingCost = Math.max(...shippingCosts, 0);
+      console.log('✅ Final Shipping Cost:', shippingCost, 'from costs:', shippingCosts);
     }
     
     // Apply free shipping rule for orders >= $10,000
     if (subtotal >= 10000) {
+      console.log('🎉 Free shipping applied! Subtotal >= 10000');
       shippingCost = 0;
     }
     
@@ -282,7 +313,7 @@ const CheckoutPage = () => {
       tax,
       total
     };
-  }, [checkoutStats?.totalPrice, checkoutStats?.items]);
+  }, [checkoutStats?.totalPrice, checkoutStats?.items, isBuyNowCheckout]);
 
   // Analyze cart for order type and mixed delivery notification
   const cartAnalysis = useMemo(() => {
@@ -863,27 +894,29 @@ const CheckoutPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-2xl font-bold text-gray-900">Checkout</h1>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 lg:py-6">
+          <h1 className="text-xl lg:text-2xl font-bold text-gray-900">Checkout</h1>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 lg:py-8">
         
         {/* Step Indicator */}
-        <StepIndicator currentStep={currentStep} />
+        <div className="mb-6 lg:mb-8">
+          <StepIndicator currentStep={currentStep} />
+        </div>
         
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8">
+        <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-8">
           
           {/* Left Column - Step Content */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="lg:col-span-7 space-y-4 lg:space-y-6 order-2 lg:order-1">
             
             {/* Step 1: Customer Information */}
             {currentStep === 1 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">Customer Information</h2>
+                <div className="grid grid-cols-1 gap-3 lg:gap-4">
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
                       Full Name <span className="text-red-500">*</span>
@@ -915,7 +948,7 @@ const CheckoutPage = () => {
                     )}
                   </div>
                   
-                  <div className="md:col-span-2 space-y-1">
+                  <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
                       Phone Number <span className="text-red-500">*</span>
                     </label>
@@ -923,7 +956,7 @@ const CheckoutPage = () => {
                       type="tel"
                       value={form.phone}
                       onChange={(e) => setForm(prev => ({ ...prev, phone: e.target.value }))}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-sm ${errors.phone ? 'border-red-500' : 'border-gray-300'}`}
                       placeholder="+1 (555) 123-4567 or 1234567890"
                     />
                     {errors.phone && <p className="text-red-500 text-xs">{errors.phone}</p>}
@@ -936,10 +969,10 @@ const CheckoutPage = () => {
                   </div>
                 </div>
                 
-                <div className="flex justify-end mt-6">
+                <div className="flex justify-end mt-4 lg:mt-6">
                   <button
                     onClick={nextStep}
-                    className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                    className="w-full lg:w-auto bg-orange-500 text-white px-6 py-2.5 lg:py-2 rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
                   >
                     Continue to Address
                   </button>
@@ -949,10 +982,10 @@ const CheckoutPage = () => {
 
             {/* Step 2: Address Information */}
             {currentStep === 2 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Address Information</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2 space-y-1">
+              <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">Address Information</h2>
+                <div className="grid grid-cols-1 gap-3 lg:gap-4">
+                  <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
                       Street Address <span className="text-red-500">*</span>
                     </label>
@@ -1112,16 +1145,16 @@ const CheckoutPage = () => {
                   </div>
                 </div>
                 
-                <div className="flex justify-between mt-6">
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 mt-4 lg:mt-6">
                   <button
                     onClick={prevStep}
-                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                    className="w-full sm:w-auto bg-gray-300 text-gray-700 px-6 py-2.5 lg:py-2 rounded-lg hover:bg-gray-400 transition-colors text-sm font-medium"
                   >
                     Back
                   </button>
                   <button
                     onClick={nextStep}
-                    className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors"
+                    className="w-full sm:w-auto bg-orange-500 text-white px-6 py-2.5 lg:py-2 rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
                   >
                     Continue to Payment
                   </button>
@@ -1131,8 +1164,8 @@ const CheckoutPage = () => {
 
             {/* Step 3: Payment Information */}
             {currentStep === 3 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Information</h2>
+              <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6">
+                <h2 className="text-base lg:text-lg font-semibold text-gray-900 mb-3 lg:mb-4">Payment Information</h2>
                 
                 {/* Payment Method Selection */}
                 <div className="mb-6">
@@ -1554,17 +1587,17 @@ const CheckoutPage = () => {
                   </div>
                 )}
                 
-                <div className="flex justify-between mt-6">
+                <div className="flex flex-col-reverse sm:flex-row justify-between gap-3 mt-4 lg:mt-6">
                   <button
                     onClick={prevStep}
-                    className="bg-gray-300 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+                    className="w-full sm:w-auto bg-gray-300 text-gray-700 px-6 py-2.5 lg:py-2 rounded-lg hover:bg-gray-400 transition-colors text-sm font-medium"
                   >
                     Back
                   </button>
                   <button
                     onClick={handleSubmitOrder}
                     disabled={isSubmitting}
-                    className="bg-orange-500 text-white px-6 py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50"
+                    className="w-full sm:w-auto bg-orange-500 text-white px-4 py-2.5 lg:py-2 rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 text-sm font-medium"
                   >
                     {isSubmitting ? 'Processing...' : `${cartAnalysis.notification?.buttonText || 'Place Order'} - PKR ${(orderTotals?.total || 0).toFixed(2)}`}
                   </button>
@@ -1575,19 +1608,19 @@ const CheckoutPage = () => {
           </div>
           
           {/* Right Column - Order Summary */}
-          <div className="lg:col-span-5 mt-8 lg:mt-0">
-            <div className="bg-white rounded-lg border border-gray-200 p-6 sticky top-8">
+          <div className="lg:col-span-5 order-1 lg:order-2 mb-4 lg:mb-0">
+            <div className="bg-white rounded-lg border border-gray-200 p-4 lg:p-6 lg:sticky lg:top-8">
               
               {/* Items */}
-              <div className="space-y-4 mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">Order Summary</h3>
+              <div className="space-y-3 lg:space-y-4 mb-4 lg:mb-6">
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900">Order Summary</h3>
                 
                 {checkoutItems && checkoutItems.length > 0 ? checkoutItems.map((item, index) => {
                   const productData = item.productData || item;
                   
                   return (
-                    <div key={item._id || productData._id || item.id || index} className="flex items-center space-x-3">
-                      <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+                    <div key={item._id || productData._id || item.id || index} className="flex items-center space-x-2 lg:space-x-3">
+                      <div className="flex-shrink-0 w-12 h-12 lg:w-16 lg:h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
                         <img
                           src={getImageUrl('products', productData.image || (productData.images?.[0] || null))}
                           alt={productData.title || productData.name || 'Product'}
@@ -1602,30 +1635,30 @@ const CheckoutPage = () => {
                         </div>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900 line-clamp-2">
+                        <h4 className="text-xs lg:text-sm font-medium text-gray-900 line-clamp-2">
                           {productData.title || productData.name || 'Unknown Product'}
                         </h4>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-xs lg:text-sm text-gray-500">
                           Qty: {item.quantity || 1}
                           {item.selectedSize && (
-                            <span className="ml-2 text-gray-700 font-medium">• Size: {item.selectedSize}</span>
+                            <span className="ml-1 lg:ml-2 text-gray-700 font-medium">• Size: {item.selectedSize}</span>
                           )}
                         </p>
                       </div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-xs lg:text-sm font-medium text-gray-900 whitespace-nowrap">
                         PKR {((productData.price || 0) * (item.quantity || 1)).toFixed(2)}
                       </div>
                     </div>
                   );
                 }) : (
                   <div className="text-center text-gray-500 py-4">
-                    <p>No items in cart</p>
+                    <p className="text-sm">No items in cart</p>
                   </div>
                 )}
               </div>
 
               {/* Totals */}
-              <div className="border-t border-gray-200 pt-4 space-y-2">
+              <div className="border-t border-gray-200 pt-3 lg:pt-4 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="text-gray-900">PKR {(orderTotals.subtotal || 0).toFixed(2)}</span>

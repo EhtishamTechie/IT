@@ -318,7 +318,7 @@ const ProductDetailPage = () => {
           image: product.image || (product.images?.[0] || null),
           images: product.images || [],
           stock: product.stock || 0,
-          shipping: product.shipping || 0,
+          shipping: parseFloat(product.shipping) || 0, // Ensure shipping is a number
           vendor: product.vendor,
           currency: product.currency || 'USD',
           discount: product.discount || 0,
@@ -330,6 +330,7 @@ const ProductDetailPage = () => {
       };
       
       console.log('✅ Buy Now item structured to match cart format:', buyNowItem);
+      console.log('🚚 Shipping cost included:', buyNowItem.productData.shipping);
       localStorage.setItem('buyNowItem', JSON.stringify(buyNowItem));
       
       // Navigate directly to checkout, skipping cart page

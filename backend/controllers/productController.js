@@ -462,7 +462,7 @@ const getProductById = async (req, res) => {
     if (isValidObjectId) {
       // ⚡ OPTIMIZED: Try database lookup with field selection
       product = await Product.findById(productId)
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing shipping')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name')
         .populate('subCategory', 'name')
@@ -515,7 +515,7 @@ const getProduct = async (req, res) => {
     if (isValidObjectId) {
       // ⚡ OPTIMIZED: Try by ID first with field selection
       product = await Product.findById(identifier)
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing shipping')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
@@ -526,7 +526,7 @@ const getProduct = async (req, res) => {
     } else {
       // ⚡ OPTIMIZED: Try by slug with field selection
       product = await Product.findOne({ slug: identifier })
-        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing')
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug metaTitle metaDescription seoKeywords altText canonicalUrl views hasSizes availableSizes sizeStock wholesaleAvailable wholesaleContact wholesalePricing shipping')
         .populate('vendor', 'businessName email contactPhone rating')
         .populate('mainCategory', 'name slug')
         .populate('subCategory', 'name slug')
