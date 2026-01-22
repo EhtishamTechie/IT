@@ -753,8 +753,32 @@ if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath, {
     maxAge: '1y',
     immutable: true,
-    index: false // Don't auto-serve index.html
+    index: false, // Don't auto-serve index.html
+    setHeaders: (res, filePath) => {
+      // Ensure correct MIME types for all files
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      } else if (filePath.endsWith('.mjs')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      } else if (filePath.endsWith('.jsx')) {
+        // CRITICAL: JSX files should never be served - this is a build issue
+        console.error('⚠️ WARNING: Attempting to serve JSX source file:', filePath);
+        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+      } else if (filePath.endsWith('.json')) {
+        res.setHeader('Content-Type', 'application/json; charset=UTF-8');
+      } else if (filePath.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html; charset=UTF-8');
+      }
+      // Security headers
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+    }
   }));
+  console.log('✅ Serving frontend static files from:', frontendDistPath);
+} else {
+  console.error('⚠️ Frontend dist directory not found at:', frontendDistPath);
+  console.error('⚠️ Please run "npm run build" in the frontend directory');
 }
 
 // Error handler with enhanced logging
