@@ -317,6 +317,8 @@ const ProductDetailPage = () => {
           price: product.price,
           image: product.image || (product.images?.[0] || null),
           images: product.images || [],
+          optimizedImage: product.optimizedImage || null, // Include optimized image data for WebP/AVIF
+          optimizedImages: product.optimizedImages || [], // Include optimized variants
           stock: product.stock || 0,
           shipping: parseFloat(product.shipping) || 0, // Ensure shipping is a number
           vendor: product.vendor,

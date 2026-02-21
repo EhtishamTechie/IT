@@ -192,8 +192,8 @@ const addToCart = async (req, res) => {
           stock: product.stock || 0,
           inStock: product.stock > 0,
           shipping: product.shipping || 0,
-          images: product.images || [],
-          image: product.images?.[0] || product.image || 'placeholder-image.jpg'
+          images: (product.images || []).map(img => normalizeImageUrl(img)),
+          image: normalizeImageUrl(product.images?.[0] || product.image || 'placeholder-image.jpg')
         };
       } else {
         // Add new item to cart
@@ -222,7 +222,7 @@ const addToCart = async (req, res) => {
             _id: product._id,
             title: product.title,
             price: product.price,
-            image: product.images?.[0] || product.image || 'placeholder-image.jpg',
+            image: normalizeImageUrl(product.images?.[0] || product.image || 'placeholder-image.jpg'),
             currency: product.currency || 'USD',
             stock: product.stock || 0,
             brand: product.brand,

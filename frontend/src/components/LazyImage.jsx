@@ -48,6 +48,17 @@ const LazyImage = ({
       return path;
     }
     
+    // Handle raw filenames without /uploads/ prefix (e.g., from cart data)
+    // Add the /uploads/products/ prefix so the URL resolves correctly
+    if (path && !path.startsWith('/') && !path.includes('://')) {
+      const cleanFilename = path.split('/').pop().split('\\').pop();
+      const fullPath = `/uploads/products/${cleanFilename}`;
+      if (import.meta.env.DEV) {
+        return `${config.BASE_URL}${fullPath}`;
+      }
+      return fullPath;
+    }
+    
     // Otherwise return as-is
     return path;
   };

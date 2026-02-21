@@ -2,11 +2,10 @@ import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../contexts/CartContext";
 import { useAuth } from "../contexts/AuthContext";
-import { getImageUrl } from "../config";
+import LazyImage from "../components/LazyImage";
 import OrderService from "../services/orderService";
 import ProductService from "../services/productService";
 import { analyzeCart, shouldShowDeliveryNotification, generateDeliveryEstimate, getOrderTypeDisplayName } from "../utils/cartAnalysis";
-import ImagePlaceholder from "../components/ImagePlaceholder";
 import AdvancePaymentSection from "../components/AdvancePaymentSection";
 
 // Phone number validation function
@@ -1621,18 +1620,16 @@ const CheckoutPage = () => {
                   return (
                     <div key={item._id || productData._id || item.id || index} className="flex items-center space-x-2 lg:space-x-3">
                       <div className="flex-shrink-0 w-12 h-12 lg:w-16 lg:h-16 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
-                        <img
-                          src={getImageUrl('products', productData.image || (productData.images?.[0] || null))}
+                        <LazyImage
+                          src={productData.image || (productData.images?.[0] || null)}
                           alt={productData.title || productData.name || 'Product'}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextElementSibling.style.display = 'block';
-                          }}
+                          width={64}
+                          height={64}
+                          enableModernFormats={true}
+                          optimizedImage={productData.optimizedImage || null}
+                          fallback="/assets/no-image.png"
                         />
-                        <div style={{ display: 'none' }} className="w-full h-full">
-                          <ImagePlaceholder size="normal" className="w-full h-full rounded-lg" />
-                        </div>
                       </div>
                       <div className="flex-1 min-w-0">
                         <h4 className="text-xs lg:text-sm font-medium text-gray-900 line-clamp-2">
