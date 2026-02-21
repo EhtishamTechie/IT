@@ -330,23 +330,73 @@ const getAllProducts = async (req, res) => {
 
     const queryStartTime = Date.now();
     
-    // ⚡ OPTIMIZED: Use lean() for better performance + field selection to reduce data transfer
-    const products = await Product.find(filter)
-      .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug createdAt approvalStatus isActive hasSizes availableSizes sizeStock')
-      .populate('vendor', 'businessName email contactPhone rating')
-      .populate('mainCategory', 'name')
-      .populate('subCategory', 'name')
-      .populate('category', 'name')
-      .sort(sortOption)
-      .skip(skip)
-      .limit(limit)
-      .lean()
-      .exec();
+    // Determine if we should use category-interleaved sorting
+    // Only apply when using default sort (relevance/newest) and no specific category/search filter
+    // This creates a round-robin mix: latest from Cat A, latest from Cat B, latest from Cat C, etc.
+    const useInterleavedSort = !req.query.sort && !req.query.category && !req.query.subCategory && !req.query.search;
+    
+    let products;
+    let totalProducts;
+    
+    if (useInterleavedSort) {
+      // ⚡ Category-interleaved sorting via aggregation pipeline
+      // Step 1: Sort all matching products by newest first
+      // Step 2: Group by mainCategory, assigning each product a rank within its category
+      // Step 3: Sort by rank (interleave), then by date within each rank level
+      // Step 4: Skip/limit for pagination (works naturally on the interleaved order)
+      const pipeline = [
+        { $match: filter },
+        { $sort: { createdAt: -1 } },
+        { $group: {
+          _id: { $ifNull: [{ $arrayElemAt: ['$mainCategory', 0] }, null] },
+          products: { $push: '$$ROOT' }
+        }},
+        { $unwind: { path: '$products', includeArrayIndex: 'categoryRank' } },
+        { $replaceRoot: { 
+          newRoot: { $mergeObjects: ['$products', { _categoryRank: '$categoryRank' }] }
+        }},
+        { $sort: { _categoryRank: 1, createdAt: -1 } },
+        { $project: { _categoryRank: 0 } }
+      ];
+      
+      // Count total (same filter, no need for aggregation)
+      totalProducts = await Product.countDocuments(filter);
+      
+      // Execute aggregation with pagination
+      products = await Product.aggregate([
+        ...pipeline,
+        { $skip: skip },
+        { $limit: limit }
+      ]);
+      
+      // Populate references on aggregation results (aggregation returns plain objects)
+      await Product.populate(products, [
+        { path: 'vendor', select: 'businessName email contactPhone rating' },
+        { path: 'mainCategory', select: 'name' },
+        { path: 'subCategory', select: 'name' },
+        { path: 'category', select: 'name' }
+      ]);
+      
+      console.log('🔀 [PRODUCTS FETCH] Using category-interleaved sorting');
+    } else {
+      // ⚡ Standard query with user-specified sort/filter
+      products = await Product.find(filter)
+        .select('title description price originalPrice discount image images video category mainCategory subCategory brand tags rating stock vendor slug createdAt approvalStatus isActive hasSizes availableSizes sizeStock shipping')
+        .populate('vendor', 'businessName email contactPhone rating')
+        .populate('mainCategory', 'name')
+        .populate('subCategory', 'name')
+        .populate('category', 'name')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+      
+      totalProducts = await Product.countDocuments(filter);
+    }
 
     const queryTime = Date.now() - queryStartTime;
     console.log(`⚡ [PRODUCTS FETCH] Query executed in ${queryTime}ms`);
-
-    const totalProducts = await Product.countDocuments(filter);
     
     // Log raw product data for debugging
     console.log('📦 [PRODUCTS FETCH] Raw product data:', products.map(p => ({
@@ -356,7 +406,7 @@ const getAllProducts = async (req, res) => {
       firstImage: p.images && p.images.length > 0 ? p.images[0] : null
     })));
 
-    console.log('� [PRODUCTS FETCH] Results:', {
+    console.log('📊 [PRODUCTS FETCH] Results:', {
       found: products.length,
       total: totalProducts,
       page,
