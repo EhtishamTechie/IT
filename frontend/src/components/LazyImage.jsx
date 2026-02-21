@@ -127,40 +127,16 @@ const LazyImage = ({
       }
     }
     
-    // Fallback: Generate paths client-side (less reliable)
-    if (!baseSrc) return '';
-    
-    // Extract path from full URL if needed
-    let pathOnly = baseSrc;
-    if (baseSrc.includes(config.BASE_URL)) {
-      pathOnly = baseSrc.replace(config.BASE_URL, '');
+    // No optimizedImage data from backend - don't generate speculative paths
+    // for formats (avif/webp) since those files likely don't exist and cause
+    // "Failed parsing srcset" / "Dropped srcset candidate" browser warnings
+    if (format) {
+      return undefined;
     }
     
-    // Get the directory and filename separately
-    const lastSlash = pathOnly.lastIndexOf('/');
-    const directory = pathOnly.substring(0, lastSlash + 1);
-    const filename = pathOnly.substring(lastSlash + 1);
-    
-    // Remove extension from filename
-    const lastDot = filename.lastIndexOf('.');
-    const filenameWithoutExt = lastDot !== -1 ? filename.substring(0, lastDot) : filename;
-    
-    // Generate srcSet with format suffix  
-    const formatSuffix = format ? `.${format}` : '';
-    return sizes
-      .map(size => {
-        const optimizedPath = `${directory}${filenameWithoutExt}-${size}w${formatSuffix}`;
-        // In production, use relative paths; in dev, use full URLs
-        if (import.meta.env.DEV) {
-          const fullUrl = optimizedPath.startsWith('/') 
-            ? `${config.BASE_URL}${optimizedPath}` 
-            : optimizedPath;
-          return `${fullUrl} ${size}w`;
-        }
-        // Production - use relative path
-        return `${optimizedPath} ${size}w`;
-      })
-      .join(', ');
+    // For the original format (no format suffix), also skip client-side srcset
+    // generation - the original <img> src is sufficient as fallback
+    return undefined;
   };
 
   // Generate sizes attribute if not provided - based on what actually exists

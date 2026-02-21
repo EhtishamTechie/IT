@@ -578,8 +578,7 @@ const ProductDetailPage = () => {
                       <label className="text-sm font-semibold mb-2 block">Select Size:</label>
                       <div className="flex flex-wrap gap-2">
                         {product.availableSizes.map((size) => {
-                          const sizeStockInfo = product.sizeStock?.find(s => s.size === size);
-                          const sizeStock = sizeStockInfo?.stock || 0;
+                          const sizeStock = product.sizeStock?.[size] || 0;
                           const isOutOfStock = sizeStock === 0;
                           
                           return (
@@ -603,7 +602,7 @@ const ProductDetailPage = () => {
                       </div>
                       {selectedSize && (
                         <p className="text-sm text-gray-600 mt-2">
-                          Stock available: {product.sizeStock?.find(s => s.size === selectedSize)?.stock || 0} units
+                          Stock available: {product.sizeStock?.[selectedSize] || 0} units
                         </p>
                       )}
                     </div>

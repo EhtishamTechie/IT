@@ -39,7 +39,7 @@
     <link rel="preconnect" href="https://internationaltijarat.com/api" crossorigin>
     
     <!-- Phase 5: Preload critical resources for sub-1-second load -->
-    <link rel="modulepreload" href="/src/main.jsx" as="script">
+    <!-- NOTE: Do NOT modulepreload /src/main.jsx - Vite transforms it, raw JSX has wrong MIME type -->
     <link rel="prefetch" href="/api/homepage/all-data" as="fetch" crossorigin>
     
     <title>International Tijarat - Premium Online Shopping | Fragrances, Jewelry, Mobile Phones & More</title>
@@ -173,7 +173,8 @@
       var script = document.createElement('script');
       script.async = true;
       script.defer = true;
-      script.type = 'module'; // Phase 2.3: Load as ES module for modern browsers
+      // NOTE: Do NOT use type='module' - fbevents.js is NOT an ES module
+      // Using module mode forces CORS, and Facebook's CDN doesn't send Access-Control-Allow-Origin
       script.src = 'https://connect.facebook.net/en_US/fbevents.js';
       document.head.appendChild(script);
       
