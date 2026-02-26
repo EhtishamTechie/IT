@@ -37,23 +37,28 @@ router.put('/', [authenticateAdmin, uploadBannerImage], async (req, res) => {
             }
         }
 
-        let banner = await HomepageBanner.findOne();
-        if (!banner) {
-            banner = new HomepageBanner();
-        }
-
-        banner.slides = slides.map((slide, index) => ({
+        const processedSlides = slides.map((slide, index) => ({
             ...slide,
             order: index
         }));
 
-        await banner.save();
+        // Use findOneAndUpdate with $set to bypass Mongoose change-detection issues
+        // with Mixed-type fields (primaryProduct, secondaryProducts). A plain
+        // findOne() + .save() may silently skip the MongoDB write when Mongoose
+        // doesn't detect that a Mixed field has changed.
+        const updatedBanner = await HomepageBanner.findOneAndUpdate(
+            {},
+            { $set: { slides: processedSlides, lastUpdated: new Date() } },
+            { upsert: true, new: true }
+        );
         
-        // Clear banner cache
+        // Clear ALL banner-related caches (both route-level and manual keys)
         cacheService.clearPattern('cache:*/banner*');
+        await cacheService.del('homepage_banner');   // used by GET /api/banner
         
-        res.json(banner.slides);
+        res.json(updatedBanner.slides);
     } catch (error) {
+        console.error('Error updating banner slides:', error);
         res.status(500).json({ message: error.message });
     }
 });

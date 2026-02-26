@@ -506,26 +506,26 @@ app.put('/api/banner', [authenticateAdmin, uploadMultipleProductImages], async (
             }
         }
 
-        let banner = await HomepageBanner.findOne();
-        if (!banner) {
-            console.log('📝 Creating new banner document');
-            banner = new HomepageBanner();
-        } else {
-            console.log('📝 Updating existing banner document');
-        }
-        
-        banner.slides = slides.map((slide, index) => ({
+        const processedSlides = slides.map((slide, index) => ({
             ...slide,
             order: index
         }));
+
+        // Use findOneAndUpdate with $set to bypass Mongoose change-detection issues
+        // with Mixed-type fields. Plain findOne() + .save() may silently skip the
+        // MongoDB write when Mongoose doesn't detect changes in Mixed fields.
+        const updatedBanner = await HomepageBanner.findOneAndUpdate(
+            {},
+            { $set: { slides: processedSlides, lastUpdated: new Date() } },
+            { upsert: true, new: true }
+        );
         
-        await banner.save();
-        
-        // Invalidate cache
+        // Invalidate both cache keys
         await cacheService.del('homepage_banner');
+        cacheService.clearPattern('cache:*/banner*');
         
         console.log('✅ Banner updated successfully');
-        res.json(banner.slides);
+        res.json(updatedBanner.slides);
     } catch (error) {
         console.error('❌ Error updating banner:', error);
         res.status(500).json({ message: error.message });
