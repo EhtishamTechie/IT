@@ -520,8 +520,9 @@ app.put('/api/banner', [authenticateAdmin, uploadMultipleProductImages], async (
             { upsert: true, new: true }
         );
         
-        // Invalidate both cache keys
+        // Invalidate all banner-related and homepage aggregate caches
         await cacheService.del('homepage_banner');
+        await cacheService.del('cache:/api/homepage/all-data'); // used by homepage HeroSection
         cacheService.clearPattern('cache:*/banner*');
         
         console.log('✅ Banner updated successfully');

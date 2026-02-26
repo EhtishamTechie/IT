@@ -52,9 +52,10 @@ router.put('/', [authenticateAdmin, uploadBannerImage], async (req, res) => {
             { upsert: true, new: true }
         );
         
-        // Clear ALL banner-related caches (both route-level and manual keys)
+        // Clear ALL banner-related caches
         cacheService.clearPattern('cache:*/banner*');
-        await cacheService.del('homepage_banner');   // used by GET /api/banner
+        await cacheService.del('homepage_banner');         // used by GET /api/banner
+        await cacheService.del('cache:/api/homepage/all-data'); // used by homepage HeroSection
         
         res.json(updatedBanner.slides);
     } catch (error) {

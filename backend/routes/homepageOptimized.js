@@ -84,11 +84,11 @@ const getOptimizedImagePaths = (originalPath) => {
  */
 router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req, res) => {
   try {
-    // Phase 5: Aggressive HTTP caching for sub-1-second loads
-    // Cache in browser for 2 minutes, CDN for 5 minutes
+    // Always validate with server so admin changes (banners, products, etc.)
+    // are reflected immediately. Server-side Node.js cache (1 hour) still
+    // serves fast responses; that cache is explicitly cleared on any update.
     res.set({
-      'Cache-Control': 'public, max-age=120, stale-while-revalidate=300',
-      'CDN-Cache-Control': 'public, max-age=300',
+      'Cache-Control': 'no-cache, must-revalidate',
       'Vary': 'Accept-Encoding'
     });
     
