@@ -84,11 +84,14 @@ const getOptimizedImagePaths = (originalPath) => {
  */
 router.get('/all-data', cacheService.middleware(HOMEPAGE_CACHE_TTL), async (req, res) => {
   try {
-    // Always validate with server so admin changes (banners, products, etc.)
-    // are reflected immediately. Server-side Node.js cache (1 hour) still
-    // serves fast responses; that cache is explicitly cleared on any update.
+    // Cloudflare caches this for 5 minutes for performance.
+    // Whenever admin saves banners / featured / premium / static categories,
+    // the backend calls the Cloudflare Purge API to bust this URL automatically.
+    // Users always see fresh data after an admin edit — no manual CF dashboard purge needed.
+    // The server-side Node.js cache (1 hour) is also cleared on every admin save.
     res.set({
-      'Cache-Control': 'no-cache, must-revalidate',
+      'Cache-Control': 'public, max-age=30, must-revalidate',  // Browser: 30s
+      'CDN-Cache-Control': 'public, max-age=300',               // Cloudflare: 5 min
       'Vary': 'Accept-Encoding'
     });
     

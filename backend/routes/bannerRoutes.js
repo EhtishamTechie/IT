@@ -4,6 +4,7 @@ const HomepageBanner = require('../models/HomepageBanner');
 const { authenticateToken, authenticateAdmin } = require('../middleware/auth');
 const { uploadBannerImage } = require('../middleware/uploadMiddleware');
 const cacheService = require('../services/cacheService');
+const { purgeCloudflareUrls } = require('../services/cloudflarePurge');
 
 // Cache duration constants (in seconds)
 const BANNER_CACHE = 3600; // 1 hour - banners change infrequently
@@ -52,10 +53,18 @@ router.put('/', [authenticateAdmin, uploadBannerImage], async (req, res) => {
             { upsert: true, new: true }
         );
         
-        // Clear ALL banner-related caches
+        // Clear ALL server-side caches
         cacheService.clearPattern('cache:*/banner*');
         await cacheService.del('homepage_banner');         // used by GET /api/banner
         await cacheService.del('cache:/api/homepage/all-data'); // used by homepage HeroSection
+
+        // Purge Cloudflare edge cache so homepage reflects changes immediately
+        const siteUrl = process.env.SITE_URL || 'https://internationaltijarat.com';
+        purgeCloudflareUrls([
+          `${siteUrl}/api/homepage/all-data`,
+          `${siteUrl}/api/banner`,
+          `${siteUrl}/`
+        ]);
         
         res.json(updatedBanner.slides);
     } catch (error) {

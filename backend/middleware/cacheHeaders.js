@@ -39,11 +39,22 @@ const cacheHeaders = (req, res, next) => {
         'Expires': '0'
       });
     }
+    // Homepage all-data: browser 30s, Cloudflare 5 min.
+    // Cloudflare cache is explicitly purged via API whenever admin saves any homepage
+    // section (banners, featured products, premium products, static categories).
+    // This gives CDN speed WITHOUT stale data showing to users after admin edits.
+    else if (path.includes('/homepage/all-data')) {
+      res.set({
+        'Cache-Control': 'public, max-age=30, must-revalidate',  // Browser: 30s
+        'CDN-Cache-Control': 'public, max-age=300',               // Cloudflare: 5 min (purged on admin save)
+        'Vary': 'Accept-Encoding'
+      });
+    }
     // Products and categories - SHORT cache for admin changes to reflect quickly
     else if (path.includes('/products') || path.includes('/categories') || path.includes('/homepage')) {
       res.set({
         'Cache-Control': 'public, max-age=30, must-revalidate',  // Browser: 30s
-        'CDN-Cache-Control': 'public, max-age=120', // Cloudflare edge: 2 minutes (longer than browser)
+        'CDN-Cache-Control': 'public, max-age=120', // Cloudflare edge: 2 minutes (shorter than all-data)
         'Vary': 'Accept-Encoding'
       });
     }

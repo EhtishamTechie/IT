@@ -1,4 +1,15 @@
 const HomepageStaticCategory = require('../models/HomepageStaticCategory');
+const cacheService = require('../services/cacheService');
+const { purgeCloudflareUrls } = require('../services/cloudflarePurge');
+
+const SITE_URL = process.env.SITE_URL || 'https://internationaltijarat.com';
+const HOMEPAGE_CACHE_KEY = 'cache:/api/homepage/all-data';
+
+// Helper: clear server cache and Cloudflare edge cache after any homepage change
+const invalidateHomepageCache = async () => {
+  await cacheService.del(HOMEPAGE_CACHE_KEY);
+  purgeCloudflareUrls([`${SITE_URL}/api/homepage/all-data`, `${SITE_URL}/`]);
+};
 
 // Get all static categories
 const getStaticCategories = async (req, res) => {
@@ -85,6 +96,8 @@ const addStaticCategory = async (req, res) => {
             .populate('category')
             .populate('selectedProducts');
 
+        await invalidateHomepageCache();
+
         res.json({
             success: true,
             category: populatedCategory
@@ -134,6 +147,8 @@ const updateStaticCategory = async (req, res) => {
             });
         }
 
+        await invalidateHomepageCache();
+
         res.json({
             success: true,
             category: updated
@@ -160,6 +175,8 @@ const deleteStaticCategory = async (req, res) => {
                 message: 'Static category not found'
             });
         }
+
+        await invalidateHomepageCache();
 
         res.json({
             success: true,

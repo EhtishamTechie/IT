@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const cacheService = require('./services/cacheService');
+const { purgeCloudflareUrls } = require('./services/cloudflarePurge');
 
 // Custom optimized middleware
 const compressionMiddleware = require('./middleware/compression');
@@ -524,7 +525,15 @@ app.put('/api/banner', [authenticateAdmin, uploadMultipleProductImages], async (
         await cacheService.del('homepage_banner');
         await cacheService.del('cache:/api/homepage/all-data'); // used by homepage HeroSection
         cacheService.clearPattern('cache:*/banner*');
-        
+
+        // Purge Cloudflare edge cache so homepage reflects changes immediately
+        const siteUrl = process.env.SITE_URL || 'https://internationaltijarat.com';
+        purgeCloudflareUrls([
+          `${siteUrl}/api/homepage/all-data`,
+          `${siteUrl}/api/banner`,
+          `${siteUrl}/`
+        ]);
+
         console.log('✅ Banner updated successfully');
         res.json(updatedBanner.slides);
     } catch (error) {
@@ -549,6 +558,11 @@ app.put('/api/special/featured', authenticateAdmin, async (req, res) => {
         
         const updatedProducts = await FeaturedProducts.findOne()
             .populate('products');
+
+        // Clear server-side cache and purge Cloudflare so homepage shows new products immediately
+        await cacheService.del('cache:/api/homepage/all-data');
+        const siteUrl = process.env.SITE_URL || 'https://internationaltijarat.com';
+        purgeCloudflareUrls([`${siteUrl}/api/homepage/all-data`, `${siteUrl}/`]);
         
         res.json(updatedProducts.products);
     } catch (error) {
@@ -572,6 +586,11 @@ app.put('/api/special/premium', authenticateAdmin, async (req, res) => {
         
         const updatedProducts = await PremiumProducts.findOne()
             .populate('products');
+
+        // Clear server-side cache and purge Cloudflare so homepage shows new products immediately
+        await cacheService.del('cache:/api/homepage/all-data');
+        const siteUrl = process.env.SITE_URL || 'https://internationaltijarat.com';
+        purgeCloudflareUrls([`${siteUrl}/api/homepage/all-data`, `${siteUrl}/`]);
         
         res.json(updatedProducts.products);
     } catch (error) {
